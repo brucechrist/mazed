@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+ Alpha
 import './styles.css';
 
 const tabs = [
@@ -7,6 +8,7 @@ const tabs = [
   { label: 'World', icon: '🌍' },
   { label: 'Friends', icon: '🤝' },
 ];
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
 
 function Landing({ onSelect }) {
   return (
@@ -31,6 +33,11 @@ export default function App() {
   if (!activeTab) {
     return <Landing onSelect={setActiveTab} />;
   }
+=======
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState(tabs[0].label);
+ Alpha
 
   return (
     <div className="app-container">
@@ -40,6 +47,17 @@ export default function App() {
             key={tab.label}
             className={`tab ${activeTab === tab.label ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.label)}
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+          >
+            <span className="icon">{tab.icon}</span>
+            <span>{tab.label}</span>
+          </div>
+        ))}
+      </aside>
+      <div className="content">
+        <h1>{activeTab}</h1>
+      </div>
+=======
           >
             <span className="icon">{tab.icon}</span>
             <span>{tab.label}</span>
@@ -52,3 +70,47 @@ export default function App() {
     </div>
   );
 }
+
+import './App.css';
+
+const tabs = ['Character', 'Training', 'World', 'Friends'];
+
+function App() {
+  const [activeTab, setActiveTab] = useState('Character');
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'Character':
+        return <div className="content">Character content</div>;
+      case 'Training':
+        return <div className="content">Training content</div>;
+      case 'World':
+        return <div className="content">World content</div>;
+      case 'Friends':
+        return <div className="content">Friends content</div>;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="app">
+      <nav className="tabs">
+        {tabs.map(tab => (
+          <button
+            key={tab}
+            className={`tab ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+      {renderContent()}
+Alpha
+    </div>
+  );
+}
+
+export default App;
+  main
