@@ -4,9 +4,9 @@
   "description": "The idea is to build the Mazed app for PC, it will be built in react electron, so it's useable through web, app. mobile, while being highly customizable and alive",
   "main": "electron-main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron . --no-sandbox\"",
     "build": "vite build",
-    "start": "electron ."
+    "start": "electron . --no-sandbox"
   },
   "keywords": [],
   "author": "",
