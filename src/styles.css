@@ -1,0 +1,29 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: #121212;
+  color: white;
+}
+
+.nav-container {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+.tab {
+  background-color: #fec76f;
+  color: white;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+}
+
+.tab.active {
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.content {
+  padding: 20px;
+}
