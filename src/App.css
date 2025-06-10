@@ -1,0 +1,35 @@
+body {
+  background-color: #121212;
+  color: white;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.app {
+  padding: 20px;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  background-color: #fec76f;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.tab.active {
+  box-shadow: 0 0 5px #fec76f;
+}
+
+.content {
+  background-color: #1e1e1e;
+  padding: 20px;
+  border-radius: 4px;
+}
