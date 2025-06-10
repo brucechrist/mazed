@@ -5,6 +5,10 @@ body {
   color: white;
 }
 
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+ Alpha
 .landing {
   background-color: white;
   color: black;
@@ -68,46 +72,98 @@ body {
 
 .app-container {
   display: flex;
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+
+
+
+.app-container {
+  display: flex;
+ Alpha
+ Alpha
   height: 100vh;
 }
 
 .sidebar {
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+ Alpha
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
   width: 200px;
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
   background-color: #1e1e1e;
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  background-color: #111;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 200px;
+  background-color: #111;
+ Alpha
+                                                                           Alpha
   padding: 20px 0;
 }
 
 .tab {
   display: flex;
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+ Alpha
   flex-direction: column;
   align-items: center;
   gap: 4px;
   color: #ccc;
   padding: 15px 20px;
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
   text-align: center;
+
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+  text-align: center;
+
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+ Alpha
+ Alpha
   transition: background-color 0.2s, color 0.2s;
 }
 
 .tab.active {
   background-color: #333;
   color: #fff;
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
   border-left: 4px solid #fec76f;
+
+ Alpha
 }
 
 .tab:hover {
   background-color: #222;
   color: #fff;
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
   border-left: 4px solid #fec76f;
+
+ Alpha
 }
 
 .content {
@@ -117,5 +173,13 @@ body {
 }
 
 .icon {
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
   font-size: 4em; /* bigger icon for clarity */
+
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+  font-size: 3.5em; /* bigger icon for clarity */
+
+  font-size: 1.2em;
+ Alpha
+ Alpha
 }
