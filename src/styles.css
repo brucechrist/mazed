@@ -5,25 +5,48 @@ body {
   color: white;
 }
 
-.nav-container {
+
+.app-container {
   display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  padding: 10px;
+  width: 200px;
+  background-color: #111;
+  padding: 20px 0;
 }
 
 .tab {
-  background-color: #fec76f;
-  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
   padding: 10px 20px;
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .tab.active {
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  background-color: #333;
+  color: #fff;
+}
+
+.tab:hover {
+  background-color: #222;
+  color: #fff;
 }
 
 .content {
   padding: 20px;
+  flex: 1;
+}
+
+.icon {
+  font-size: 1.2em;
 }
