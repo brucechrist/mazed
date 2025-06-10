@@ -8,7 +8,10 @@ const tabs = [
   { label: 'World', icon: '🌍' },
   { label: 'Friends', icon: '🤝' },
 ];
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+
  hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+ Alpha
 
 function Landing({ onSelect }) {
   return (
@@ -26,6 +29,7 @@ function Landing({ onSelect }) {
     </div>
   );
 }
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(null);
@@ -33,10 +37,19 @@ export default function App() {
   if (!activeTab) {
     return <Landing onSelect={setActiveTab} />;
   }
-=======
+
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState(null);
+
+  if (!activeTab) {
+    return <Landing onSelect={setActiveTab} />;
+  }
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(tabs[0].label);
+ Alpha
  Alpha
 
   return (
@@ -47,6 +60,17 @@ export default function App() {
             key={tab.label}
             className={`tab ${activeTab === tab.label ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.label)}
+ q3788v-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+          >
+            <span className="icon">{tab.icon}</span>
+            <span>{tab.label}</span>
+          </div>
+        ))}
+      </aside>
+      <div className="content">
+        <h1>{activeTab}</h1>
+      </div>
+
  hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
           >
             <span className="icon">{tab.icon}</span>
@@ -57,7 +81,7 @@ export default function App() {
       <div className="content">
         <h1>{activeTab}</h1>
       </div>
-=======
+
           >
             <span className="icon">{tab.icon}</span>
             <span>{tab.label}</span>
@@ -108,6 +132,7 @@ function App() {
       </nav>
       {renderContent()}
 Alpha
+ Alpha
     </div>
   );
 }
