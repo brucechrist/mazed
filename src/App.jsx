@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './styles.css';
+import QuadrantButton from './QuadrantButton.jsx';
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
@@ -10,6 +11,20 @@ const tabs = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(tabs[0].label);
+  const [showLanding, setShowLanding] = useState(true);
+
+  if (showLanding) {
+    return (
+      <div className="landing-container">
+        <QuadrantButton
+          onSelect={(tab) => {
+            setActiveTab(tab);
+            setShowLanding(false);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
