@@ -5,23 +5,112 @@ body {
   color: white;
 }
 
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+.landing {
+  background-color: white;
+  color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.up,
+.down {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5em;
+}
+
+.card {
+  width: 90px;
+  height: 90px;
+  outline: none;
+  border: none;
+  background: white;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
+    rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  transition: transform 0.2s ease-in-out;
+  font-size: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card:hover {
+  cursor: pointer;
+  transform: scale(1.1);
+  background-color: #f0f0f0;
+}
+
+.card1 {
+  border-radius: 90px 5px 5px 5px;
+}
+
+.card2 {
+  border-radius: 5px 90px 5px 5px;
+}
+
+.card3 {
+  border-radius: 5px 5px 5px 90px;
+}
+
+.card4 {
+  border-radius: 5px 5px 90px 5px;
+}
+
+
 
 .app-container {
   display: flex;
+=======
+
+.app-container {
+  display: flex;
+ Alpha
   height: 100vh;
 }
 
 .sidebar {
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 200px;
+  background-color: #111;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+=======
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 200px;
   background-color: #111;
+ Alpha
   padding: 20px 0;
 }
 
 .tab {
   display: flex;
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #ccc;
+  padding: 15px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  user-select: none;
+  text-align: center;
+=======
   align-items: center;
   gap: 8px;
   color: #ccc;
@@ -29,6 +118,7 @@ body {
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
+ Alpha
   transition: background-color 0.2s, color 0.2s;
 }
 
@@ -43,10 +133,15 @@ body {
 }
 
 .content {
+  margin-left: 200px;
   padding: 20px;
   flex: 1;
 }
 
 .icon {
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+  font-size: 3.5em; /* bigger icon for clarity */
+=======
   font-size: 1.2em;
+ Alpha
 }

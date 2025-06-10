@@ -8,9 +8,36 @@ const tabs = [
   { label: 'World', icon: '🌍' },
   { label: 'Friends', icon: '🤝' },
 ];
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+
+function Landing({ onSelect }) {
+  return (
+    <div className="landing">
+      <div className="main">
+        <div className="up">
+          <button className="card card1" onClick={() => onSelect('Training')}>🧠</button>
+          <button className="card card2" onClick={() => onSelect('Character')}>👤</button>
+        </div>
+        <div className="down">
+          <button className="card card3" onClick={() => onSelect('World')}>🌍</button>
+          <button className="card card4" onClick={() => onSelect('Friends')}>🤝</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState(null);
+
+  if (!activeTab) {
+    return <Landing onSelect={setActiveTab} />;
+  }
+=======
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(tabs[0].label);
+ Alpha
 
   return (
     <div className="app-container">
@@ -20,6 +47,17 @@ export default function App() {
             key={tab.label}
             className={`tab ${activeTab === tab.label ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.label)}
+ hnmdo6-codex/créer-une-barre-de-navigation-latérale-avec-icônes
+          >
+            <span className="icon">{tab.icon}</span>
+            <span>{tab.label}</span>
+          </div>
+        ))}
+      </aside>
+      <div className="content">
+        <h1>{activeTab}</h1>
+      </div>
+=======
           >
             <span className="icon">{tab.icon}</span>
             <span>{tab.label}</span>
@@ -69,6 +107,7 @@ function App() {
         ))}
       </nav>
       {renderContent()}
+Alpha
     </div>
   );
 }
