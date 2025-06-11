@@ -6,6 +6,7 @@ body {
 .main-page {
   display: flex;
   height: 100vh;
+  position: relative;
 }
 
 .side {
@@ -35,4 +36,31 @@ body {
 
 .right .drag-handle {
   left: 0;
+}
+
+.bottom-menu {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.side-button {
+  width: 55px;
+  height: 55px;
+  background-color: #2C2C2C;
+  border-radius: 15px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.side-button svg {
+  width: 27px;
+  height: 27px;
 }
