@@ -1,5 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import MainPage from './MainPage.jsx';
+import PageRouter from './PageRouter.jsx';
 
-ReactDOM.createRoot(document.getElementById('root')).render(<MainPage />);
+ReactDOM.createRoot(document.getElementById('root')).render(<PageRouter />);
