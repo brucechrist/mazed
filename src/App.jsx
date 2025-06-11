@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './styles.css';
-import QuadrantMenu from './QuadrantMenu.jsx';
+
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
@@ -9,18 +9,8 @@ const tabs = [
   { label: 'Friends', icon: '🤝' },
 ];
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState(tabs[0].label);
-  const [showMenu, setShowMenu] = useState(true);
-
-  const handleSelect = (label) => {
-    setActiveTab(label);
-    setShowMenu(false);
-  };
-
-  if (showMenu) {
-    return <QuadrantMenu onSelect={handleSelect} />;
-  }
+export default function QuadrantPage({ initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
 
   return (
     <div className="app-container">

@@ -4,7 +4,7 @@ import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
 
-export default function MainPage() {
+export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;
   const MAX_WIDTH = 523;
 
@@ -76,7 +76,7 @@ export default function MainPage() {
             <path d="M6.5 10H17.5C17.9647 10 18.197 9.99986 18.3902 9.96143C19.1836 9.80361 19.8036 9.18356 19.9614 8.39018C19.9999 8.19698 19.9999 7.96465 19.9999 7.5C19.9999 7.03535 19.9999 6.80306 19.9614 6.60986C19.8036 5.81648 19.1836 5.19624 18.3902 5.03843C18.197 5 17.9647 5 17.5 5H6.5C6.03534 5 5.80306 5 5.60986 5.03843C4.81648 5.19624 4.19624 5.81648 4.03843 6.60986C4 6.80306 4 7.03539 4 7.50004C4 7.9647 4 8.19694 4.03843 8.39014C4.19624 9.18352 4.81648 9.80361 5.60986 9.96143C5.80306 9.99986 6.03535 10 6.5 10Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <QuadrantMenu />
+        <QuadrantMenu onSelect={onSelectQuadrant} />
       </div>
       {showModal && <NoteModal onClose={() => setShowModal(false)} />}
       {showList && <NotesListModal onClose={() => setShowList(false)} />}
