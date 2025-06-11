@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+ codex/ajouter-prise-en-charge-de-plusieurs-tailles
 let mainWindow;
 
 const allowedSizes = [
@@ -61,11 +62,39 @@ function getWindowSize() {
   if (envSize) return envSize;
   const saved = readSavedWindowSize();
   if (saved) return saved;
+
+function getWindowSize() {
+  const defaultSize = { width: 800, height: 600 };
+  const sizeEnv = process.env.APP_SIZE;
+  if (!sizeEnv) {
+    return defaultSize;
+  }
+  const match = sizeEnv.match(/^(\d+)x(\d+)$/);
+  if (!match) {
+    return defaultSize;
+  }
+  const width = parseInt(match[1], 10);
+  const height = parseInt(match[2], 10);
+  // Allow only predefined sizes for now
+  const allowed = [
+    [1024, 575],
+    [1280, 720],
+    [1600, 900],
+    [1920, 1080],
+  ];
+  if (allowed.some(([w, h]) => w === width && h === height)) {
+    return { width, height };
+  }
+ alpha
   return defaultSize;
 }
 
 function createWindow() {
+ codex/ajouter-prise-en-charge-de-plusieurs-tailles
   mainWindow = new BrowserWindow({
+
+  const win = new BrowserWindow({
+ alpha
     ...getWindowSize(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
