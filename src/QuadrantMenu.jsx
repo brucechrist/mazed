@@ -27,7 +27,6 @@ export default function QuadrantMenu({ onSelect }) {
 }
 
 const StyledWrapper = styled.div`
-  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;

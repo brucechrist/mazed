@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './main-page.css';
+import QuadrantMenu from './QuadrantMenu.jsx';
 
 export default function MainPage() {
   const MIN_WIDTH = 253;
@@ -58,6 +59,9 @@ export default function MainPage() {
       <div className="content-area" />
       <div className="side right" style={{ width: rightWidth }}>
         <div className="drag-handle" onMouseDown={startRightDrag}></div>
+      </div>
+      <div className="bottom-menu">
+        <QuadrantMenu />
       </div>
     </div>
   );
