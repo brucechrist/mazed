@@ -1,3 +1,6 @@
-window.addEventListener('DOMContentLoaded', () => {
-  // Preload can expose APIs to renderer here if needed
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+  setWindowSize: (width, height) => ipcRenderer.invoke('set-window-size', width, height),
+  getSavedWindowSize: () => ipcRenderer.invoke('get-saved-window-size'),
 });
