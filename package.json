@@ -14,7 +14,8 @@
   "type": "commonjs",
   "dependencies": {
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "styled-components": "^6.1.18"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.5.2",
@@ -24,4 +25,3 @@
     "wait-on": "^8.0.3"
   }
 }
-
