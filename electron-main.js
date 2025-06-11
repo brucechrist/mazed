@@ -30,6 +30,7 @@ function createWindow() {
             if (mainWindow) mainWindow.webContents.send('go-home');
           },
         },
+        { role: 'togglefullscreen' },
         { role: 'quit' },
       ],
     },
