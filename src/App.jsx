@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './styles.css';
 import QuadrantButton from './QuadrantButton.jsx';
+import SizeSelector from './SizeSelector.jsx';
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
@@ -39,6 +40,7 @@ export default function App() {
             <span>{tab.label}</span>
           </div>
         ))}
+        <SizeSelector />
       </aside>
       <div className="content">
         <h1>{activeTab}</h1>
