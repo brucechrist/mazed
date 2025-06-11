@@ -6,6 +6,7 @@ body {
 .main-page {
   display: flex;
   height: 100vh;
+  position: relative;
 }
 
 .side {
@@ -35,4 +36,11 @@ body {
 
 .right .drag-handle {
   left: 0;
+}
+
+.bottom-menu {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
 }
