@@ -41,6 +41,14 @@
   resize: vertical;
 }
 
+.note-tag {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f8f8f8;
+  width: fit-content;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -57,4 +65,30 @@
 
 .save-button:hover {
   background: #0056b3;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-line {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f0f0f0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.note-line:hover {
+  background: #e0e0e0;
+}
+
+.note-view-content {
+  white-space: pre-wrap;
 }
