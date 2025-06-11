@@ -34,7 +34,9 @@ APP_SIZE=1280x720 npm start
 
 If `APP_SIZE` is not provided or has an invalid value, the default size of `800x600` is used.
 
+
 After launching the application you can change the size at any time using the
 size selector located in the sidebar. Choose one of the supported resolutions
 and press **Apply Size**. The selected dimensions are stored so that the app
 opens with the same size on the next launch.
+

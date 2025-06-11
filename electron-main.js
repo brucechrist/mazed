@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+
 let mainWindow;
 
 const allowedSizes = [
@@ -61,14 +62,17 @@ function getWindowSize() {
   if (envSize) return envSize;
   const saved = readSavedWindowSize();
   if (saved) return saved;
+
   return defaultSize;
 }
 
 function createWindow() {
+ codex/ajouter-prise-en-charge-de-plusieurs-tailles
   const { width, height } = getWindowSize();
   mainWindow = new BrowserWindow({
     width,
     height,
+
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
