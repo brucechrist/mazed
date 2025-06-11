@@ -16,3 +16,20 @@ And make it social so people can make friends (School
 It will hold all the spiritual lore, 
 The idea of mazed is to make a map, that people can use to find themselves, god, and there version of it
 
+
+## Window sizes
+
+You can define the initial window size when launching the Electron app by setting the `APP_SIZE` environment variable. The value must be one of the supported resolutions:
+
+- `1024x575`
+- `1280x720`
+- `1600x900`
+- `1920x1080`
+
+Example:
+
+```bash
+APP_SIZE=1280x720 npm start
+```
+
+If `APP_SIZE` is not provided or has an invalid value, the default size of `800x600` is used.
