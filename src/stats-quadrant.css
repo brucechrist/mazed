@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'ExodusD-Regular';
+  src: url('./assets/fonts/ExodusD-Regular.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 .stats-quadrant {
   position: relative;
   width: 300px;
