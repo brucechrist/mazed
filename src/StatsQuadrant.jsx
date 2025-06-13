@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './stats-quadrant.css';
 
 export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
-  const [stats, setStats] = useState(initialStats);
+  const [stats, setStats] = useState(() => {
+    const stored = localStorage.getItem('characterStats');
+    return stored ? JSON.parse(stored) : initialStats;
+  });
   const [editing, setEditing] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('characterStats', JSON.stringify(stats));
+  }, [stats]);
 
   const handleChange = (index, value) => {
     const updated = [...stats];
@@ -24,7 +31,7 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
               type="number"
               autoFocus
               value={stat}
-              onChange={(e) => handleChange(i, e.target.value)}
+              onChange={(e) => handleChange(i, parseInt(e.target.value, 10))}
               onBlur={() => setEditing(null)}
             />
           ) : (
