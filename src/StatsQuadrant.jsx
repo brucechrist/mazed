@@ -1,4 +1,3 @@
- hlwgdz-codex/créer-quadrants-avec-chiffres-interactifs
 import React, { useState, useEffect } from 'react';
 import './stats-quadrant.css';
 
@@ -32,7 +31,6 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
               type="number"
               autoFocus
               value={stat}
-hlwgdz-codex/créer-quadrants-avec-chiffres-interactifs
               onChange={(e) => handleChange(i, parseInt(e.target.value, 10))}
               onBlur={() => setEditing(null)}
             />
