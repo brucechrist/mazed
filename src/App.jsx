@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './styles.css';
+import StatsQuadrant from './StatsQuadrant.jsx';
 
 
 const tabs = [
@@ -28,6 +29,7 @@ export default function QuadrantPage({ initialTab }) {
       </aside>
       <div className="content">
         <h1>{activeTab}</h1>
+        {activeTab === 'Character' && <StatsQuadrant />}
       </div>
     </div>
   );
