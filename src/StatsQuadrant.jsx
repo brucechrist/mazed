@@ -51,8 +51,8 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
             <svg
               key={idx}
               viewBox="0 0 24 24"
-              width="40"
-              height="40"
+              width="66"
+              height="66"
               style={{ opacity: idx < starsUnlocked ? 1 : 0.3 }}
             >
               <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#FFFFFF" stroke="#000000" strokeWidth="1" />
