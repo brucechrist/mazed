@@ -72,3 +72,27 @@
   bottom: 0;
   right: 0;
 }
+
+.total-display {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  text-align: center;
+}
+
+.power-label {
+  color: white;
+  font-size: 45px;
+  margin-bottom: 5px;
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+.total-number {
+  font-size: 150px;
+  color: #FCFCFC;
+}
