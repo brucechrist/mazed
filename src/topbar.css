@@ -1,0 +1,62 @@
+.riotbar {
+  background-color: #111;
+  color: #f9f9f9;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  font-family: "Beaufort for LoL", sans-serif;
+}
+
+.riotbar-menu {
+  list-style: none;
+  display: flex;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+}
+
+.riotbar-item {
+  position: relative;
+}
+
+.riotbar-link {
+  text-transform: uppercase;
+  cursor: pointer;
+  font-size: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.riotbar-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #111;
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  min-width: 160px;
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.riotbar-item:hover .riotbar-dropdown,
+.riotbar-item.open .riotbar-dropdown {
+  display: flex;
+}
+
+.riotbar-dropdown li {
+  padding: 6px 20px;
+}
+
+.riotbar-dropdown a {
+  color: #f9f9f9;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.riotbar-dropdown li:hover {
+  background-color: #222;
+}
