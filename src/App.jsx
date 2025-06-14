@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
+import NofapCalendar from './NofapCalendar.jsx';
 
 
 const tabs = [
@@ -12,6 +13,7 @@ const tabs = [
 
 export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
+  const [showNofap, setShowNofap] = useState(false);
 
   return (
     <div className="app-container">
@@ -30,6 +32,16 @@ export default function QuadrantPage({ initialTab }) {
       <div className="content">
         <h1>{activeTab}</h1>
         {activeTab === 'Character' && <StatsQuadrant />}
+        {activeTab === 'Training' && (
+          showNofap ? (
+            <NofapCalendar onBack={() => setShowNofap(false)} />
+          ) : (
+            <div className="app-card" onClick={() => setShowNofap(true)}>
+              <div className="calendar-preview" />
+              <span>NoFap Calendar</span>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
