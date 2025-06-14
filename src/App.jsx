@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
+import TopBar from './TopBar.jsx';
 
 
 const tabs = [
@@ -14,7 +15,9 @@ export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
 
   return (
-    <div className="app-container">
+    <>
+      <TopBar />
+      <div className="app-container">
       <aside className="sidebar">
         {tabs.map((tab) => (
           <div
@@ -30,7 +33,8 @@ export default function QuadrantPage({ initialTab }) {
       <div className="content">
         <h1>{activeTab}</h1>
         {activeTab === 'Character' && <StatsQuadrant />}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
