@@ -1,0 +1,98 @@
+.nofap-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.back-button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.calendar-grid {
+  display: flex;
+}
+
+.month-labels {
+  display: flex;
+  margin-left: 34px;
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+.month-label {
+  width: 18px;
+  text-align: center;
+}
+
+.day-labels {
+  display: flex;
+  flex-direction: column;
+  margin-right: 4px;
+  font-size: 0.8em;
+  color: #ccc;
+  height: 112px;
+  justify-content: space-between;
+}
+
+.week {
+  display: flex;
+  flex-direction: column;
+}
+
+.day {
+  width: 16px;
+  height: 16px;
+  margin: 2px;
+  background: #444;
+  border-radius: 3px;
+}
+
+.day.done {
+  background: #2ecc71;
+}
+
+.day.progress1 {
+  background: #ffffff;
+}
+
+.day.progress2 {
+  background: #ffd633;
+}
+
+.day.progress3 {
+  background: #ff8800;
+}
+
+.day.relapse {
+  background: #ff3333;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.stats-line {
+  font-size: 0.9em;
+  color: #ccc;
+}
+
+.action-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #0056b3;
+}
