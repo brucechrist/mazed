@@ -1,0 +1,54 @@
+.nofap-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.back-button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.calendar-grid {
+  display: flex;
+}
+
+.week {
+  display: flex;
+  flex-direction: column;
+}
+
+.day {
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+  background: #444;
+  border-radius: 2px;
+}
+
+.day.done {
+  background: #2ecc71;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #0056b3;
+}
