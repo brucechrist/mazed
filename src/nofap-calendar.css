@@ -70,9 +70,18 @@
   background: #ff8800;
 }
 
+.day.relapse {
+  background: #ff3333;
+}
+
 .actions {
   display: flex;
   gap: 10px;
+}
+
+.stats-line {
+  font-size: 0.9em;
+  color: #ccc;
 }
 
 .action-button {
