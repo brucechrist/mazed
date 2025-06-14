@@ -1,0 +1,45 @@
+.topbar {
+  background: #111;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  position: relative;
+  z-index: 1000;
+}
+.topbar-logo {
+  font-weight: bold;
+  margin-right: 40px;
+}
+.topbar-menu {
+  list-style: none;
+  display: flex;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+}
+.topbar-menu a {
+  color: #fff;
+  text-decoration: none;
+}
+.dropdown {
+  position: relative;
+}
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #111;
+  list-style: none;
+  padding: 10px 0;
+  margin: 0;
+}
+.dropdown-menu li {
+  padding: 5px 20px;
+}
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
