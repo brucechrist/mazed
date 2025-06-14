@@ -1,0 +1,67 @@
+.riot-local-bar {
+  background-color: #111;
+  color: #fff;
+  font-family: 'Beaufort for LOL', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.riot-nav {
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 64px;
+}
+
+.riot-nav .logo {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  margin-right: 40px;
+}
+
+.menu {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  gap: 20px;
+}
+
+.menu-item {
+  position: relative;
+}
+
+.menu-item span,
+.menu-item > a {
+  cursor: pointer;
+  color: #fff;
+  text-decoration: none;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  background-color: #111;
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  border: 1px solid #333;
+  min-width: 200px;
+  z-index: 1000;
+}
+
+.dropdown-menu li {
+  padding: 5px 20px;
+}
+
+.dropdown-menu li a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.menu-item:hover .dropdown-menu {
+  display: block;
+}
