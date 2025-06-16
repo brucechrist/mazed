@@ -1,0 +1,91 @@
+@font-face {
+  font-family: 'Exodus';
+  src: url('./assets/fonts/ExodusD-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.auth-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url('./assets/backgrounds/Viego_0.jpg');
+  background-size: cover;
+  background-position: center;
+  font-family: 'Exodus', sans-serif;
+  color: white;
+}
+
+.auth-box {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 40px;
+  width: 360px;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-box form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-box h2 {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.auth-box input::placeholder {
+  color: #ccc;
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+  transition: background 0.2s;
+}
+
+.primary-btn {
+  background: #0052a3;
+}
+
+.primary-btn:hover {
+  background: #0066cc;
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.auth-box button:hover {
+  /* overridden by individual classes */
+}
+
+.auth-error {
+  color: #ff8080;
+  margin-top: 10px;
+}
