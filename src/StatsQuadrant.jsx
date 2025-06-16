@@ -15,6 +15,13 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
     localStorage.setItem('characterStats', JSON.stringify(stats));
   }, [stats]);
 
+    useEffect(() => {
+    document.body.classList.add('character-page');
+    return () => {
+      document.body.classList.remove('character-page');
+    };
+  }, []);
+
   const handleChange = (index, value) => {
     const updated = [...stats];
     updated[index] = value;
@@ -60,6 +67,10 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
           ))}
         </div>
         <div className="total-number">{total}</div>
+      </div>
+           <div className="extra-buttons">
+        <button className="square" />
+        <button className="round" />
       </div>
     </>
   );

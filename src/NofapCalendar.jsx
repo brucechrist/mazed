@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './nofap-calendar.css';
+import RunEndModal from './RunEndModal.jsx';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -17,6 +18,12 @@ export default function NofapCalendar({ onBack }) {
     return stored ? JSON.parse(stored) : { runCount: 0, longest: 0 };
   });
   const [now, setNow] = useState(Date.now());
+  const [runs, setRuns] = useState(() => {
+    const stored = localStorage.getItem('nofapRuns');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [showEndModal, setShowEndModal] = useState(false);
+  const [endType, setEndType] = useState('end');
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60 * 1000);
@@ -30,6 +37,11 @@ export default function NofapCalendar({ onBack }) {
       localStorage.removeItem('nofapRun');
     }
     setRun(r);
+  };
+
+  const saveRuns = (list) => {
+    setRuns(list);
+    localStorage.setItem('nofapRuns', JSON.stringify(list));
   };
 
   const saveStatuses = (s) => {
@@ -46,8 +58,25 @@ export default function NofapCalendar({ onBack }) {
     saveRun({ start: Date.now() });
   };
 
-  const finishRun = (relapsed) => {
+  const requestFinish = (type) => {
+    setEndType(type);
+    setShowEndModal(true);
+  };
+
+  const colorForIndex = (idx) => {
+    const day = idx + 1;
+    if (day <= 7) return 'green';
+    if (day <= 15) return 'yellow';
+    if (day <= 30) return 'orange';
+    if (day <= 45) return 'blue';
+    if (day <= 60) return 'purple';
+    if (day <= 90) return 'red';
+    return 'white';
+  };
+
+  const finishRun = (reason) => {
     if (!run) return;
+    const relapsed = endType === 'relapse';
     const nowTime = Date.now();
     const startDay = new Date(run.start);
     startDay.setHours(0, 0, 0, 0);
@@ -56,10 +85,11 @@ export default function NofapCalendar({ onBack }) {
     const updated = { ...statuses };
     for (let d = new Date(startDay); d <= endDay; d.setDate(d.getDate() + 1)) {
       const key = d.toISOString().slice(0, 10);
+      const index = Math.floor((d - startDay) / DAY_MS);
       if (relapsed && d.getTime() === endDay.getTime()) {
         updated[key] = 'relapse';
       } else {
-        updated[key] = 'done';
+        updated[key] = colorForIndex(index);
       }
     }
     saveStatuses(updated);
@@ -69,7 +99,10 @@ export default function NofapCalendar({ onBack }) {
       longest: Math.max(stats.longest, streakMs),
     };
     saveStats(newStats);
+    const newRuns = [...runs, { start: run.start, end: nowTime, relapsed, reason }];
+    saveRuns(newRuns);
     saveRun(null);
+    setShowEndModal(false);
   };
 
   const daysSinceStart = run
@@ -125,14 +158,7 @@ export default function NofapCalendar({ onBack }) {
     const currentDay = startOfDay(now);
     if (dateDay < runStartDay || dateDay > currentDay) return '';
     const dayIndex = Math.floor((dateDay - runStartDay) / DAY_MS);
-    const startTime = run.start + dayIndex * DAY_MS;
-    const diff = now - startTime;
-    if (diff >= DAY_MS) return 'done';
-    if (diff < 0) return '';
-    const hours = diff / (1000 * 60 * 60);
-    if (hours < 8) return 'progress1';
-    if (hours < 16) return 'progress2';
-    return 'progress3';
+    return colorForIndex(dayIndex);
   };
 
   return (
@@ -175,10 +201,10 @@ export default function NofapCalendar({ onBack }) {
             </div>
           </div>
           <div className="actions">
-            <button className="action-button" onClick={() => finishRun(false)}>
+            <button className="action-button" onClick={() => requestFinish('end')}>
               End Run
             </button>
-            <button className="action-button" onClick={() => finishRun(true)}>
+            <button className="action-button" onClick={() => requestFinish('relapse')}>
               Relapse
             </button>
           </div>
@@ -192,6 +218,20 @@ export default function NofapCalendar({ onBack }) {
             Start Run
           </button>
         </>
+      )}
+      <h3>Runs</h3>
+      <div className="runs-list">
+        {runs.map((r, idx) => (
+          <div key={idx} className="run-banner">
+            <div>
+              {new Date(r.start).getDate()} {new Date(r.start).toLocaleString('default', { month: 'long' })} {new Date(r.start).getFullYear()} to {new Date(r.end).getDate()} {new Date(r.end).toLocaleString('default', { month: 'long' })} {new Date(r.end).getFullYear()}, {Math.ceil((r.end - r.start) / DAY_MS)} days
+            </div>
+            <div>Reason: {r.reason || 'N/A'}</div>
+          </div>
+        ))}
+      </div>
+      {showEndModal && (
+        <RunEndModal onSave={finishRun} onClose={() => setShowEndModal(false)} />
       )}
     </div>
   );
