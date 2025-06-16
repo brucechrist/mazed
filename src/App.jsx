@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
+import World from './World.jsx';
 
 
 const tabs = [
@@ -25,7 +26,6 @@ export default function QuadrantPage({ initialTab }) {
             onClick={() => setActiveTab(tab.label)}
           >
             <span className="icon">{tab.icon}</span>
-            <span>{tab.label}</span>
           </div>
         ))}
                 <div className="home-button" onClick={() => window.location.reload()}>
@@ -45,6 +45,7 @@ export default function QuadrantPage({ initialTab }) {
             </div>
           )
         )}
+        {activeTab === 'World' && <World />}
       </div>
     </div>
   );
