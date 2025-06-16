@@ -1,19 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import './stats-quadrant.css';
+import { supabase } from './supabaseClient.js';
 
 export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
-  const [stats, setStats] = useState(() => {
-    const stored = localStorage.getItem('characterStats');
-    return stored ? JSON.parse(stored) : initialStats;
-  });
+  const [stats, setStats] = useState(initialStats);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
 
   const total = stats.reduce((sum, val) => sum + Number(val), 0);
   const starsUnlocked = Math.min(5, Math.floor(total / 100));
 
   useEffect(() => {
-    localStorage.setItem('characterStats', JSON.stringify(stats));
-  }, [stats]);
+    const fetchStats = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('stats')
+          .eq('id', user.id)
+          .single();
+        if (data && data.stats) {
+          setStats(data.stats);
+        }
+      }
+      setLoading(false);
+    };
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    const saveStats = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ stats })
+          .eq('id', user.id);
+      }
+    };
+    saveStats();
+  }, [stats, loading]);
 
     useEffect(() => {
     document.body.classList.add('character-page');

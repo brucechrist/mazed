@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import QuestModal from './QuestModal.jsx';
 import './world.css';
+import { supabase } from './supabaseClient.js';
 
 export default function World() {
-  const [resource, setResource] = useState(() => {
-    const stored = localStorage.getItem('resourceR');
-    return stored ? parseInt(stored, 10) : 0;
-  });
+  const [resource, setResource] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [quests, setQuests] = useState(() => {
     const stored = localStorage.getItem('quests');
     return stored ? JSON.parse(stored) : [];
@@ -14,6 +13,21 @@ export default function World() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('resources')
+          .eq('id', user.id)
+          .single();
+        if (data && typeof data.resources === 'number') {
+          setResource(data.resources);
+        }
+      }
+      setLoading(false);
+    };
+    load();
     const id = setInterval(() => {
       setResource((prev) => prev + 1);
     }, 10000);
@@ -31,8 +45,19 @@ export default function World() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('resourceR', resource);
-  }, [resource]);
+    if (loading) return;
+    const save = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ resources: resource })
+          .eq('id', user.id);
+        window.dispatchEvent(new CustomEvent('resourceChange', { detail: { resource } }));
+      }
+    };
+    save();
+  }, [resource, loading]);
 
   useEffect(() => {
     localStorage.setItem('quests', JSON.stringify(quests));

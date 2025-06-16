@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from './supabaseClient.js';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
@@ -29,8 +30,11 @@ export default function QuadrantPage({ initialTab }) {
             <span className="icon">{tab.icon}</span>
           </div>
         ))}
-                <div className="home-button" onClick={() => window.location.reload()}>
+        <div className="home-button" onClick={() => window.location.reload()}>
           🏠
+        </div>
+        <div className="home-button" onClick={() => supabase.auth.signOut()}>
+          🚪
         </div>
       </aside>
       <div className="content">
