@@ -54,24 +54,29 @@
   border-radius: 3px;
 }
 
-.day.done {
-  background: #2ecc71;
-}
-
-.day.progress1 {
-  background: #ffffff;
-}
-
-.day.progress2 {
-  background: #ffd633;
-}
-
-.day.progress3 {
-  background: #ff8800;
-}
+.day.green { background: #2ecc71; }
+.day.yellow { background: #ffd633; }
+.day.orange { background: #ff8800; }
+.day.blue { background: #3498db; }
+.day.purple { background: #9b59b6; }
+.day.red { background: #e74c3c; }
+.day.white { background: #ffffff; }
 
 .day.relapse {
   background: #ff3333;
+  position: relative;
+}
+
+.day.relapse::after {
+  content: '\2715';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 16px;
+  color: #fff;
 }
 
 .actions {
@@ -95,4 +100,18 @@
 
 .action-button:hover {
   background: #0056b3;
+}
+
+.runs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.run-banner {
+  background: #333;
+  padding: 6px 10px;
+  border-radius: 6px;
 }
