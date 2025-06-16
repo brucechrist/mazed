@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
+import World from './World.jsx';
 
 
 const tabs = [
@@ -44,6 +45,7 @@ export default function QuadrantPage({ initialTab }) {
             </div>
           )
         )}
+        {activeTab === 'World' && <World />}
       </div>
     </div>
   );
