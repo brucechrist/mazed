@@ -25,7 +25,6 @@ export default function QuadrantPage({ initialTab }) {
             onClick={() => setActiveTab(tab.label)}
           >
             <span className="icon">{tab.icon}</span>
-            <span>{tab.label}</span>
           </div>
         ))}
                 <div className="home-button" onClick={() => window.location.reload()}>
