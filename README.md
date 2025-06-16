@@ -28,3 +28,6 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
    VITE_SUPABASE_ANON_KEY=your-anon-key
    ```
 
+3. Run the SQL in `profiles.sql` on your Supabase instance to create the
+   `profiles` table that stores user data.
+

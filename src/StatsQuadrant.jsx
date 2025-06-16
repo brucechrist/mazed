@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import './stats-quadrant.css';
 
 export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
@@ -6,6 +7,7 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
     const stored = localStorage.getItem('characterStats');
     return stored ? JSON.parse(stored) : initialStats;
   });
+  const [userId, setUserId] = useState(null);
   const [editing, setEditing] = useState(null);
 
   const total = stats.reduce((sum, val) => sum + Number(val), 0);
@@ -13,13 +15,35 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
 
   useEffect(() => {
     localStorage.setItem('characterStats', JSON.stringify(stats));
-  }, [stats]);
+    if (userId) {
+      supabase.from('profiles').update({ stats }).eq('id', userId);
+    }
+  }, [stats, userId]);
 
-    useEffect(() => {
+  useEffect(() => {
     document.body.classList.add('character-page');
     return () => {
       document.body.classList.remove('character-page');
     };
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+      const { data } = await supabase
+        .from('profiles')
+        .select('stats')
+        .eq('id', user.id)
+        .single();
+      if (data && data.stats) {
+        setStats(data.stats);
+      }
+    };
+    fetchStats();
   }, []);
 
   const handleChange = (index, value) => {

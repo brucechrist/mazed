@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import './world.css';
 
 export default function AcceptedQuestList() {
   const [quests, setQuests] = useState([]);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('quests');
@@ -15,11 +17,26 @@ export default function AcceptedQuestList() {
     return () => window.removeEventListener('questsChange', handler);
   }, []);
 
+  useEffect(() => {
+    const load = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    load();
+  }, []);
+
   const completeQuest = (id) => {
     const all = quests.map((q) => {
       if (q.id === id) {
         const newResource = (parseInt(localStorage.getItem('resourceR') || '0', 10) + (q.resource || 0));
         localStorage.setItem('resourceR', newResource);
+        if (userId) {
+          supabase.from('profiles').update({ resources: newResource }).eq('id', userId);
+        }
         window.dispatchEvent(new CustomEvent('resourceChange', { detail: { resource: newResource } }));
         return { ...q, completed: true };
       }
