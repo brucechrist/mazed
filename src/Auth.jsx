@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
+import './auth.css';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -27,25 +28,27 @@ export default function Auth() {
   };
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <h2>Login or Register</h2>
-      <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button type="submit">Sign In</button>
-        <button type="button" onClick={handleSignUp}>Sign Up</button>
-        {errorMsg && <div style={{ color: 'red' }}>{errorMsg}</div>}
-      </form>
+    <div className="auth-container">
+      <div className="auth-box">
+        <h2>Welcome</h2>
+        <form onSubmit={handleSignIn}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button type="submit" className="primary-btn">Sign In</button>
+          <button type="button" className="secondary-btn" onClick={handleSignUp}>Sign Up</button>
+          {errorMsg && <div className="auth-error">{errorMsg}</div>}
+        </form>
+      </div>
     </div>
   );
 }
