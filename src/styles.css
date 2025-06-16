@@ -14,32 +14,37 @@ body {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 200px;
-  background-color: #111;
+  align-items: center;
+  gap: 15px;
+  width: 70px;
+  background-color: rgba(128, 128, 128, 0.6);
   padding: 20px 0;
 }
 
 .tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #ccc;
-  padding: 10px 20px;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  color: black;
+  background-color: white;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 10px;
   user-select: none;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.2s;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .tab.active {
-  background-color: #333;
-  color: #fff;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
 }
 
 .tab:hover {
   background-color: #222;
   color: #fff;
+  background-color: #e0e0e0
 }
 
 .content {
@@ -52,6 +57,22 @@ body {
 
 .icon {
   font-size: 1.2em;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.home-button {
+  width: 50px;
+  height: 50px;
+  background: white;
+  color: black;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  cursor: pointer;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .app-card {

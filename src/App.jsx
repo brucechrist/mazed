@@ -28,6 +28,9 @@ export default function QuadrantPage({ initialTab }) {
             <span>{tab.label}</span>
           </div>
         ))}
+                <div className="home-button" onClick={() => window.location.reload()}>
+          🏠
+        </div>
       </aside>
       <div className="content">
         <h1>{activeTab}</h1>
