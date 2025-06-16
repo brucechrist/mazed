@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
+import ResourceIndicator from './ResourceIndicator.jsx';
 
 
 const tabs = [
@@ -45,6 +46,7 @@ export default function QuadrantPage({ initialTab }) {
             </div>
           )
         )}
+        {activeTab === 'World' && <ResourceIndicator />}
       </div>
     </div>
   );
