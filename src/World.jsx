@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QuestModal from './QuestModal.jsx';
+import { supabase } from './supabaseClient';
 import './world.css';
 
 export default function World() {
@@ -7,6 +8,7 @@ export default function World() {
     const stored = localStorage.getItem('resourceR');
     return stored ? parseInt(stored, 10) : 0;
   });
+  const [userId, setUserId] = useState(null);
   const [quests, setQuests] = useState(() => {
     const stored = localStorage.getItem('quests');
     return stored ? JSON.parse(stored) : [];
@@ -21,6 +23,34 @@ export default function World() {
   }, []);
 
   useEffect(() => {
+    const load = async () => {
+      if (!navigator.onLine) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('resources')
+        .eq('id', user.id)
+        .single();
+      if (profileData && typeof profileData.resources === 'number') {
+        setResource(profileData.resources);
+      }
+      const { data: questsData } = await supabase
+        .from('quests')
+        .select('*')
+        .eq('user_id', user.id);
+      if (questsData) {
+        setQuests(questsData);
+        localStorage.setItem('quests', JSON.stringify(questsData));
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
     const handler = (e) => {
       if (e.detail && typeof e.detail.resource === 'number') {
         setResource(e.detail.resource);
@@ -32,21 +62,39 @@ export default function World() {
 
   useEffect(() => {
     localStorage.setItem('resourceR', resource);
-  }, [resource]);
+    if (userId && navigator.onLine) {
+      supabase.from('profiles').update({ resources: resource }).eq('id', userId);
+    }
+  }, [resource, userId]);
 
   useEffect(() => {
     localStorage.setItem('quests', JSON.stringify(quests));
     window.dispatchEvent(new Event('questsChange'));
-  }, [quests]);
+    if (userId && navigator.onLine) {
+      quests.forEach((q) =>
+        supabase.from('quests').upsert({ ...q, user_id: userId })
+      );
+    }
+  }, [quests, userId]);
 
   const addQuest = (q) => {
     setQuests([...quests, q]);
+    if (userId && navigator.onLine) {
+      supabase.from('quests').insert({ ...q, user_id: userId });
+    }
   };
 
   const acceptQuest = (id) => {
     setQuests(
       quests.map((q) => (q.id === id ? { ...q, accepted: true } : q))
     );
+    if (userId && navigator.onLine) {
+      supabase
+        .from('quests')
+        .update({ accepted: true })
+        .eq('user_id', userId)
+        .eq('id', id);
+    }
   };
 
   return (

@@ -9,12 +9,20 @@ export default function Auth() {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
       setErrorMsg(error.message);
-    } else {
-      setErrorMsg(null);
+      return;
     }
+    if (data?.user) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        resources: 0,
+        streaks: 0,
+        stats: [5, 5, 5, 5],
+      });
+    }
+    setErrorMsg(null);
   };
 
   const handleSignIn = async (e) => {

@@ -28,3 +28,25 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
    VITE_SUPABASE_ANON_KEY=your-anon-key
    ```
 
+3. Run the SQL in `profiles.sql` on your Supabase instance to create the
+   `profiles` table that stores user data.
+4. Run the SQL in `supabase-tables.sql` to create the `quests` and `runs`
+   tables used by the application.
+
+## Running the App
+
+For development with live reload:
+
+```bash
+npm run dev
+```
+
+To build for production and start Electron:
+
+```bash
+npm run build
+npm start
+```
+
+Make sure the `.env` file with your Supabase credentials exists before running either command.
+
