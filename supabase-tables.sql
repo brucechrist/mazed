@@ -15,7 +15,7 @@ create table if not exists runs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id),
   start bigint,
-  end bigint,
+  "end" bigint,
   relapsed boolean,
   reason text
 );
