@@ -33,3 +33,20 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
 4. Run the SQL in `supabase-tables.sql` to create the `quests` and `runs`
    tables used by the application.
 
+## Running the App
+
+For development with live reload:
+
+```bash
+npm run dev
+```
+
+To build for production and start Electron:
+
+```bash
+npm run build
+npm start
+```
+
+Make sure the `.env` file with your Supabase credentials exists before running either command.
+
