@@ -24,18 +24,27 @@ export default function World() {
 
   useEffect(() => {
     const load = async () => {
+      if (!navigator.onLine) return;
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('resources')
         .eq('id', user.id)
         .single();
-      if (data && typeof data.resources === 'number') {
-        setResource(data.resources);
+      if (profileData && typeof profileData.resources === 'number') {
+        setResource(profileData.resources);
+      }
+      const { data: questsData } = await supabase
+        .from('quests')
+        .select('*')
+        .eq('user_id', user.id);
+      if (questsData) {
+        setQuests(questsData);
+        localStorage.setItem('quests', JSON.stringify(questsData));
       }
     };
     load();
@@ -53,7 +62,7 @@ export default function World() {
 
   useEffect(() => {
     localStorage.setItem('resourceR', resource);
-    if (userId) {
+    if (userId && navigator.onLine) {
       supabase.from('profiles').update({ resources: resource }).eq('id', userId);
     }
   }, [resource, userId]);
@@ -61,16 +70,31 @@ export default function World() {
   useEffect(() => {
     localStorage.setItem('quests', JSON.stringify(quests));
     window.dispatchEvent(new Event('questsChange'));
-  }, [quests]);
+    if (userId && navigator.onLine) {
+      quests.forEach((q) =>
+        supabase.from('quests').upsert({ ...q, user_id: userId })
+      );
+    }
+  }, [quests, userId]);
 
   const addQuest = (q) => {
     setQuests([...quests, q]);
+    if (userId && navigator.onLine) {
+      supabase.from('quests').insert({ ...q, user_id: userId });
+    }
   };
 
   const acceptQuest = (id) => {
     setQuests(
       quests.map((q) => (q.id === id ? { ...q, accepted: true } : q))
     );
+    if (userId && navigator.onLine) {
+      supabase
+        .from('quests')
+        .update({ accepted: true })
+        .eq('user_id', userId)
+        .eq('id', id);
+    }
   };
 
   return (

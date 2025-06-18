@@ -19,11 +19,20 @@ export default function AcceptedQuestList() {
 
   useEffect(() => {
     const load = async () => {
+      if (!navigator.onLine) return;
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        const { data } = await supabase
+          .from('quests')
+          .select('*')
+          .eq('user_id', user.id);
+        if (data) {
+          setQuests(data);
+          localStorage.setItem('quests', JSON.stringify(data));
+        }
       }
     };
     load();
@@ -34,7 +43,7 @@ export default function AcceptedQuestList() {
       if (q.id === id) {
         const newResource = (parseInt(localStorage.getItem('resourceR') || '0', 10) + (q.resource || 0));
         localStorage.setItem('resourceR', newResource);
-        if (userId) {
+        if (userId && navigator.onLine) {
           supabase.from('profiles').update({ resources: newResource }).eq('id', userId);
         }
         window.dispatchEvent(new CustomEvent('resourceChange', { detail: { resource: newResource } }));
@@ -44,6 +53,13 @@ export default function AcceptedQuestList() {
     });
     setQuests(all);
     localStorage.setItem('quests', JSON.stringify(all));
+    if (userId && navigator.onLine) {
+      supabase
+        .from('quests')
+        .update({ completed: true })
+        .eq('user_id', userId)
+        .eq('id', id);
+    }
     window.dispatchEvent(new Event('questsChange'));
   };
 

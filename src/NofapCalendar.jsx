@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './nofap-calendar.css';
 import RunEndModal from './RunEndModal.jsx';
+import { supabase } from './supabaseClient';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -18,6 +19,7 @@ export default function NofapCalendar({ onBack }) {
     return stored ? JSON.parse(stored) : { runCount: 0, longest: 0 };
   });
   const [now, setNow] = useState(Date.now());
+  const [userId, setUserId] = useState(null);
   const [runs, setRuns] = useState(() => {
     const stored = localStorage.getItem('nofapRuns');
     return stored ? JSON.parse(stored) : [];
@@ -28,6 +30,40 @@ export default function NofapCalendar({ onBack }) {
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60 * 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const fetchRuns = async () => {
+      if (!navigator.onLine) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+      const { data } = await supabase
+        .from('runs')
+        .select('*')
+        .eq('user_id', user.id);
+      if (data) {
+        const active = data.find((r) => r.end === null);
+        const completed = data.filter((r) => r.end !== null);
+        if (active) {
+          saveRun({ id: active.id, start: active.start });
+        }
+        if (completed.length) {
+          saveRuns(
+            completed.map((r) => ({
+              id: r.id,
+              start: r.start,
+              end: r.end,
+              relapsed: r.relapsed,
+              reason: r.reason,
+            }))
+          );
+        }
+      }
+    };
+    fetchRuns();
   }, []);
 
   const saveRun = (r) => {
@@ -54,8 +90,42 @@ export default function NofapCalendar({ onBack }) {
     localStorage.setItem('nofapStats', JSON.stringify(s));
   };
 
-  const startRun = () => {
-    saveRun({ start: Date.now() });
+  useEffect(() => {
+    const compute = () => {
+      const updated = {};
+      let longest = 0;
+      runs.forEach((r) => {
+        const startDay = new Date(r.start);
+        startDay.setHours(0, 0, 0, 0);
+        const endDay = new Date(r.end);
+        endDay.setHours(0, 0, 0, 0);
+        for (let d = new Date(startDay), idx = 0; d <= endDay; d.setDate(d.getDate() + 1), idx++) {
+          const key = d.toISOString().slice(0, 10);
+          if (r.relapsed && d.getTime() === endDay.getTime()) {
+            updated[key] = 'relapse';
+          } else {
+            updated[key] = colorForIndex(idx);
+          }
+        }
+        longest = Math.max(longest, r.end - r.start);
+      });
+      saveStatuses(updated);
+      saveStats({ runCount: runs.length, longest });
+    };
+    compute();
+  }, [runs]);
+
+  const startRun = async () => {
+    const newRun = { start: Date.now() };
+    if (userId && navigator.onLine) {
+      const { data } = await supabase
+        .from('runs')
+        .insert({ user_id: userId, start: newRun.start })
+        .select()
+        .single();
+      if (data) newRun.id = data.id;
+    }
+    saveRun(newRun);
   };
 
   const requestFinish = (type) => {
@@ -74,32 +144,28 @@ export default function NofapCalendar({ onBack }) {
     return 'white';
   };
 
-  const finishRun = (reason) => {
+  const finishRun = async (reason) => {
     if (!run) return;
     const relapsed = endType === 'relapse';
     const nowTime = Date.now();
-    const startDay = new Date(run.start);
-    startDay.setHours(0, 0, 0, 0);
-    const endDay = new Date(nowTime);
-    endDay.setHours(0, 0, 0, 0);
-    const updated = { ...statuses };
-    for (let d = new Date(startDay); d <= endDay; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10);
-      const index = Math.floor((d - startDay) / DAY_MS);
-      if (relapsed && d.getTime() === endDay.getTime()) {
-        updated[key] = 'relapse';
+    const entry = { ...run, end: nowTime, relapsed, reason };
+    if (userId && navigator.onLine) {
+      if (run.id) {
+        await supabase
+          .from('runs')
+          .update({ end: nowTime, relapsed, reason })
+          .eq('id', run.id);
       } else {
-        updated[key] = colorForIndex(index);
+        await supabase.from('runs').insert({
+          user_id: userId,
+          start: run.start,
+          end: nowTime,
+          relapsed,
+          reason,
+        });
       }
     }
-    saveStatuses(updated);
-    const streakMs = nowTime - run.start;
-    const newStats = {
-      runCount: stats.runCount + 1,
-      longest: Math.max(stats.longest, streakMs),
-    };
-    saveStats(newStats);
-    const newRuns = [...runs, { start: run.start, end: nowTime, relapsed, reason }];
+    const newRuns = [...runs, entry];
     saveRuns(newRuns);
     saveRun(null);
     setShowEndModal(false);
