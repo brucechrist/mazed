@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
+import World from './World.jsx';
+import AcceptedQuestList from './AcceptedQuestList.jsx';
+import FriendsList from './FriendsList.jsx';
 
 
 const tabs = [
@@ -35,15 +38,20 @@ export default function QuadrantPage({ initialTab }) {
         <h1>{activeTab}</h1>
         {activeTab === 'Character' && <StatsQuadrant />}
         {activeTab === 'Training' && (
-          showNofap ? (
-            <NofapCalendar onBack={() => setShowNofap(false)} />
-          ) : (
-            <div className="app-card" onClick={() => setShowNofap(true)}>
-              <div className="calendar-preview" />
-              <span>NoFap Calendar</span>
-            </div>
-          )
+          <>
+            {showNofap ? (
+              <NofapCalendar onBack={() => setShowNofap(false)} />
+            ) : (
+              <div className="app-card" onClick={() => setShowNofap(true)}>
+                <div className="calendar-preview" />
+                <span>NoFap Calendar</span>
+              </div>
+            )}
+            <AcceptedQuestList />
+          </>
         )}
+        {activeTab === 'World' && <World />}
+        {activeTab === 'Friends' && <FriendsList />}
       </div>
     </div>
   );
