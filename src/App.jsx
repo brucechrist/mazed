@@ -4,6 +4,7 @@ import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
 import World from './World.jsx';
 import AcceptedQuestList from './AcceptedQuestList.jsx';
+import FriendsList from './FriendsList.jsx';
 
 
 const tabs = [
@@ -50,6 +51,7 @@ export default function QuadrantPage({ initialTab }) {
           </>
         )}
         {activeTab === 'World' && <World />}
+        {activeTab === 'Friends' && <FriendsList />}
       </div>
     </div>
   );
