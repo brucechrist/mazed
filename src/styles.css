@@ -124,6 +124,7 @@ body {
 
 .journal-icon {
   font-size: 2em;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -137,6 +138,7 @@ body {
   border-radius: 4px;
   cursor: pointer;
 }
+
 
 .quest-journal {
   display: flex;
