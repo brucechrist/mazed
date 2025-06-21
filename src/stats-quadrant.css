@@ -52,7 +52,7 @@ body.character-page {
   font-size: 3.2em;
   font-family:'ExodusD-Regular', sans-serif ;
   cursor: pointer;
-  text-shadow: 2px 2px 4px #000
+  text-shadow: 2px 2px 4px #000;
 }
 
 .quadrant input {
@@ -63,7 +63,7 @@ body.character-page {
   text-align: center;
   font-size: inherit;
   font-family: 'ExodusD-Regular', sans-serif;
-  text-shadow: 2px 2px 4px #000
+  text-shadow: 2px 2px 4px #000;
 }
 
 .quadrant input:focus {
@@ -101,12 +101,13 @@ body.character-page {
   color: white;
   font-size: 45px;
   margin-bottom: 5px;
-  text-shadow: 2px 2px 4x #000;
+  text-shadow: 2px 2px 4px #000;
 }
 
 .stars {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-bottom: 5px;
   filter: drop-shadow(2px 2px 4px #000)
 }
