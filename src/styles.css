@@ -122,6 +122,24 @@ body {
   align-items: center;
 }
 
+.journal-icon {
+  font-size: 2em;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.back-button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
 .quest-journal {
   display: flex;
   flex-direction: column;
