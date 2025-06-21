@@ -30,6 +30,12 @@ function createWindow() {
             if (mainWindow) mainWindow.webContents.send('go-home');
           },
         },
+        {
+          label: 'Disconnect',
+          click: () => {
+            if (mainWindow) mainWindow.webContents.send('disconnect');
+          },
+        },
         { role: 'quit' },
         { role: 'togglefullscreen' },
       ],
