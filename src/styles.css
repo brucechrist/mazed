@@ -103,3 +103,20 @@ body {
   background-position: -1px -1px;
   border-radius: 4px;
 }
+
+.training-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.feature-cards {
+  display: flex;
+  gap: 20px;
+}
+
+.star-icon {
+  font-size: 2em;
+  display: flex;
+  justify-content: center;
+}
