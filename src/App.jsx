@@ -40,13 +40,14 @@ export default function QuadrantPage({ initialTab }) {
         <h1>{activeTab}</h1>
         {activeTab === 'Character' && <StatsQuadrant />}
         {activeTab === 'Training' && (
-          <>
+          <div className="training-layout">
+            <AcceptedQuestList />
             {showNofap ? (
               <NofapCalendar onBack={() => setShowNofap(false)} />
             ) : showRatings ? (
               <VersionRating onBack={() => setShowRatings(false)} />
             ) : (
-              <>
+              <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowNofap(true)}>
                   <div className="calendar-preview" />
                   <span>NoFap Calendar</span>
@@ -54,10 +55,9 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowRatings(true)}>
                   <span>Version Ratings</span>
                 </div>
-              </>
+              </div>
             )}
-            {!showNofap && !showRatings && <AcceptedQuestList />}
-          </>
+          </div>
         )}
         {activeTab === 'World' && <World />}
         {activeTab === 'Friends' && <FriendsList />}

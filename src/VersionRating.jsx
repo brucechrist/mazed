@@ -17,6 +17,10 @@ export default function VersionRating({ onBack }) {
     setVersions([...versions, v]);
   };
 
+  const removeVersion = (id) => {
+    setVersions(versions.filter((v) => v.id !== id));
+  };
+
   const sorted = [...versions].sort((a, b) => b.rating - a.rating);
 
   return (
@@ -29,6 +33,12 @@ export default function VersionRating({ onBack }) {
               <div className="version-name">{v.name}</div>
               <div className="version-score">{v.rating}</div>
               <div className="version-like">{v.liked ? '👍' : '👎'}</div>
+              <button
+                className="delete-button"
+                onClick={() => removeVersion(v.id)}
+              >
+                ✖
+              </button>
             </div>
             <div className="quadrant-notes">
               <div><strong>II:</strong> {v.quadrants?.II}</div>

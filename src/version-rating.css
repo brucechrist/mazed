@@ -26,6 +26,15 @@
   align-items: center;
 }
 
+.delete-button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #ff6666;
+  cursor: pointer;
+  font-size: 1em;
+}
+
 .quadrant-notes {
   font-size: 0.85em;
   margin-top: 4px;
