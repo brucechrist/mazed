@@ -112,6 +112,11 @@ body {
 
 .feature-cards {
   display: flex;
-  flex-direction: column;
   gap: 20px;
+}
+
+.star-icon {
+  font-size: 2em;
+  display: flex;
+  justify-content: center;
 }
