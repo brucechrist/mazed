@@ -3,10 +3,9 @@ import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
 import VersionRating from './VersionRating.jsx';
+import QuestJournal from './QuestJournal.jsx';
 import World from './World.jsx';
-import AcceptedQuestList from './AcceptedQuestList.jsx';
 import FriendsList from './FriendsList.jsx';
-
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
@@ -17,6 +16,7 @@ const tabs = [
 
 export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
+  const [showJournal, setShowJournal] = useState(false);
   const [showNofap, setShowNofap] = useState(false);
   const [showRatings, setShowRatings] = useState(false);
 
@@ -32,7 +32,7 @@ export default function QuadrantPage({ initialTab }) {
             <span className="icon">{tab.icon}</span>
           </div>
         ))}
-                <div className="home-button" onClick={() => window.location.reload()}>
+        <div className="home-button" onClick={() => window.location.reload()}>
           🏠
         </div>
       </aside>
@@ -41,13 +41,18 @@ export default function QuadrantPage({ initialTab }) {
         {activeTab === 'Character' && <StatsQuadrant />}
         {activeTab === 'Training' && (
           <div className="training-layout">
-            <AcceptedQuestList />
-            {showNofap ? (
+            {showJournal ? (
+              <QuestJournal onBack={() => setShowJournal(false)} />
+            ) : showNofap ? (
               <NofapCalendar onBack={() => setShowNofap(false)} />
             ) : showRatings ? (
               <VersionRating onBack={() => setShowRatings(false)} />
             ) : (
               <div className="feature-cards">
+                <div className="app-card" onClick={() => setShowJournal(true)}>
+                  <div className="journal-icon">📓</div>
+                  <span>Quest Journal</span>
+                </div>
                 <div className="app-card" onClick={() => setShowNofap(true)}>
                   <div className="calendar-preview" />
                   <span>NoFap Calendar</span>

@@ -107,6 +107,7 @@ body.character-page {
 .stars {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-bottom: 5px;
   filter: drop-shadow(2px 2px 4px #000)
 }
