@@ -4,6 +4,8 @@ import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
 import VersionRating from './VersionRating.jsx';
 import QuestJournal from './QuestJournal.jsx';
+import World from './World.jsx';
+import FriendsList from './FriendsList.jsx';
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
