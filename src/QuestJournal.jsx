@@ -4,11 +4,16 @@ import NofapCalendar from './NofapCalendar.jsx';
 import VersionRating from './VersionRating.jsx';
 import './styles.css';
 
-export default function QuestJournal() {
+export default function QuestJournal({ onBack }) {
   const [active, setActive] = useState('quests');
 
   return (
     <div className="quest-journal">
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          Back
+        </button>
+      )}
       <div className="journal-tabs">
         <button
           className={active === 'quests' ? 'active' : ''}
@@ -31,12 +36,8 @@ export default function QuestJournal() {
       </div>
       <div className="journal-content">
         {active === 'quests' && <AcceptedQuestList />}
-        {active === 'nofap' && (
-          <NofapCalendar onBack={() => setActive('quests')} />
-        )}
-        {active === 'ratings' && (
-          <VersionRating onBack={() => setActive('quests')} />
-        )}
+        {active === 'nofap' && <NofapCalendar onBack={() => setActive('quests')} />}
+        {active === 'ratings' && <VersionRating onBack={() => setActive('quests')} />}
       </div>
     </div>
   );
