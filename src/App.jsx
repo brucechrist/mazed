@@ -53,6 +53,7 @@ export default function QuadrantPage({ initialTab }) {
                   <span>NoFap Calendar</span>
                 </div>
                 <div className="app-card" onClick={() => setShowRatings(true)}>
+                  <div className="star-icon">⭐⭐⭐⭐⭐</div>
                   <span>Version Ratings</span>
                 </div>
               </div>
