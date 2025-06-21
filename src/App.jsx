@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
-import NofapCalendar from './NofapCalendar.jsx';
-import VersionRating from './VersionRating.jsx';
 import World from './World.jsx';
-import AcceptedQuestList from './AcceptedQuestList.jsx';
 import FriendsList from './FriendsList.jsx';
+import QuestJournal from './QuestJournal.jsx';
 
 
 const tabs = [
@@ -17,8 +15,6 @@ const tabs = [
 
 export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
-  const [showNofap, setShowNofap] = useState(false);
-  const [showRatings, setShowRatings] = useState(false);
 
   return (
     <div className="app-container">
@@ -39,27 +35,7 @@ export default function QuadrantPage({ initialTab }) {
       <div className="content">
         <h1>{activeTab}</h1>
         {activeTab === 'Character' && <StatsQuadrant />}
-        {activeTab === 'Training' && (
-          <div className="training-layout">
-            <AcceptedQuestList />
-            {showNofap ? (
-              <NofapCalendar onBack={() => setShowNofap(false)} />
-            ) : showRatings ? (
-              <VersionRating onBack={() => setShowRatings(false)} />
-            ) : (
-              <div className="feature-cards">
-                <div className="app-card" onClick={() => setShowNofap(true)}>
-                  <div className="calendar-preview" />
-                  <span>NoFap Calendar</span>
-                </div>
-                <div className="app-card" onClick={() => setShowRatings(true)}>
-                  <div className="star-icon">⭐⭐⭐⭐⭐</div>
-                  <span>Version Ratings</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {activeTab === 'Training' && <QuestJournal />}
         {activeTab === 'World' && <World />}
         {activeTab === 'Friends' && <FriendsList />}
       </div>
