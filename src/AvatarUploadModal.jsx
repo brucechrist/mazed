@@ -9,6 +9,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   const inputRef = useRef(null);
   const [recents, setRecents] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -63,6 +64,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
       });
     if (error) {
       console.error('Avatar upload failed', error);
+      setErrorMsg(error.message);
     } else {
       await finish(filePath);
       onClose();
@@ -73,10 +75,11 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="avatar-drop-area" onClick={() => inputRef.current?.click()}>
-          {uploading ? 'Uploading...' : 'Click to upload image'}
-        </div>
-        <input
+      <div className="avatar-drop-area" onClick={() => inputRef.current?.click()}>
+        {uploading ? 'Uploading...' : 'Click to upload image'}
+      </div>
+      {errorMsg && <div className="upload-error">{errorMsg}</div>}
+      <input
           ref={inputRef}
           type="file"
           accept="image/*"

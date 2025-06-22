@@ -10,6 +10,13 @@
   font-size: 1.35em;
 }
 
+.avatar-upload-modal .upload-error {
+  color: #f88;
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
 .avatar-upload-modal .avatar-recents-header {
   font-weight: bold;
   margin-top: 15px;

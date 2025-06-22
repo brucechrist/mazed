@@ -7,6 +7,7 @@ import QuestJournal from './QuestJournal.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
+import VersionLabel from './VersionLabel.jsx';
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
@@ -76,6 +77,7 @@ export default function QuadrantPage({ initialTab }) {
         {activeTab === 'Friends' && <FriendsList />}
       </div>
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+      <VersionLabel />
     </div>
   );
 }
