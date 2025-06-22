@@ -57,8 +57,10 @@ Make sure the `.env` file with your Supabase credentials exists before running e
 
 Create a public storage bucket named `avatars` in Supabase. The `profiles`
 table includes an `avatar_url` column where uploaded image paths are stored.
-When viewing your profile, click the picture to choose a new image. The file is
-uploaded to Supabase and immediately displayed in the modal.
+When viewing your profile, click the picture to choose a new image. The image
+can now be cropped before uploading and the final picture is persisted across
+sessions. After pulling new changes be sure to run `npm install` so the
+`react-easy-crop` dependency is available.
 
 
 Uploaded filenames are automatically sanitized to avoid characters that
