@@ -19,6 +19,7 @@ export default function Auth() {
       await supabase.from('profiles').insert({
         id: data.user.id,
         username,
+        avatar_url: null,
         resources: 0,
         streaks: 0,
         stats: [5, 5, 5, 5],
