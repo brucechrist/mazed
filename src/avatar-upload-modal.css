@@ -50,13 +50,19 @@
   margin: 0 auto 15px;
 }
 
-.crop-wrapper .zoom-slider {
-  width: 100%;
-  margin-top: 10px;
+.zoom-slider {
+  width: 270px;
+  margin: 10px auto 0;
+  display: block;
 }
 
 .crop-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
+  width: 270px;
+  margin: 10px auto 0;
+}
+
+.crop-actions button {
+  width: 48%;
 }
