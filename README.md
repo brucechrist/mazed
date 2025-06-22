@@ -29,9 +29,12 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
    ```
 
 3. Run the SQL in `profiles.sql` on your Supabase instance to create the
-   `profiles` table that stores user data.
+   `profiles` table that stores user data. Each profile now includes a
+   unique `username` chosen during sign up.
 4. Run the SQL in `supabase-tables.sql` to create the `quests` and `runs`
    tables used by the application.
+5. Run the SQL in `friendships.sql` to create the `friendships` table used for
+   managing friend requests.
 
 ## Running the App
 
