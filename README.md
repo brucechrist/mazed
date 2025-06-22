@@ -53,3 +53,10 @@ npm start
 
 Make sure the `.env` file with your Supabase credentials exists before running either command.
 
+### Profile Pictures
+
+Create a public storage bucket named `avatars` in Supabase. The `profiles`
+table includes an `avatar_url` column where uploaded image paths are stored.
+When viewing your profile, click the picture to choose a new image. The file is
+uploaded to Supabase and immediately displayed in the modal.
+
