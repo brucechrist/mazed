@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabaseClient';
+import AvatarUploadModal from './AvatarUploadModal.jsx';
 import './note-modal.css';
 import './profile-modal.css';
 
@@ -12,7 +13,8 @@ export default function ProfileModal({ onClose }) {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [imgSrc, setImgSrc] = useState(placeholderImg);
-  const [uploading, setUploading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -53,48 +55,39 @@ export default function ProfileModal({ onClose }) {
     fetchAvatar();
   }, []);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setUploading(false);
-      return;
-    }
-    const filePath = `${user.id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(filePath, file, { upsert: true });
-    if (!error) {
-      await supabase
-        .from('profiles')
-        .update({ avatar_url: filePath })
-        .eq('id', user.id);
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-      setImgSrc(data.publicUrl);
-    }
-    setUploading(false);
+  const handleUploadComplete = (_, url) => {
+    setImgSrc(url);
   };
 
   return (
     <div className="modal-overlay profile-overlay" onClick={onClose}>
       <div className="modal profile-modal" onClick={(e) => e.stopPropagation()}>
-        <label htmlFor="avatar-upload">
+        <div className="avatar-container" onMouseLeave={() => setShowMenu(false)}>
           <img className="profile-pic" src={imgSrc} alt="Profile" />
-        </label>
-        <input
-          id="avatar-upload"
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-        />
+          <div className="avatar-edit" onClick={() => setShowMenu(true)}>✏️</div>
+          {showMenu && (
+            <div className="avatar-menu">
+              <div
+                className="avatar-menu-item"
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowUpload(true);
+                }}
+              >
+                Modify profile picture
+              </div>
+            </div>
+          )}
+        </div>
         {email && <div className="profile-name">{email}</div>}
         {username && <div className="profile-username">@{username}</div>}
       </div>
+      {showUpload && (
+        <AvatarUploadModal
+          onClose={() => setShowUpload(false)}
+          onUploaded={handleUploadComplete}
+        />
+      )}
     </div>
   );
 }
