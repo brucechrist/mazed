@@ -16,6 +16,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "styled-components": "^6.1.18",
+    "react-easy-crop": "^5.0.1",
     "@supabase/supabase-js": "^2"
   },
   "devDependencies": {
