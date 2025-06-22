@@ -60,3 +60,9 @@ table includes an `avatar_url` column where uploaded image paths are stored.
 When viewing your profile, click the picture to choose a new image. The file is
 uploaded to Supabase and immediately displayed in the modal.
 
+
+Uploaded filenames are automatically sanitized to avoid characters that
+Supabase storage rejects. If you see a "row-level security" error when uploading,
+check that your `avatars` bucket allows authenticated users to insert and select
+files.
+

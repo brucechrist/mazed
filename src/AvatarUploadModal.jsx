@@ -52,9 +52,15 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setUploading(false); return; }
-    const filePath = `${user.id}/${Date.now()}-${file.name}`;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setUploading(false);
+      return;
+    }
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `${user.id}/${Date.now()}-${safeName}`;
     const { error } = await supabase.storage
       .from(BUCKET)
       .upload(filePath, file, {
@@ -64,7 +70,15 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
       });
     if (error) {
       console.error('Avatar upload failed', error);
-      setErrorMsg(error.message);
+      if (error.message.includes('row-level security')) {
+        setErrorMsg(
+          'Upload failed due to bucket permissions. Check RLS policies.'
+        );
+      } else if (error.message.includes('Invalid key')) {
+        setErrorMsg('Filename contains invalid characters.');
+      } else {
+        setErrorMsg(error.message);
+      }
     } else {
       await finish(filePath);
       onClose();
