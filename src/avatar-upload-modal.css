@@ -1,0 +1,30 @@
+.avatar-upload-modal .avatar-drop-area {
+  width: 200px;
+  height: 200px;
+  border: 2px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0 auto 10px;
+}
+
+.avatar-upload-modal .avatar-recents-header {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.avatar-upload-modal .recents-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.avatar-upload-modal .recent-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  object-fit: cover;
+  cursor: pointer;
+}
