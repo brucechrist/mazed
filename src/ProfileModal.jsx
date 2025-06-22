@@ -6,7 +6,6 @@ import './profile-modal.css';
 const placeholderImg =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/imsbXwAAAAASUVORK5CYII=';
 
-
 export default function ProfileModal({ onClose }) {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
