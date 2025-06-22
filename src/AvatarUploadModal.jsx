@@ -42,6 +42,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
+  const [fileObj, setFileObj] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState(null);
@@ -92,6 +93,10 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
 
   const handleCropCancel = () => {
     URL.revokeObjectURL(imageSrc);
+    if (fileObj) {
+      // release file object reference
+      setFileObj(null);
+    }
     setImageSrc(null);
     setCroppedArea(null);
     setZoom(1);
@@ -108,7 +113,9 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
       setUploading(false);
       return;
     }
-    const safeName = 'avatar.jpg';
+    const safeName = fileObj
+      ? fileObj.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      : 'avatar.jpg';
     const filePath = `${user.id}/${Date.now()}-${safeName}`;
     const blob = await getCroppedImg(imageSrc, croppedArea);
     const { error } = await supabase.storage
@@ -134,6 +141,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
+    setFileObj(file);
     setImageSrc(url);
     inputRef.current.value = '';
   };
