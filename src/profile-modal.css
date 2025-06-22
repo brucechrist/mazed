@@ -56,12 +56,12 @@
   top: 10px;
   background: #333;
   color: #fff;
-  padding: 9px 15px;
+  padding: 8px 13px;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   animation: profile-slide 0.2s ease-out;
   white-space: nowrap;
-  font-size: 1.5em;
+  font-size: 1.35em;
 }
 
 .avatar-menu-item {

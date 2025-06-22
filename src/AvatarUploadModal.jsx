@@ -30,11 +30,15 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   }, []);
 
   const finish = async (path) => {
-    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data: fileData } = await supabase.storage
+      .from(BUCKET)
+      .download(path);
+    const url = fileData ? URL.createObjectURL(fileData) : null;
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
-      onUploaded(path, urlData.publicUrl);
+      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      onUploaded(path, url || urlData.publicUrl);
     }
   };
 
@@ -50,8 +54,16 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setUploading(false); return; }
     const filePath = `${user.id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(filePath, file, { upsert: true });
-    if (!error) {
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(filePath, file, {
+        upsert: true,
+        cacheControl: '3600',
+        contentType: file.type,
+      });
+    if (error) {
+      console.error('Avatar upload failed', error);
+    } else {
       await finish(filePath);
       onClose();
     }

@@ -1,13 +1,13 @@
 .avatar-upload-modal .avatar-drop-area {
-  width: 300px;
-  height: 300px;
+  width: 270px;
+  height: 270px;
   border: 2px dashed #888;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   margin: 0 auto 15px;
-  font-size: 1.5em;
+  font-size: 1.35em;
 }
 
 .avatar-upload-modal .avatar-recents-header {
@@ -24,9 +24,9 @@
 }
 
 .avatar-upload-modal .recent-avatar {
-  width: 90px;
-  height: 90px;
-  border-radius: 45px;
+  width: 81px;
+  height: 81px;
+  border-radius: 40.5px;
   object-fit: cover;
   cursor: pointer;
 }

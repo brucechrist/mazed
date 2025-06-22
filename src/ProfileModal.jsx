@@ -46,10 +46,18 @@ export default function ProfileModal({ onClose }) {
         .eq('id', user.id)
         .single();
       if (profile?.avatar_url) {
-        const { data } = supabase.storage
+        const { data: downloadData } = await supabase.storage
           .from(BUCKET)
-          .getPublicUrl(profile.avatar_url);
-        setImgSrc(data.publicUrl);
+          .download(profile.avatar_url);
+        if (downloadData) {
+          const url = URL.createObjectURL(downloadData);
+          setImgSrc(url);
+        } else {
+          const { data } = supabase.storage
+            .from(BUCKET)
+            .getPublicUrl(profile.avatar_url);
+          setImgSrc(data.publicUrl);
+        }
       }
     };
     fetchAvatar();
