@@ -60,3 +60,7 @@
   justify-content: space-between;
   margin-top: 10px;
 }
+
+.crop-actions button {
+  width: 48%;
+}
