@@ -1,0 +1,19 @@
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  object-fit: cover;
+  margin: 0 auto;
+}
+
+.profile-name {
+  font-size: 1.4em;
+  font-weight: bold;
+  text-align: center;
+}
+
+.profile-username {
+  font-size: 1em;
+  color: #555;
+  text-align: center;
+}
