@@ -6,6 +6,8 @@ import VersionRating from './VersionRating.jsx';
 import QuestJournal from './QuestJournal.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
+import ProfileModal from './ProfileModal.jsx';
+import VersionLabel from './VersionLabel.jsx';
 
 const tabs = [
   { label: 'Training', icon: '🧠' },
@@ -19,6 +21,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showJournal, setShowJournal] = useState(false);
   const [showNofap, setShowNofap] = useState(false);
   const [showRatings, setShowRatings] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="app-container">
@@ -32,8 +35,13 @@ export default function QuadrantPage({ initialTab }) {
             <span className="icon">{tab.icon}</span>
           </div>
         ))}
-        <div className="home-button" onClick={() => window.location.reload()}>
-          🏠
+        <div className="bottom-buttons">
+          <div className="profile-button" onClick={() => setShowProfile(true)}>
+            👤
+          </div>
+          <div className="home-button" onClick={() => window.location.reload()}>
+            🏠
+          </div>
         </div>
       </aside>
       <div className="content">
@@ -68,6 +76,8 @@ export default function QuadrantPage({ initialTab }) {
         {activeTab === 'World' && <World />}
         {activeTab === 'Friends' && <FriendsList />}
       </div>
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+      <VersionLabel />
     </div>
   );
 }
