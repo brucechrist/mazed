@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
+import './note-modal.css';
 import './profile-modal.css';
-import profileImg from './assets/profile.png';
+
+const placeholderImg =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/imsbXwAAAAASUVORK5CYII=';
+
 
 export default function ProfileModal({ onClose }) {
   const [email, setEmail] = useState('');
@@ -26,9 +30,9 @@ export default function ProfileModal({ onClose }) {
   }, []);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <img className="profile-pic" src={profileImg} alt="Profile" />
+    <div className="modal-overlay profile-overlay" onClick={onClose}>
+      <div className="modal profile-modal" onClick={(e) => e.stopPropagation()}>
+        <img className="profile-pic" src={placeholderImg} alt="Profile" />
         {email && <div className="profile-name">{email}</div>}
         {username && <div className="profile-username">@{username}</div>}
       </div>

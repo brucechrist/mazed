@@ -17,3 +17,28 @@
   color: #555;
   text-align: center;
 }
+
+.profile-overlay {
+  background: transparent;
+}
+
+.profile-modal {
+  position: fixed;
+  left: 80px;
+  bottom: 110px;
+  width: 250px;
+  transform-origin: bottom left;
+  animation: profile-slide 0.2s ease-out;
+}
+
+@keyframes profile-slide {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
