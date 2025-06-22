@@ -3,6 +3,7 @@ import Cropper from 'react-easy-crop';
 import { supabase } from './supabaseClient';
 import './note-modal.css';
 import './avatar-upload-modal.css';
+import './auth.css';
 
 const BUCKET = 'avatars';
 
@@ -67,19 +68,17 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   }, []);
 
   const finish = async (path) => {
-    const { data: fileData } = await supabase.storage
-      .from(BUCKET)
-      .download(path);
-    const url = fileData ? URL.createObjectURL(fileData) : null;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const finalUrl = url || urlData.publicUrl;
-      localStorage.setItem(`avatarPath_${user.id}`, path);
-      localStorage.setItem(`avatarUrl_${user.id}`, finalUrl);
-      onUploaded(path, finalUrl);
-    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const finalUrl = urlData.publicUrl;
+    localStorage.setItem(`avatarPath_${user.id}`, path);
+    localStorage.setItem(`avatarUrl_${user.id}`, finalUrl);
+    onUploaded(path, finalUrl);
   };
 
   const handleSelectRecent = async (path) => {
@@ -172,8 +171,12 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
             onChange={(e) => setZoom(Number(e.target.value))}
           />
           <div className="crop-actions">
-            <button onClick={handleCropCancel}>Cancel</button>
-            <button onClick={handleCropSave}>Save</button>
+            <button className="secondary-btn" onClick={handleCropCancel}>
+              Cancel
+            </button>
+            <button className="primary-btn" onClick={handleCropSave}>
+              Save
+            </button>
           </div>
         </div>
       ) : (
