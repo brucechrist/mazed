@@ -91,6 +91,11 @@ export default function FriendsList() {
           Send
         </button>
       </div>
+      {userId && (
+        <div style={{ marginTop: '4px', fontSize: '0.9em' }}>
+          Your ID: {userId}
+        </div>
+      )}
     </div>
   );
 }
