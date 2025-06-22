@@ -5,6 +5,7 @@ import './auth.css';
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [errorMsg, setErrorMsg] = useState(null);
 
   const handleSignUp = async (e) => {
@@ -17,6 +18,7 @@ export default function Auth() {
     if (data?.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
+        username,
         resources: 0,
         streaks: 0,
         stats: [5, 5, 5, 5],
@@ -45,6 +47,12 @@ export default function Auth() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
           <input
             type="password"
