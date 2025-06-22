@@ -40,6 +40,12 @@ export default function ProfileModal({ onClose }) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+
+      const stored = localStorage.getItem(`avatarUrl_${user.id}`);
+      if (stored) {
+        setImgSrc(stored);
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('avatar_url')
@@ -52,12 +58,15 @@ export default function ProfileModal({ onClose }) {
         if (downloadData) {
           const url = URL.createObjectURL(downloadData);
           setImgSrc(url);
+          localStorage.setItem(`avatarUrl_${user.id}`, url);
         } else {
           const { data } = supabase.storage
             .from(BUCKET)
             .getPublicUrl(profile.avatar_url);
           setImgSrc(data.publicUrl);
+          localStorage.setItem(`avatarUrl_${user.id}`, data.publicUrl);
         }
+        localStorage.setItem(`avatarPath_${user.id}`, profile.avatar_url);
       }
     };
     fetchAvatar();
