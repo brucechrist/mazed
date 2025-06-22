@@ -66,19 +66,27 @@
 }
 
 .primary-btn {
-  background: #0052a3;
+  background: #5865f2;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .primary-btn:hover {
-  background: #0066cc;
+  background: #4752d3;
 }
 
 .secondary-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: #4f545c;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .secondary-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #5c6269;
 }
 
 .auth-box button:hover {

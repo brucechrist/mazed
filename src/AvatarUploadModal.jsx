@@ -148,7 +148,8 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
-      {imageSrc ? (
+        <h2 className="modal-title">Modifier l'image</h2>
+        {imageSrc ? (
         <>
           <div className="crop-wrapper">
             <Cropper
@@ -161,23 +162,28 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={handleCropComplete}
+              classes={{ containerClassName: 'crop-container', cropAreaClassName: 'crop-area', mediaClassName: 'crop-media' }}
             />
           </div>
-          <input
-            className="zoom-slider"
-            type="range"
-            min="1"
-            max="3"
-            step="0.1"
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-          />
+          <div className="zoom-control">
+            <span className="zoom-icon">-</span>
+            <input
+              className="zoom-slider"
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+            />
+            <span className="zoom-icon">+</span>
+          </div>
           <div className="crop-actions">
             <button className="secondary-btn" onClick={handleCropCancel}>
-              Cancel
+              Annuler
             </button>
             <button className="primary-btn" onClick={handleCropSave}>
-              Save
+              Enregistrer
             </button>
           </div>
         </>
