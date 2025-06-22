@@ -1,17 +1,19 @@
 .avatar-upload-modal .avatar-drop-area {
-  width: 200px;
-  height: 200px;
-  border: 2px dashed #ccc;
+  width: 300px;
+  height: 300px;
+  border: 2px dashed #888;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  margin: 0 auto 10px;
+  margin: 0 auto 15px;
+  font-size: 1.5em;
 }
 
 .avatar-upload-modal .avatar-recents-header {
   font-weight: bold;
-  margin-top: 10px;
+  margin-top: 15px;
+  font-size: 1.2em;
 }
 
 .avatar-upload-modal .recents-grid {
@@ -22,9 +24,14 @@
 }
 
 .avatar-upload-modal .recent-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 30px;
+  width: 90px;
+  height: 90px;
+  border-radius: 45px;
   object-fit: cover;
   cursor: pointer;
+}
+
+.avatar-upload-modal {
+  background: #1e1e1e;
+  color: #fff;
 }
