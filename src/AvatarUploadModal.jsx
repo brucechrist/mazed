@@ -3,6 +3,7 @@ import Cropper from 'react-easy-crop';
 import { supabase } from './supabaseClient';
 import './note-modal.css';
 import './avatar-upload-modal.css';
+import './auth.css';
 
 const BUCKET = 'avatars';
 
@@ -67,19 +68,17 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   }, []);
 
   const finish = async (path) => {
-    const { data: fileData } = await supabase.storage
-      .from(BUCKET)
-      .download(path);
-    const url = fileData ? URL.createObjectURL(fileData) : null;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
-      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const finalUrl = url || urlData.publicUrl;
-      localStorage.setItem(`avatarPath_${user.id}`, path);
-      localStorage.setItem(`avatarUrl_${user.id}`, finalUrl);
-      onUploaded(path, finalUrl);
-    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const finalUrl = urlData.publicUrl;
+    localStorage.setItem(`avatarPath_${user.id}`, path);
+    localStorage.setItem(`avatarUrl_${user.id}`, finalUrl);
+    onUploaded(path, finalUrl);
   };
 
   const handleSelectRecent = async (path) => {
@@ -149,33 +148,45 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
-      {imageSrc ? (
-        <div className="crop-wrapper">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            aspect={1}
-            cropShape="round"
-            showGrid={false}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={handleCropComplete}
-          />
-          <input
-            className="zoom-slider"
-            type="range"
-            min="1"
-            max="3"
-            step="0.1"
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-          />
-          <div className="crop-actions">
-            <button onClick={handleCropCancel}>Cancel</button>
-            <button onClick={handleCropSave}>Save</button>
+        <h2 className="modal-title">Modifier l'image</h2>
+        {imageSrc ? (
+        <>
+          <div className="crop-wrapper">
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={handleCropComplete}
+              classes={{ containerClassName: 'crop-container', cropAreaClassName: 'crop-area', mediaClassName: 'crop-media' }}
+            />
           </div>
-        </div>
+          <div className="zoom-control">
+            <span className="zoom-icon">-</span>
+            <input
+              className="zoom-slider"
+              type="range"
+              min="1"
+              max="3"
+              step="0.1"
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+            />
+            <span className="zoom-icon">+</span>
+          </div>
+          <div className="crop-actions">
+            <button className="secondary-btn" onClick={handleCropCancel}>
+              Annuler
+            </button>
+            <button className="primary-btn" onClick={handleCropSave}>
+              Enregistrer
+            </button>
+          </div>
+        </>
       ) : (
         <>
           <div className="avatar-drop-area" onClick={() => inputRef.current?.click()}>

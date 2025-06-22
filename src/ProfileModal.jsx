@@ -9,7 +9,7 @@ const placeholderImg =
 
 const BUCKET = 'avatars';
 
-export default function ProfileModal({ onClose }) {
+export default function ProfileModal({ onClose, onAvatarUpdated }) {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [imgSrc, setImgSrc] = useState(placeholderImg);
@@ -41,9 +41,13 @@ export default function ProfileModal({ onClose }) {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const stored = localStorage.getItem(`avatarUrl_${user.id}`);
-      if (stored) {
-        setImgSrc(stored);
+      const storedPath = localStorage.getItem(`avatarPath_${user.id}`);
+      if (storedPath) {
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(storedPath);
+        setImgSrc(data.publicUrl);
+      } else {
+        const storedUrl = localStorage.getItem(`avatarUrl_${user.id}`);
+        if (storedUrl) setImgSrc(storedUrl);
       }
 
       const { data: profile } = await supabase
@@ -52,21 +56,12 @@ export default function ProfileModal({ onClose }) {
         .eq('id', user.id)
         .single();
       if (profile?.avatar_url) {
-        const { data: downloadData } = await supabase.storage
+        const { data } = supabase.storage
           .from(BUCKET)
-          .download(profile.avatar_url);
-        if (downloadData) {
-          const url = URL.createObjectURL(downloadData);
-          setImgSrc(url);
-          localStorage.setItem(`avatarUrl_${user.id}`, url);
-        } else {
-          const { data } = supabase.storage
-            .from(BUCKET)
-            .getPublicUrl(profile.avatar_url);
-          setImgSrc(data.publicUrl);
-          localStorage.setItem(`avatarUrl_${user.id}`, data.publicUrl);
-        }
+          .getPublicUrl(profile.avatar_url);
+        setImgSrc(data.publicUrl);
         localStorage.setItem(`avatarPath_${user.id}`, profile.avatar_url);
+        localStorage.setItem(`avatarUrl_${user.id}`, data.publicUrl);
       }
     };
     fetchAvatar();
@@ -74,6 +69,7 @@ export default function ProfileModal({ onClose }) {
 
   const handleUploadComplete = (_, url) => {
     setImgSrc(url);
+    if (onAvatarUpdated) onAvatarUpdated(_, url);
   };
 
   return (
