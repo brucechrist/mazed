@@ -149,18 +149,20 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal avatar-upload-modal" onClick={(e) => e.stopPropagation()}>
       {imageSrc ? (
-        <div className="crop-wrapper">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            aspect={1}
-            cropShape="round"
-            showGrid={false}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={handleCropComplete}
-          />
+        <>
+          <div className="crop-wrapper">
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={handleCropComplete}
+            />
+          </div>
           <input
             className="zoom-slider"
             type="range"
@@ -178,7 +180,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
               Save
             </button>
           </div>
-        </div>
+        </>
       ) : (
         <>
           <div className="avatar-drop-area" onClick={() => inputRef.current?.click()}>
