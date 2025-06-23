@@ -92,7 +92,6 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
     if (!error) {
       setUsername(newUsername);
       localStorage.setItem(`username_${user.id}`, newUsername);
-
       setShowUsernamePrompt(false);
     }
   };
