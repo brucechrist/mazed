@@ -3,9 +3,11 @@ import { supabase } from './supabaseClient';
 import './auth.css';
 
 export default function Auth() {
+  const [mode, setMode] = useState('signin');
+  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState(null);
 
   const handleSignUp = async (e) => {
@@ -18,6 +20,7 @@ export default function Auth() {
     if (data?.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
+        email,
         username,
         avatar_url: null,
         resources: 0,
@@ -26,11 +29,31 @@ export default function Auth() {
       });
     }
     setErrorMsg(null);
+    setMode('signin');
   };
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    let usedEmail = identifier;
+    let { error } = await supabase.auth.signInWithPassword({
+      email: usedEmail,
+      password,
+    });
+    if (error) {
+      // maybe identifier is a username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', identifier)
+        .single();
+      if (profile?.email) {
+        usedEmail = profile.email;
+        ({ error } = await supabase.auth.signInWithPassword({
+          email: usedEmail,
+          password,
+        }));
+      }
+    }
     if (error) {
       setErrorMsg(error.message);
     } else {
@@ -42,29 +65,49 @@ export default function Auth() {
     <div className="auth-container">
       <div className="auth-box">
         <h2>Welcome</h2>
-        <form onSubmit={handleSignIn}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button type="submit" className="primary-btn">Sign In</button>
-          <button type="button" className="secondary-btn" onClick={handleSignUp}>Sign Up</button>
-          {errorMsg && <div className="auth-error">{errorMsg}</div>}
-        </form>
+        {mode === 'signin' ? (
+          <form onSubmit={handleSignIn}>
+            <input
+              type="text"
+              placeholder="Username or Email"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="submit" className="primary-btn">Sign In</button>
+            <button type="button" className="secondary-btn" onClick={() => setMode('signup')}>Sign Up</button>
+            {errorMsg && <div className="auth-error">{errorMsg}</div>}
+          </form>
+        ) : (
+          <form onSubmit={handleSignUp}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="submit" className="primary-btn">Create Account</button>
+            <button type="button" className="secondary-btn" onClick={() => setMode('signin')}>Back to Sign In</button>
+            {errorMsg && <div className="auth-error">{errorMsg}</div>}
+          </form>
+        )}
       </div>
     </div>
   );
