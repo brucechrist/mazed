@@ -33,6 +33,7 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
    existing emails, so simply executing it keeps your database in sync with the
    application.
 
+
 4. Run the SQL in `supabase-tables.sql` to create the `quests` and `runs`
    tables used by the application.
 5. Run the SQL in `friendships.sql` to create the `friendships` table used for
