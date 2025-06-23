@@ -100,6 +100,7 @@
 
 .password-wrapper {
   position: relative;
+  width: 100%;
 }
 
 .password-wrapper input {
@@ -116,5 +117,5 @@
   border: none;
   color: #ccc;
   cursor: pointer;
-  font-size: 18px;
+  padding: 0;
 }

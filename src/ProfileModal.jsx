@@ -36,8 +36,9 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
           .eq('id', user.id)
           .single();
         if (profile?.username) {
-          setUsername(profile.username);
-          localStorage.setItem(`username_${user.id}`, profile.username);
+          const clean = profile.username.toLowerCase();
+          setUsername(clean);
+          localStorage.setItem(`username_${user.id}`, clean);
         }
       }
     };
@@ -83,15 +84,18 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
   };
 
   const handleUsernameSave = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user || !newUsername) return;
+    const clean = newUsername.trim().toLowerCase();
     const { error } = await supabase
       .from('profiles')
-      .update({ username: newUsername })
+      .update({ username: clean })
       .eq('id', user.id);
     if (!error) {
-      setUsername(newUsername);
-      localStorage.setItem(`username_${user.id}`, newUsername);
+      setUsername(clean);
+      localStorage.setItem(`username_${user.id}`, clean);
       setShowUsernamePrompt(false);
     }
   };
