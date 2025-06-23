@@ -101,7 +101,13 @@ export default function Auth() {
         .select('email')
         .eq('username', lookup)
         .maybeSingle();
-      if (profile?.email) {
+
+      if (!profile) {
+        setErrorMsg('Username not found');
+        return;
+      }
+
+      if (profile.email) {
         ({ error } = await supabase.auth.signInWithPassword({
           email: profile.email,
           password,
