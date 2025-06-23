@@ -96,8 +96,8 @@ export default function Auth() {
         .from('profiles')
         .select('email')
         .eq('username', lookup)
-        .single();
-      if (error || !profile) {
+        .maybeSingle();
+      if (error || !profile?.email) {
         setErrorMsg('Invalid login credentials');
         return;
       }
