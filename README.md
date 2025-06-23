@@ -96,3 +96,4 @@ the **Get username** button to choose one. After saving, the profile will show
 
 All password inputs include a small eye button on the right side to toggle
 visibility. Use it if you need to double‑check what you typed.
+
