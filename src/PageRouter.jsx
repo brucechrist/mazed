@@ -32,6 +32,11 @@ export default function PageRouter() {
     if (window.electronAPI && window.electronAPI.onGoHome) {
       window.electronAPI.onGoHome(() => setPage('5th'));
     }
+    if (window.electronAPI && window.electronAPI.onDisconnect) {
+      window.electronAPI.onDisconnect(async () => {
+        await supabase.auth.signOut();
+      });
+    }
   }, []);
 
   if (!user) {
