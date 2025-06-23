@@ -20,6 +20,7 @@ export default function Auth() {
     if (data?.user) {
       await supabase.from('profiles').insert({
         id: data.user.id,
+        email,
         username,
         avatar_url: null,
         resources: 0,
@@ -42,11 +43,11 @@ export default function Auth() {
       // maybe identifier is a username
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, user:auth.users(email)')
+        .select('email')
         .eq('username', identifier)
         .single();
-      if (profile?.user?.email) {
-        usedEmail = profile.user.email;
+      if (profile?.email) {
+        usedEmail = profile.email;
         ({ error } = await supabase.auth.signInWithPassword({
           email: usedEmail,
           password,
