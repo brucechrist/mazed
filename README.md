@@ -37,6 +37,13 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
    tables used by the application.
 5. Run the SQL in `friendships.sql` to create the `friendships` table used for
    managing friend requests.
+6. If row-level security is enabled on `profiles`, create a policy so the
+   app can look up an email address by username when signing in:
+
+   ```sql
+   create policy "Public read for login" on profiles
+     for select using (true);
+   ```
 
 ## Running the App
 

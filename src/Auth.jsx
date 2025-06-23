@@ -8,6 +8,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
   const handleSignUp = async (e) => {
@@ -18,18 +19,19 @@ export default function Auth() {
       return;
     }
     if (data?.user) {
+      const cleanName = username.trim().toLowerCase();
       await supabase
         .from('profiles')
         .upsert({
           id: data.user.id,
           email,
-          username,
+          username: cleanName,
           avatar_url: null,
           resources: 0,
           streaks: 0,
           stats: [5, 5, 5, 5],
         });
-      localStorage.setItem(`username_${data.user.id}`, username);
+      localStorage.setItem(`username_${data.user.id}`, cleanName);
     }
     setErrorMsg(null);
     setMode('signin');
@@ -42,10 +44,11 @@ export default function Auth() {
 
     if (!usedEmail.includes('@')) {
       // identifier is likely a username, resolve it to an email first
+      const lookup = usedEmail.toLowerCase();
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('email')
-        .eq('username', usedEmail)
+        .ilike('username', lookup)
         .single();
       if (error || !profile) {
         setErrorMsg('Invalid login credentials');
@@ -73,7 +76,10 @@ export default function Auth() {
         .eq('id', user.id)
         .single();
       if (profile?.username) {
-        localStorage.setItem(`username_${user.id}`, profile.username);
+        localStorage.setItem(
+          `username_${user.id}`,
+          profile.username.toLowerCase()
+        );
       }
     }
   };
@@ -90,12 +96,21 @@ export default function Auth() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
             />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
             <button type="submit" className="primary-btn">Sign In</button>
             <button type="button" className="secondary-btn" onClick={() => setMode('signup')}>Sign Up</button>
             {errorMsg && <div className="auth-error">{errorMsg}</div>}
@@ -114,12 +129,21 @@ export default function Auth() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
             <button type="submit" className="primary-btn">Create Account</button>
             <button type="button" className="secondary-btn" onClick={() => setMode('signin')}>Back to Sign In</button>
             {errorMsg && <div className="auth-error">{errorMsg}</div>}
