@@ -97,3 +97,23 @@
   color: #ff8080;
   margin-top: 10px;
 }
+
+.password-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  flex: 1;
+}
+
+.toggle-password {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}

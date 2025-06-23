@@ -15,19 +15,30 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
   const [imgSrc, setImgSrc] = useState(placeholderImg);
   const [showMenu, setShowMenu] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setEmail(user.email);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setEmail(user.email);
+
+      const stored = localStorage.getItem(`username_${user.id}`);
+      if (stored) {
+        setUsername(stored);
+      } else {
         const { data: profile } = await supabase
           .from('profiles')
           .select('username')
           .eq('id', user.id)
           .single();
-        if (profile) {
-          setUsername(profile.username);
+        if (profile?.username) {
+          const clean = profile.username.toLowerCase();
+          setUsername(clean);
+          localStorage.setItem(`username_${user.id}`, clean);
         }
       }
     };
@@ -72,6 +83,23 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
     if (onAvatarUpdated) onAvatarUpdated(_, url);
   };
 
+  const handleUsernameSave = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user || !newUsername) return;
+    const clean = newUsername.trim().toLowerCase();
+    const { error } = await supabase
+      .from('profiles')
+      .update({ username: clean })
+      .eq('id', user.id);
+    if (!error) {
+      setUsername(clean);
+      localStorage.setItem(`username_${user.id}`, clean);
+      setShowUsernamePrompt(false);
+    }
+  };
+
   return (
     <div className="modal-overlay profile-overlay" onClick={onClose}>
       <div className="modal profile-modal" onClick={(e) => e.stopPropagation()}>
@@ -92,14 +120,39 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
             </div>
           )}
         </div>
-        {email && <div className="profile-name">{email}</div>}
-        {username && <div className="profile-username">@{username}</div>}
+        {username ? (
+          <div className="profile-name">@{username}</div>
+        ) : (
+          <>
+            {email && <div className="profile-name">{email}</div>}
+            <div className="get-username-line">
+              <button className="get-username-btn" onClick={() => setShowUsernamePrompt(true)}>
+                Get username
+              </button>
+            </div>
+          </>
+        )}
       </div>
       {showUpload && (
         <AvatarUploadModal
           onClose={() => setShowUpload(false)}
           onUploaded={handleUploadComplete}
         />
+      )}
+      {showUsernamePrompt && (
+        <div className="modal-overlay" onClick={() => setShowUsernamePrompt(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <input
+              className="note-title"
+              placeholder="Choose a username"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+            />
+            <div className="actions">
+              <button className="save-button" onClick={handleUsernameSave}>Save</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
