@@ -81,6 +81,7 @@ files.
 The displayed version comes from `src/version.js`. After each update to the
 codebase, bump the patch number (the last digit) and commit the file so
 releases are easy to track.
+
 ## Username Login
 
 Accounts now support logging in with either an email address or a username.
