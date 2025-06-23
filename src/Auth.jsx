@@ -37,43 +37,44 @@ export default function Auth() {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    let usedEmail = identifier;
-    let { error } = await supabase.auth.signInWithPassword({
+    setErrorMsg(null);
+    let usedEmail = identifier.trim();
+
+    if (!usedEmail.includes('@')) {
+      // identifier is likely a username, resolve it to an email first
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', usedEmail)
+        .single();
+      if (error || !profile) {
+        setErrorMsg('Invalid login credentials');
+        return;
+      }
+      usedEmail = profile.email;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
       email: usedEmail,
       password,
     });
     if (error) {
-      // maybe identifier is a username
+      setErrorMsg(error.message);
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('email')
-        .eq('username', identifier)
+        .select('username')
+        .eq('id', user.id)
         .single();
-      if (profile?.email) {
-        usedEmail = profile.email;
-        ({ error } = await supabase.auth.signInWithPassword({
-          email: usedEmail,
-          password,
-        }));
+      if (profile?.username) {
+        localStorage.setItem(`username_${user.id}`, profile.username);
       }
-    }
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', user.id)
-          .single();
-        if (profile?.username) {
-          localStorage.setItem(`username_${user.id}`, profile.username);
-        }
-      }
-      setErrorMsg(null);
     }
   };
 
