@@ -87,27 +87,28 @@ export default function Auth() {
   const handleSignIn = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
-    let usedEmail = identifier.trim();
+    const userInput = identifier.trim();
+    let { error } = await supabase.auth.signInWithPassword({
+      email: userInput,
+      password,
+    });
 
-    if (!usedEmail.includes('@')) {
-      // identifier is likely a username, resolve it to an email first
-      const lookup = usedEmail.toLowerCase();
-      const { data: profile, error } = await supabase
+    if (error && !userInput.includes('@')) {
+      // maybe the user entered a username; resolve it to an email and retry
+      const lookup = userInput.toLowerCase();
+      const { data: profile } = await supabase
         .from('profiles')
         .select('email')
         .eq('username', lookup)
-        .single();
-      if (error || !profile) {
-        setErrorMsg('Invalid login credentials');
-        return;
+        .maybeSingle();
+      if (profile?.email) {
+        ({ error } = await supabase.auth.signInWithPassword({
+          email: profile.email,
+          password,
+        }));
       }
-      usedEmail = profile.email;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: usedEmail,
-      password,
-    });
     if (error) {
       setErrorMsg(error.message);
       return;
