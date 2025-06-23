@@ -97,3 +97,25 @@
   color: #ff8080;
   margin-top: 10px;
 }
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0;
+}
