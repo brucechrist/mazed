@@ -20,16 +20,24 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setEmail(user.email);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setEmail(user.email);
+
+      const stored = localStorage.getItem(`username_${user.id}`);
+      if (stored) {
+        setUsername(stored);
+      } else {
         const { data: profile } = await supabase
           .from('profiles')
           .select('username')
           .eq('id', user.id)
           .single();
-        if (profile) {
+        if (profile?.username) {
           setUsername(profile.username);
+          localStorage.setItem(`username_${user.id}`, profile.username);
         }
       }
     };
@@ -83,6 +91,8 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
       .eq('id', user.id);
     if (!error) {
       setUsername(newUsername);
+      localStorage.setItem(`username_${user.id}`, newUsername);
+
       setShowUsernamePrompt(false);
     }
   };

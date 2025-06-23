@@ -18,15 +18,18 @@ export default function Auth() {
       return;
     }
     if (data?.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        email,
-        username,
-        avatar_url: null,
-        resources: 0,
-        streaks: 0,
-        stats: [5, 5, 5, 5],
-      });
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          email,
+          username,
+          avatar_url: null,
+          resources: 0,
+          streaks: 0,
+          stats: [5, 5, 5, 5],
+        });
+      localStorage.setItem(`username_${data.user.id}`, username);
     }
     setErrorMsg(null);
     setMode('signin');
@@ -57,6 +60,19 @@ export default function Auth() {
     if (error) {
       setErrorMsg(error.message);
     } else {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        if (profile?.username) {
+          localStorage.setItem(`username_${user.id}`, profile.username);
+        }
+      }
       setErrorMsg(null);
     }
   };
