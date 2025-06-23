@@ -101,6 +101,8 @@
 .password-wrapper {
   display: flex;
   align-items: center;
+  width: 100%;
+  margin-bottom: 15px;
 }
 
 .password-wrapper input {
