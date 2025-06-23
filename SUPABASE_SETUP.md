@@ -16,6 +16,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
    These create all required tables and columns and ensure a profile row is
    created automatically for each new user.
+a
 
 4. If row level security is enabled on `profiles`, allow public read access so username lookups work during login:
 
