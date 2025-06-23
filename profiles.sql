@@ -7,3 +7,16 @@ create table if not exists profiles (
   streaks int default 0,
   stats jsonb default '[5,5,5,5]'
 );
+
+-- Upgrade existing installations
+alter table profiles
+  add column if not exists email text;
+
+update profiles
+set email = auth.users.email
+from auth.users
+where profiles.email is null
+  and profiles.id = auth.users.id;
+
+alter table profiles
+  alter column email set not null;

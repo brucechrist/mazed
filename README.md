@@ -27,16 +27,12 @@ The idea of mazed is to make a map, that people can use to find themselves, god,
    VITE_SUPABASE_ANON_KEY=your-anon-key
    ```
 
-3. Run the SQL in `profiles.sql` on your Supabase instance to create the
-   `profiles` table that stores user data. Profiles now include an `email`
-   column and a unique `username` chosen during sign up. If upgrading an
-   existing database, add the column with:
+3. Run the SQL in `profiles.sql` on your Supabase instance. This file creates
+   or updates the `profiles` table so it contains an `email` column and a
+   unique `username` for each user. The script also backfills the column with
+   existing emails, so simply executing it keeps your database in sync with the
+   application.
 
-   ```sql
-   alter table profiles add column email text;
-   update profiles set email = auth.users.email from auth.users
-     where profiles.id = auth.users.id;
-   ```
 
 4. Run the SQL in `supabase-tables.sql` to create the `quests` and `runs`
    tables used by the application.
