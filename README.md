@@ -81,3 +81,18 @@ files.
 The displayed version comes from `src/version.js`. After each update to the
 codebase, bump the patch number (the last digit) and commit the file so
 releases are easy to track.
+## Username Login
+
+Accounts now support logging in with either an email address or a username.
+The sign in screen accepts either identifier. Usernames are stored in
+lowercase and cached locally once set so they persist across sessions.
+
+If your profile does not yet have a username, open the profile popup and click
+the **Get username** button to choose one. After saving, the profile will show
+`@username` instead of your email.
+
+## Password Visibility
+
+All password inputs include a small eye button on the right side to toggle
+visibility. Use it if you need to double‑check what you typed.
+
