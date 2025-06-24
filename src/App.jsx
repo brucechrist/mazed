@@ -113,7 +113,8 @@ export default function QuadrantPage({ initialTab }) {
                   <span>Version Ratings</span>
                 </div>
                 <div className="app-card" onClick={() => setShowWhoAmI(true)}>
-                  <div className="star-icon">❓</div>
+                  <div className="question-icon">❓</div>
+
                   <span>Who Am I?</span>
                 </div>
               </div>
