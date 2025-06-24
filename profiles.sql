@@ -8,6 +8,11 @@ create table if not exists profiles (
   stats jsonb default '[5,5,5,5]'
 );
 
+alter table profiles
+  add column if not exists mbti text,
+  add column if not exists enneagram text,
+  add column if not exists instinct text;
+
 -- Upgrade existing installations
 alter table profiles
   add column if not exists email text;

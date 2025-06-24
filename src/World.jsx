@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QuestModal from './QuestModal.jsx';
+import MainQuestModal from './MainQuestModal.jsx';
 import { supabase } from './supabaseClient';
 import './world.css';
 
@@ -14,6 +15,9 @@ export default function World() {
     return stored ? JSON.parse(stored) : [];
   });
   const [showModal, setShowModal] = useState(false);
+  const [profile, setProfile] = useState({});
+  const [needsMainQuest, setNeedsMainQuest] = useState(false);
+  const [showMainQuest, setShowMainQuest] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -32,11 +36,15 @@ export default function World() {
       setUserId(user.id);
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('resources')
+        .select('resources, mbti, enneagram, instinct')
         .eq('id', user.id)
         .single();
-      if (profileData && typeof profileData.resources === 'number') {
-        setResource(profileData.resources);
+      if (profileData) {
+        if (typeof profileData.resources === 'number') {
+          setResource(profileData.resources);
+        }
+        setProfile(profileData);
+        setNeedsMainQuest(!profileData.mbti || !profileData.enneagram);
       }
       const { data: questsData } = await supabase
         .from('quests')
@@ -105,6 +113,14 @@ export default function World() {
         </button>
       </h3>
       <div className="quest-list">
+        {needsMainQuest && (
+          <div
+            className="quest-banner main-quest-banner"
+            onClick={() => setShowMainQuest(true)}
+          >
+            Main Quest
+          </div>
+        )}
         {quests.filter((q) => !q.accepted && !q.completed).map((q) => (
           <div key={q.id} className="quest-banner">
             <div className="quest-info">
@@ -127,6 +143,18 @@ export default function World() {
       </div>
       {showModal && (
         <QuestModal onAdd={addQuest} onClose={() => setShowModal(false)} />
+      )}
+      {showMainQuest && (
+        <MainQuestModal
+          onClose={() => setShowMainQuest(false)}
+          onSaved={(p) => {
+            setProfile({ ...profile, ...p });
+            setNeedsMainQuest(false);
+          }}
+          initialMbti={profile.mbti || ''}
+          initialEnneagram={profile.enneagram || ''}
+          initialInstinct={profile.instinct || ''}
+        />
       )}
       <div className="resource-box">{resource} R</div>
     </div>
