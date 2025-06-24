@@ -96,3 +96,27 @@ input:checked + .slider:before {
 .time-left {
   font-weight: bold;
 }
+
+.stats-container {
+  display: flex;
+  gap: 20px;
+}
+
+.segment-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.segment-tabs button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.segment-tabs button.active {
+  background: #555;
+}
