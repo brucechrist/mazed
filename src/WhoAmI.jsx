@@ -11,10 +11,18 @@ export default function WhoAmI({ onBack }) {
   const [shortcut, setShortcut] = useState(() => {
     return localStorage.getItem('whoamiShortcut') || 't';
   });
+  const [duration, setDuration] = useState(() => {
+    const d = localStorage.getItem('whoamiDuration');
+    return d ? parseInt(d, 10) : 60;
+  });
 
   useEffect(() => {
     localStorage.setItem('whoamiShortcut', shortcut);
   }, [shortcut]);
+
+  useEffect(() => {
+    localStorage.setItem('whoamiDuration', duration);
+  }, [duration]);
 
   useEffect(() => {
     if (session) {
@@ -41,7 +49,14 @@ export default function WhoAmI({ onBack }) {
   }, [session, running, shortcut]);
 
   const startSession = () => {
-    setSession({ start: Date.now(), presses: [], paused: 0, pauseStarted: null });
+    setSession({
+      start: Date.now(),
+      presses: [],
+      paused: 0,
+      pauseStarted: null,
+      duration,
+      beeped: false,
+    });
     setRunning(true);
     setNow(Date.now());
   };
@@ -49,6 +64,20 @@ export default function WhoAmI({ onBack }) {
   const recordPress = () => {
     if (!session) return;
     setSession((s) => ({ ...s, presses: [...s.presses, Date.now()] }));
+  };
+
+  const resetTimer = () => {
+    if (!session) return;
+    setRunning(false);
+    setSession({
+      start: Date.now(),
+      presses: [],
+      paused: 0,
+      pauseStarted: null,
+      duration,
+      beeped: false,
+    });
+    setNow(Date.now());
   };
 
   const toggleRunning = () => {
@@ -76,6 +105,22 @@ export default function WhoAmI({ onBack }) {
   const longest = intervals.length ? Math.max(...intervals) : 0;
   const tpm = elapsed > 0 ? (session.presses.length / (elapsed / 60000)) : 0;
 
+  const timeLeft = session ? Math.max(0, session.duration * 60000 - elapsed) : 0;
+
+  useEffect(() => {
+    if (!session || !running) return;
+    if (timeLeft <= 0 && !session.beeped) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+      setSession((s) => ({ ...s, beeped: true }));
+    }
+  }, [timeLeft, running, session]);
+
   const chartWidth = 300;
   const chartHeight = 100;
   let path = '';
@@ -92,7 +137,17 @@ export default function WhoAmI({ onBack }) {
     <div className="whoami">
       <button className="back-button" onClick={onBack}>Back</button>
       {!session ? (
-        <button className="action-button" onClick={startSession}>Start Session</button>
+        <>
+          <div className="duration-input">
+            Duration (min):
+            <input
+              type="number"
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value, 10) || 0)}
+            />
+          </div>
+          <button className="action-button" onClick={startSession}>Start Session</button>
+        </>
       ) : (
         <>
           <div className="controls">
@@ -101,7 +156,9 @@ export default function WhoAmI({ onBack }) {
               <input type="checkbox" checked={running} onChange={toggleRunning} />
               <span className="slider" />
             </label>
+            <button className="action-button" onClick={resetTimer}>Reset Timer</button>
             <div className="time">{(elapsed / 1000).toFixed(0)}s</div>
+            <div className="time-left">Left: {(timeLeft / 1000).toFixed(0)}s</div>
           </div>
           <div className="shortcut-input">
             Shortcut key:

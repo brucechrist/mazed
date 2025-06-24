@@ -114,7 +114,6 @@ export default function QuadrantPage({ initialTab }) {
                 </div>
                 <div className="app-card" onClick={() => setShowWhoAmI(true)}>
                   <div className="question-icon">❓</div>
-
                   <span>Who Am I?</span>
                 </div>
               </div>

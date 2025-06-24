@@ -86,3 +86,13 @@ input:checked + .slider:before {
   margin-left: 4px;
   text-align: center;
 }
+
+.duration-input input {
+  width: 60px;
+  margin-left: 4px;
+  text-align: center;
+}
+
+.time-left {
+  font-weight: bold;
+}
