@@ -4,6 +4,7 @@ import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
 import VersionRating from './VersionRating.jsx';
 import QuestJournal from './QuestJournal.jsx';
+import WhoAmI from './WhoAmI.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -25,6 +26,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showJournal, setShowJournal] = useState(false);
   const [showNofap, setShowNofap] = useState(false);
   const [showRatings, setShowRatings] = useState(false);
+  const [showWhoAmI, setShowWhoAmI] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
 
@@ -94,6 +96,8 @@ export default function QuadrantPage({ initialTab }) {
               <NofapCalendar onBack={() => setShowNofap(false)} />
             ) : showRatings ? (
               <VersionRating onBack={() => setShowRatings(false)} />
+            ) : showWhoAmI ? (
+              <WhoAmI onBack={() => setShowWhoAmI(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -107,6 +111,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowRatings(true)}>
                   <div className="star-icon">⭐⭐⭐⭐⭐</div>
                   <span>Version Ratings</span>
+                </div>
+                <div className="app-card" onClick={() => setShowWhoAmI(true)}>
+                  <div className="question-icon">❓</div>
+                  <span>Who Am I?</span>
                 </div>
               </div>
             )}
