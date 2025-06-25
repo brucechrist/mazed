@@ -2,6 +2,13 @@ import { supabase } from './supabase.js';
 
 const btn = document.getElementById('sing-btn');
 btn.addEventListener('click', async () => {
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('sing-btn');
+  if (!btn) {
+    console.error('Sing button not found');
+    return;
+  }
+  btn.addEventListener('click', async () => {
   try {
     // Get current active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -23,4 +30,5 @@ btn.addEventListener('click', async () => {
   } catch (err) {
     console.error('Unexpected error:', err);
   }
+  });
 });
