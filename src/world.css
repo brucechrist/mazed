@@ -63,3 +63,27 @@
   height: 30px;
   cursor: pointer;
 }
+
+.completed-section > summary {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+.completed-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.quest-details summary {
+  list-style: none;
+  cursor: pointer;
+}
+.quest-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.quest-log {
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
