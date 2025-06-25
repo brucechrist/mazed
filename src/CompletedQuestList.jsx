@@ -4,7 +4,6 @@ import './world.css';
 
 export default function CompletedQuestList() {
   const [quests, setQuests] = useState([]);
-
   // load quests from local storage and keep in sync
   useEffect(() => {
     const stored = localStorage.getItem('quests');
@@ -36,7 +35,6 @@ export default function CompletedQuestList() {
     };
     loadQuests();
   }, []);
-
 
   const completed = quests.filter((q) => q.completed);
 
