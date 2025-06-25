@@ -91,7 +91,7 @@ body.character-page {
 }
 
 .total-display {
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   right: 20px;
   text-align: center;
@@ -119,7 +119,7 @@ body.character-page {
 }
 
 .extra-buttons {
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   left: 55%;
   display: flex;
@@ -141,4 +141,39 @@ body.character-page {
 
 .extra-buttons .round {
   border-radius: 30px;
+}
+
+.character-scroll {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.header-section,
+.stats-section,
+.identity-section {
+  width: 100%;
+  max-width: 1600px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.character-title {
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 2px 2px 4px #000;
 }
