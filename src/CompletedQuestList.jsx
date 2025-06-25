@@ -18,7 +18,6 @@ export default function CompletedQuestList() {
     return () => window.removeEventListener('questsChange', handler);
   }, []);
 
-  // fetch quests from supabase on mount
   useEffect(() => {
     const loadQuests = async () => {
       if (!navigator.onLine) return;
