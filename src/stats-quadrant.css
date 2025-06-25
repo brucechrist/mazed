@@ -150,17 +150,20 @@ body.character-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 100px;
+  height: 100vh;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
 }
 
 .stats-section,
 .identity-section {
   width: 100%;
   max-width: 1600px;
-  height: 900px;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+  scroll-snap-align: start;
 }
