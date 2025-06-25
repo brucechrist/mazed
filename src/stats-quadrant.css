@@ -152,3 +152,15 @@ body.character-page {
   align-items: center;
   padding-bottom: 200px;
 }
+
+.stats-section,
+.identity-section {
+  width: 100%;
+  max-width: 1600px;
+  height: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}

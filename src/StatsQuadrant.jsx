@@ -9,6 +9,7 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
     return stored ? JSON.parse(stored) : initialStats;
   });
   const [userId, setUserId] = useState(null);
+  const [profile, setProfile] = useState({});
   const [editing, setEditing] = useState(null);
 
   const total = stats.reduce((sum, val) => sum + Number(val), 0);
@@ -37,11 +38,12 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
       setUserId(user.id);
       const { data } = await supabase
         .from('profiles')
-        .select('stats')
+        .select('stats, mbti, enneagram, username')
         .eq('id', user.id)
         .single();
-      if (data && data.stats) {
-        setStats(data.stats);
+      if (data) {
+        if (data.stats) setStats(data.stats);
+        setProfile(data);
       }
     };
     fetchStats();
@@ -55,7 +57,8 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
 
   return (
     <div className="character-scroll">
-      <div className="stats-quadrant">
+      <section className="stats-section">
+        <div className="stats-quadrant">
         {stats.map((stat, i) => (
           <div
             key={i}
@@ -75,8 +78,8 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
             )}
           </div>
         ))}
-      </div>
-      <div className="total-display">
+        </div>
+        <div className="total-display">
         <div className="power-label">POWER LEVEL</div>
         <div className="stars">
           {[...Array(5)].map((_, idx) => (
@@ -92,12 +95,20 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
           ))}
         </div>
         <div className="total-number">{total}</div>
-      </div>
-           <div className="extra-buttons">
+        </div>
+        <div className="extra-buttons">
         <button className="square" />
         <button className="round" />
-      </div>
-      <IdentityCard />
+        </div>
+      </section>
+      <section className="identity-section">
+        <IdentityCard
+          mbti={profile.mbti}
+          enneagram={profile.enneagram}
+          quadrants={stats.join(' / ')}
+          name={profile.username}
+        />
+      </section>
     </div>
   );
 }
