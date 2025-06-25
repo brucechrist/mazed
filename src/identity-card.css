@@ -2,7 +2,7 @@
   width: 1200px;
   height: 600px;
   max-width: 80%;
-  margin: 0 auto;
+  margin: 10vh auto 0;
   perspective: 1000px;
 }
 
