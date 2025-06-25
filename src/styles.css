@@ -75,6 +75,15 @@ body {
   filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
 }
 
+body.character-page .content {
+  padding: 0;
+  height: 100vh;
+}
+
+body.character-page h1 {
+  display: none;
+}
+
 .sidebar-avatar {
   width: 50px;
   height: 50px;

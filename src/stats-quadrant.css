@@ -166,4 +166,5 @@ body.character-page {
   justify-content: center;
   position: relative;
   scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
