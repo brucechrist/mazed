@@ -10,6 +10,7 @@ import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import { supabase } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
+import { QuestProvider } from './QuestContext.jsx';
 
 const placeholderImg =
   "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'50'%20height%3D'50'%3E%3Crect%20width%3D'50'%20height%3D'50'%20rx%3D'25'%20fill%3D'%23444'%2F%3E%3Ctext%20x%3D'25'%20y%3D'33'%20font-size%3D'26'%20text-anchor%3D'middle'%20fill%3D'%23aaa'%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E";
@@ -65,7 +66,8 @@ export default function QuadrantPage({ initialTab }) {
   };
 
   return (
-    <div className="app-container">
+    <QuestProvider>
+      <div className="app-container">
       <aside className="sidebar">
         {tabs.map((tab) => (
           <div
@@ -129,7 +131,8 @@ export default function QuadrantPage({ initialTab }) {
           onAvatarUpdated={handleAvatarUpdated}
         />
       )}
-      <VersionLabel />
-    </div>
+        <VersionLabel />
+      </div>
+    </QuestProvider>
   );
 }

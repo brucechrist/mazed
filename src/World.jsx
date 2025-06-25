@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import QuestModal from './QuestModal.jsx';
 import MainQuestModal from './MainQuestModal.jsx';
 import { supabase } from './supabaseClient';
+import { useQuests } from './QuestContext.jsx';
 import './world.css';
 
 export default function World() {
@@ -10,10 +11,7 @@ export default function World() {
     return stored ? parseInt(stored, 10) : 0;
   });
   const [userId, setUserId] = useState(null);
-  const [quests, setQuests] = useState(() => {
-    const stored = localStorage.getItem('quests');
-    return stored ? JSON.parse(stored) : [];
-  });
+  const { quests, addQuest, acceptQuest } = useQuests();
   const [showModal, setShowModal] = useState(false);
   const [profile, setProfile] = useState({});
   const [needsMainQuest, setNeedsMainQuest] = useState(false);
@@ -46,14 +44,7 @@ export default function World() {
         setProfile(profileData);
         setNeedsMainQuest(!profileData.mbti || !profileData.enneagram);
       }
-      const { data: questsData } = await supabase
-        .from('quests')
-        .select('*')
-        .eq('user_id', user.id);
-      if (questsData) {
-        setQuests(questsData);
-        localStorage.setItem('quests', JSON.stringify(questsData));
-      }
+      // quests are loaded via QuestProvider
     };
     load();
   }, []);
@@ -75,35 +66,7 @@ export default function World() {
     }
   }, [resource, userId]);
 
-  useEffect(() => {
-    localStorage.setItem('quests', JSON.stringify(quests));
-    window.dispatchEvent(new Event('questsChange'));
-    if (userId && navigator.onLine) {
-      quests.forEach((q) =>
-        supabase.from('quests').upsert({ ...q, user_id: userId })
-      );
-    }
-  }, [quests, userId]);
-
-  const addQuest = (q) => {
-    setQuests([...quests, q]);
-    if (userId && navigator.onLine) {
-      supabase.from('quests').insert({ ...q, user_id: userId });
-    }
-  };
-
-  const acceptQuest = (id) => {
-    setQuests(
-      quests.map((q) => (q.id === id ? { ...q, accepted: true } : q))
-    );
-    if (userId && navigator.onLine) {
-      supabase
-        .from('quests')
-        .update({ accepted: true })
-        .eq('user_id', userId)
-        .eq('id', id);
-    }
-  };
+  // quests are managed via QuestProvider
 
   return (
     <div className="world-container">
