@@ -6,6 +6,8 @@ export default function QuestModal({ onAdd, onClose }) {
   const [description, setDescription] = useState('');
   const [quadrant, setQuadrant] = useState('II');
   const [resource, setResource] = useState(0);
+  const [rarity, setRarity] = useState('C');
+  const [urgent, setUrgent] = useState(false);
 
   const handlePublish = () => {
     onAdd({
@@ -14,8 +16,11 @@ export default function QuestModal({ onAdd, onClose }) {
       description,
       quadrant,
       resource: parseInt(resource, 10) || 0,
-      accepted: false,
+      rarity,
+      urgent,
+      accepted: true,
       completed: false,
+      type: 'user',
     });
     onClose();
   };
@@ -52,6 +57,29 @@ export default function QuestModal({ onAdd, onClose }) {
           value={resource}
           onChange={(e) => setResource(e.target.value)}
         />
+        <label className="note-label">
+          Rarity
+          <select
+            className="note-tag"
+            value={rarity}
+            onChange={(e) => setRarity(e.target.value)}
+          >
+            <option value="SS">SS</option>
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </label>
+        <label className="note-label">
+          <input
+            type="checkbox"
+            checked={urgent}
+            onChange={(e) => setUrgent(e.target.checked)}
+          />
+          Urgent
+        </label>
         <div className="actions">
           <button className="save-button" onClick={onClose}>Cancel</button>
           <button className="save-button" onClick={handlePublish}>Publish Quest</button>
