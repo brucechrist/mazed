@@ -14,7 +14,7 @@ export default function QuestModal({ onAdd, onClose }) {
       description,
       quadrant,
       resource: parseInt(resource, 10) || 0,
-      accepted: false,
+      accepted: true,
       completed: false,
     });
     onClose();

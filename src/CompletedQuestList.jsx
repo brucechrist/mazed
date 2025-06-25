@@ -43,7 +43,7 @@ export default function CompletedQuestList() {
   const completed = quests.filter((q) => q.completed);
 
   return (
-    <details className="completed-section" open={false}>
+    <details className="completed-section">
       <summary className="completed-summary">Completed Quests</summary>
       <div className="quest-list">
         {profileQuest && (
