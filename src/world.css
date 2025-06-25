@@ -49,6 +49,26 @@
   color: white;
 }
 
+.quest-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quest-rarity {
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+.quest-urgent {
+  padding: 2px 6px;
+  background: #b00020;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
 .main-quest-banner {
   background: rgba(0, 123, 255, 0.5);
   cursor: pointer;

@@ -34,16 +34,23 @@ export function QuestProvider({ children }) {
     localStorage.setItem('quests', JSON.stringify(quests));
     window.dispatchEvent(new Event('questsChange'));
     if (userId && navigator.onLine) {
-      quests.forEach((q) =>
-        supabase.from('quests').upsert({ ...q, user_id: userId })
-      );
+      quests.forEach((q) => {
+        if (q.type === 'main' || q.urgent) {
+          supabase.from('quests').upsert({ ...q, user_id: userId });
+        }
+      });
     }
   }, [quests, userId]);
 
   const addQuest = (q) => {
-    setQuests((prev) => [...prev, q]);
-    if (userId && navigator.onLine) {
-      supabase.from('quests').insert({ ...q, user_id: userId });
+    const quest = {
+      rarity: 'C',
+      urgent: false,
+      ...q,
+    };
+    setQuests((prev) => [...prev, quest]);
+    if (userId && navigator.onLine && (quest.type === 'main' || quest.urgent)) {
+      supabase.from('quests').insert({ ...quest, user_id: userId });
     }
   };
 
@@ -52,11 +59,14 @@ export function QuestProvider({ children }) {
       prev.map((q) => (q.id === id ? { ...q, accepted: true } : q))
     );
     if (userId && navigator.onLine) {
-      supabase
-        .from('quests')
-        .update({ accepted: true })
-        .eq('user_id', userId)
-        .eq('id', id);
+      const quest = quests.find((q) => q.id === id);
+      if (quest && (quest.type === 'main' || quest.urgent)) {
+        supabase
+          .from('quests')
+          .update({ accepted: true })
+          .eq('user_id', userId)
+          .eq('id', id);
+      }
     }
   };
 
@@ -80,11 +90,14 @@ export function QuestProvider({ children }) {
       })
     );
     if (userId && navigator.onLine) {
-      supabase
-        .from('quests')
-        .update({ completed: true })
-        .eq('user_id', userId)
-        .eq('id', id);
+      const quest = quests.find((q) => q.id === id);
+      if (quest && (quest.type === 'main' || quest.urgent)) {
+        supabase
+          .from('quests')
+          .update({ completed: true })
+          .eq('user_id', userId)
+          .eq('id', id);
+      }
     }
   };
 

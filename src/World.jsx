@@ -128,6 +128,8 @@ export default function World() {
                 (p.instinct ? `\nInstinct: ${p.instinct}` : ''),
               quadrant: 'II',
               resource: 0,
+              rarity: 'A',
+              urgent: true,
               accepted: true,
               completed: true,
               type: 'main',

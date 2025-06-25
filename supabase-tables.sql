@@ -8,6 +8,8 @@ create table if not exists quests (
   description text,
   quadrant text,
   resource int default 0,
+  rarity text default 'C',
+  urgent boolean default false,
   accepted boolean default false,
   completed boolean default false
 );

@@ -49,6 +49,12 @@
   width: fit-content;
 }
 
+.note-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

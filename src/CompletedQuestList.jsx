@@ -25,6 +25,8 @@ export default function CompletedQuestList() {
               <div className="quest-info">
                 <div className="quest-name">{q.name}</div>
                 <div className="quest-quadrant">{q.quadrant}</div>
+                <div className="quest-rarity">{q.rarity || 'C'}</div>
+                {q.urgent && <div className="quest-urgent">Urgent</div>}
               </div>
             </summary>
             {q.description && <div className="quest-log">{q.description}</div>}
