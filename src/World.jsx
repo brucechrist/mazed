@@ -16,6 +16,7 @@ export default function World() {
   const [profile, setProfile] = useState({});
   const [needsMainQuest, setNeedsMainQuest] = useState(false);
   const [showMainQuest, setShowMainQuest] = useState(false);
+  const [showPublished, setShowPublished] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -66,6 +67,12 @@ export default function World() {
     }
   }, [resource, userId]);
 
+  const handleQuestAdd = (q) => {
+    addQuest(q);
+    setShowPublished(true);
+    setTimeout(() => setShowPublished(false), 1500);
+  };
+
   // quests are managed via QuestProvider
 
   return (
@@ -105,7 +112,7 @@ export default function World() {
         ))}
       </div>
       {showModal && (
-        <QuestModal onAdd={addQuest} onClose={() => setShowModal(false)} />
+        <QuestModal onAdd={handleQuestAdd} onClose={() => setShowModal(false)} />
       )}
       {showMainQuest && (
         <MainQuestModal
@@ -121,6 +128,8 @@ export default function World() {
                 (p.instinct ? `\nInstinct: ${p.instinct}` : ''),
               quadrant: 'II',
               resource: 0,
+              rarity: 'A',
+              urgent: true,
               accepted: true,
               completed: true,
               type: 'main',
@@ -132,6 +141,11 @@ export default function World() {
         />
       )}
       <div className="resource-box">{resource} R</div>
+      {showPublished && (
+        <div className="published-popup">
+          <span className="checkmark">✔</span> Quest published
+        </div>
+      )}
     </div>
   );
 }

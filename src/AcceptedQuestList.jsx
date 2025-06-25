@@ -25,6 +25,8 @@ export default function AcceptedQuestList() {
                 <div className="quest-info">
                   <div className="quest-name">{q.name}</div>
                   <div className="quest-quadrant">{q.quadrant}</div>
+                  <div className="quest-rarity">{q.rarity || 'C'}</div>
+                  {q.urgent && <div className="quest-urgent">Urgent</div>}
                   {q.resource !== 0 && (
                     <div className="quest-resource">
                       {q.resource > 0 ? '+' : ''}
