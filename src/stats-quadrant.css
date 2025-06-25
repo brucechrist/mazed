@@ -142,3 +142,25 @@ body.character-page {
 .extra-buttons .round {
   border-radius: 30px;
 }
+
+.character-scroll {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 200px;
+}
+
+.stats-section,
+.identity-section {
+  width: 100%;
+  max-width: 1600px;
+  height: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
