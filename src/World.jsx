@@ -123,6 +123,7 @@ export default function World() {
               resource: 0,
               accepted: true,
               completed: true,
+              type: 'main',
             });
           }}
           initialMbti={profile.mbti || ''}
