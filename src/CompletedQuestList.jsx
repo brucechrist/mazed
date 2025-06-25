@@ -6,10 +6,18 @@ export default function CompletedQuestList() {
   const { quests } = useQuests();
 
   const completed = quests.filter((q) => q.completed);
+  const groups = completed.reduce((acc, q) => {
+    const t = q.type || 'user';
+    if (!acc[t]) acc[t] = [];
+    acc[t].push(q);
+    return acc;
+  }, {});
+
+  const count = completed.length;
 
   return (
     <details className="completed-section">
-      <summary className="completed-summary">Completed Quests</summary>
+      <summary className="completed-summary">{`Completed Quests (${count})`}</summary>
       <div className="quest-list">
         {completed.map((q) => (
           <details key={q.id} className="quest-banner quest-details">

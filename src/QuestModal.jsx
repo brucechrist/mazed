@@ -16,6 +16,7 @@ export default function QuestModal({ onAdd, onClose }) {
       resource: parseInt(resource, 10) || 0,
       accepted: true,
       completed: false,
+      type: 'user',
     });
     onClose();
   };
