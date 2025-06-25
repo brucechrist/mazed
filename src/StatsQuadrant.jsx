@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import IdentityCard from './IdentityCard.jsx';
 import './stats-quadrant.css';
 
 export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
@@ -53,7 +54,7 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
   };
 
   return (
-    <>
+    <div className="character-scroll">
       <div className="stats-quadrant">
         {stats.map((stat, i) => (
           <div
@@ -96,6 +97,7 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
         <button className="square" />
         <button className="round" />
       </div>
-    </>
+      <IdentityCard />
+    </div>
   );
 }
