@@ -3,6 +3,7 @@ create extension if not exists pgcrypto;
 create table if not exists quests (
   id bigint primary key,
   user_id uuid references auth.users(id),
+  type text default 'user',
   name text,
   description text,
   quadrant text,
