@@ -1,0 +1,36 @@
+.music-search {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.results,
+.liked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.track-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #333;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: white;
+}
