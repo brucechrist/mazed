@@ -6,6 +6,7 @@ import VersionRating from './VersionRating.jsx';
 import QuestJournal from './QuestJournal.jsx';
 import WhoAmI from './WhoAmI.jsx';
 import MusicSearch from './MusicSearch.jsx';
+import Singing from './Singing.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -30,6 +31,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showRatings, setShowRatings] = useState(false);
   const [showWhoAmI, setShowWhoAmI] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
+  const [showSinging, setShowSinging] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
 
@@ -104,6 +106,8 @@ export default function QuadrantPage({ initialTab }) {
               <WhoAmI onBack={() => setShowWhoAmI(false)} />
             ) : showMusic ? (
               <MusicSearch onBack={() => setShowMusic(false)} />
+            ) : showSinging ? (
+              <Singing onBack={() => setShowSinging(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -125,6 +129,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowMusic(true)}>
                   <div className="star-icon">🎵</div>
                   <span>Music Search</span>
+                </div>
+                <div className="app-card" onClick={() => setShowSinging(true)}>
+                  <div className="star-icon">🎤</div>
+                  <span>Singing</span>
                 </div>
               </div>
             )}
