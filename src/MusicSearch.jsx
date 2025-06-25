@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import MusicCard from './MusicCard.jsx';
 import './music-search.css';
 
 export default function MusicSearch({ onBack }) {
@@ -29,7 +30,16 @@ export default function MusicSearch({ onBack }) {
     if (exists) {
       updated = liked.filter((t) => t.id !== track.id);
     } else {
-      updated = [...liked, { id: track.id, title: track.title, artist: track.artist?.name }];
+      updated = [
+        ...liked,
+        {
+          id: track.id,
+          title: track.title,
+          artist: track.artist?.name,
+          preview: track.preview,
+          cover: track.album?.cover_small,
+        },
+      ];
     }
     setLiked(updated);
     localStorage.setItem('musicLikes', JSON.stringify(updated));
@@ -49,23 +59,23 @@ export default function MusicSearch({ onBack }) {
       </div>
       <div className="results">
         {results.map((t) => (
-          <div key={t.id} className="track-line">
-            <span>{t.title} - {t.artist?.name}</span>
-            <button className="action-button" onClick={() => toggleLike(t)}>
-              {liked.some((l) => l.id === t.id) ? 'Unlike' : 'Like'}
-            </button>
-          </div>
+          <MusicCard
+            key={t.id}
+            track={t}
+            liked={liked.some((l) => l.id === t.id)}
+            onToggle={toggleLike}
+          />
         ))}
       </div>
       <h3>Liked Songs</h3>
       <div className="liked-list">
         {liked.map((t) => (
-          <div key={t.id} className="track-line">
-            <span>{t.title} - {t.artist}</span>
-            <button className="action-button" onClick={() => toggleLike(t)}>
-              Remove
-            </button>
-          </div>
+          <MusicCard
+            key={t.id}
+            track={t}
+            liked={true}
+            onToggle={toggleLike}
+          />
         ))}
       </div>
     </div>

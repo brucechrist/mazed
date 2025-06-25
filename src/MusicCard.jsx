@@ -1,27 +1,26 @@
 import React from 'react';
-import './music-card.css';
+import './music-search.css';
 
-export default function MusicCard({ track, onLike }) {
-  if (!track) return null;
-  const { title, preview, artist, album } = track;
+export default function MusicCard({ track, liked, onToggle }) {
   return (
     <div className="music-card">
-      <img
-        className="album-cover"
-        src={album?.cover_small}
-        alt={title + ' cover'}
-      />
-      <div className="music-info">
-        <div className="track-title">{title}</div>
-        <div className="artist-name">{artist?.name}</div>
-        <audio
-          data-testid="audio-preview"
-          className="audio-preview"
-          controls
-          src={preview}
+      {track.cover || track.album?.cover_small ? (
+        <img
+          className="cover"
+          src={track.cover || track.album?.cover_small}
+          alt={track.title}
         />
-        <button className="like-button" onClick={onLike}>Like</button>
+      ) : null}
+      <div className="music-info">
+        <div className="music-title">{track.title}</div>
+        <div className="music-artist">{track.artist?.name || track.artist}</div>
+        {track.preview && (
+          <audio controls src={track.preview} className="preview" />
+        )}
       </div>
+      <button className="action-button" onClick={() => onToggle(track)}>
+        {liked ? 'Unlike' : 'Like'}
+      </button>
     </div>
   );
 }

@@ -16,21 +16,59 @@
   border-radius: 6px;
 }
 
+
 .results,
 .liked-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
 }
 
-.track-line {
+
+.music-card {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: center;
-  background: #333;
-  padding: 6px 10px;
-  border-radius: 6px;
+  background: #222;
+  padding: 8px 12px;
+  border-radius: 8px;
   color: white;
+}
+
+.music-card img.cover {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.music-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.music-title {
+  font-weight: bold;
+}
+
+.music-artist {
+  font-size: 0.9em;
+  color: #ccc;
+}
+
+.action-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #0056b3;
 }
