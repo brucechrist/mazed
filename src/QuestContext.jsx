@@ -41,9 +41,10 @@ export function QuestProvider({ children }) {
   }, [quests, userId]);
 
   const addQuest = (q) => {
-    setQuests([...quests, q]);
+    const quest = { type: 'user', ...q };
+    setQuests([...quests, quest]);
     if (userId && navigator.onLine) {
-      supabase.from('quests').insert({ ...q, user_id: userId });
+      supabase.from('quests').insert({ ...quest, user_id: userId });
     }
   };
 

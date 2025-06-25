@@ -6,6 +6,12 @@ export default function CompletedQuestList() {
   const { quests } = useQuests();
 
   const completed = quests.filter((q) => q.completed);
+  const groups = completed.reduce((acc, q) => {
+    const t = q.type || 'user';
+    if (!acc[t]) acc[t] = [];
+    acc[t].push(q);
+    return acc;
+  }, {});
 
   const count = completed.length;
 
