@@ -15,7 +15,12 @@ export default function MusicCard({ track, liked, onToggle }) {
         <div className="music-title">{track.title}</div>
         <div className="music-artist">{track.artist?.name || track.artist}</div>
         {track.preview && (
-          <audio controls src={track.preview} className="preview" />
+          <audio
+            controls
+            src={track.preview}
+            className="preview"
+            data-testid="audio-preview"
+          />
         )}
       </div>
       <button className="action-button" onClick={() => onToggle(track)}>
