@@ -57,6 +57,9 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
 
   return (
     <div className="character-scroll">
+      <section className="header-section">
+        <h2 className="character-title">Character</h2>
+      </section>
       <section className="stats-section">
         <div className="stats-quadrant">
         {stats.map((stat, i) => (
