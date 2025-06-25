@@ -150,6 +150,17 @@ export default function World() {
           onSaved={(p) => {
             setProfile({ ...profile, ...p });
             setNeedsMainQuest(false);
+            addQuest({
+              id: Date.now(),
+              name: 'MBTI & Enneagram',
+              description:
+                `MBTI: ${p.mbti}\nEnneagram: ${p.enneagram}` +
+                (p.instinct ? `\nInstinct: ${p.instinct}` : ''),
+              quadrant: 'II',
+              resource: 0,
+              accepted: true,
+              completed: true,
+            });
           }}
           initialMbti={profile.mbti || ''}
           initialEnneagram={profile.enneagram || ''}

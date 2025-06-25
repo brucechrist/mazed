@@ -4,8 +4,6 @@ import './world.css';
 
 export default function CompletedQuestList() {
   const [quests, setQuests] = useState([]);
-  const [profileQuest, setProfileQuest] = useState(null);
-
   // load quests from local storage and keep in sync
   useEffect(() => {
     const stored = localStorage.getItem('quests');
@@ -18,6 +16,7 @@ export default function CompletedQuestList() {
     return () => window.removeEventListener('questsChange', handler);
   }, []);
 
+  // fetch quests from supabase on mount
   useEffect(() => {
     const loadQuests = async () => {
       if (!navigator.onLine) return;
@@ -37,40 +36,12 @@ export default function CompletedQuestList() {
     loadQuests();
   }, []);
 
-  // fetch profile for MBTI/Enneagram quest
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!navigator.onLine) return;
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('mbti, enneagram, instinct')
-        .eq('id', user.id)
-        .single();
-      if (data && data.mbti && data.enneagram) {
-        const log = `MBTI: ${data.mbti}\nEnneagram: ${data.enneagram}` +
-          (data.instinct ? `\nInstinct: ${data.instinct}` : '');
-        setProfileQuest({ id: 'profile', name: 'MBTI & Enneagram', log });
-      }
-    };
-    loadProfile();
-  }, []);
-
   const completed = quests.filter((q) => q.completed);
 
   return (
     <details className="completed-section">
       <summary className="completed-summary">Completed Quests</summary>
       <div className="quest-list">
-        {profileQuest && (
-          <details className="quest-banner quest-details">
-            <summary>{profileQuest.name}</summary>
-            <div className="quest-log">{profileQuest.log}</div>
-          </details>
-        )}
         {completed.map((q) => (
           <details key={q.id} className="quest-banner quest-details">
             <summary>
