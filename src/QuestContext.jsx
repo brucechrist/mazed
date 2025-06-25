@@ -41,14 +41,16 @@ export function QuestProvider({ children }) {
   }, [quests, userId]);
 
   const addQuest = (q) => {
-    setQuests([...quests, q]);
+    setQuests((prev) => [...prev, q]);
     if (userId && navigator.onLine) {
       supabase.from('quests').insert({ ...q, user_id: userId });
     }
   };
 
   const acceptQuest = (id) => {
-    setQuests(quests.map((q) => (q.id === id ? { ...q, accepted: true } : q)));
+    setQuests((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, accepted: true } : q))
+    );
     if (userId && navigator.onLine) {
       supabase
         .from('quests')
@@ -59,23 +61,24 @@ export function QuestProvider({ children }) {
   };
 
   const completeQuest = (id) => {
-    const updated = quests.map((q) => {
-      if (q.id === id) {
-        const newResource =
-          parseInt(localStorage.getItem('resourceR') || '0', 10) +
-          (q.resource || 0);
-        localStorage.setItem('resourceR', newResource);
-        if (userId && navigator.onLine) {
-          supabase.from('profiles').update({ resources: newResource }).eq('id', userId);
+    setQuests((prev) =>
+      prev.map((q) => {
+        if (q.id === id) {
+          const newResource =
+            parseInt(localStorage.getItem('resourceR') || '0', 10) +
+            (q.resource || 0);
+          localStorage.setItem('resourceR', newResource);
+          if (userId && navigator.onLine) {
+            supabase.from('profiles').update({ resources: newResource }).eq('id', userId);
+          }
+          window.dispatchEvent(
+            new CustomEvent('resourceChange', { detail: { resource: newResource } })
+          );
+          return { ...q, completed: true };
         }
-        window.dispatchEvent(
-          new CustomEvent('resourceChange', { detail: { resource: newResource } })
-        );
-        return { ...q, completed: true };
-      }
-      return q;
-    });
-    setQuests(updated);
+        return q;
+      })
+    );
     if (userId && navigator.onLine) {
       supabase
         .from('quests')
