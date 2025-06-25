@@ -155,6 +155,7 @@ body.character-page {
   scroll-behavior: smooth;
 }
 
+.header-section,
 .stats-section,
 .identity-section {
   width: 100%;
@@ -167,4 +168,12 @@ body.character-page {
   position: relative;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.character-title {
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 2px 2px 4px #000;
 }
