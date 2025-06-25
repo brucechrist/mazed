@@ -7,9 +7,11 @@ export default function CompletedQuestList() {
 
   const completed = quests.filter((q) => q.completed);
 
+  const count = completed.length;
+
   return (
     <details className="completed-section">
-      <summary className="completed-summary">Completed Quests</summary>
+      <summary className="completed-summary">{`Completed Quests (${count})`}</summary>
       <div className="quest-list">
         {completed.map((q) => (
           <details key={q.id} className="quest-banner quest-details">
