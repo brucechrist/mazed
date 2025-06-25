@@ -18,6 +18,25 @@ export default function CompletedQuestList() {
     return () => window.removeEventListener('questsChange', handler);
   }, []);
 
+  useEffect(() => {
+    const loadQuests = async () => {
+      if (!navigator.onLine) return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('quests')
+        .select('*')
+        .eq('user_id', user.id);
+      if (data) {
+        setQuests(data);
+        localStorage.setItem('quests', JSON.stringify(data));
+      }
+    };
+    loadQuests();
+  }, []);
+
   // fetch profile for MBTI/Enneagram quest
   useEffect(() => {
     const loadProfile = async () => {
