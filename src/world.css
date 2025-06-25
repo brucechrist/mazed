@@ -87,3 +87,31 @@
   margin-top: 6px;
   white-space: pre-wrap;
 }
+
+.published-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2em;
+  z-index: 2000;
+  animation: fadeOut 1.5s forwards;
+}
+
+.published-popup .checkmark {
+  font-size: 2em;
+  color: #4caf50;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
