@@ -1,7 +1,5 @@
 import { supabase } from './supabase.js';
 
-const btn = document.getElementById('sing-btn');
-btn.addEventListener('click', async () => {
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('sing-btn');
   if (!btn) {
