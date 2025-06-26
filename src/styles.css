@@ -137,6 +137,7 @@ body.character-page h1 {
 .feature-cards {
   display: flex;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .star-icon {
