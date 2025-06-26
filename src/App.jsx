@@ -13,7 +13,7 @@ import Typomancy from './Typomancy.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
 
@@ -45,22 +45,22 @@ export default function QuadrantPage({ initialTab }) {
     const loadAvatar = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
 
       const storedPath = localStorage.getItem(`avatarPath_${user.id}`);
       if (storedPath) {
-        const { data } = supabase.storage.from('avatars').getPublicUrl(storedPath);
+        const { data } = supabaseClient.storage.from('avatars').getPublicUrl(storedPath);
         setAvatarUrl(data.publicUrl);
       }
 
-      const { data: profile } = await supabase
+      const { data: profile } = await supabaseClient
         .from('profiles')
         .select('avatar_url')
         .eq('id', user.id)
         .single();
       if (profile?.avatar_url) {
-        const { data } = supabase.storage
+        const { data } = supabaseClient.storage
           .from('avatars')
           .getPublicUrl(profile.avatar_url);
         setAvatarUrl(data.publicUrl);

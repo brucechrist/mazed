@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import QuestModal from './QuestModal.jsx';
 import MainQuestModal from './MainQuestModal.jsx';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import { useQuests } from './QuestContext.jsx';
 import './world.css';
 
@@ -30,10 +30,10 @@ export default function World() {
       if (!navigator.onLine) return;
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data: profileData } = await supabase
+      const { data: profileData } = await supabaseClient
         .from('profiles')
         .select('resources, mbti, enneagram, instinct')
         .eq('id', user.id)
@@ -63,7 +63,7 @@ export default function World() {
   useEffect(() => {
     localStorage.setItem('resourceR', resource);
     if (userId && navigator.onLine) {
-      supabase.from('profiles').update({ resources: resource }).eq('id', userId);
+      supabaseClient.from('profiles').update({ resources: resource }).eq('id', userId);
     }
   }, [resource, userId]);
 

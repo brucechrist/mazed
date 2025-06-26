@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 
 export const QuestContext = createContext();
 
@@ -15,10 +15,10 @@ export function QuestProvider({ children }) {
       if (!navigator.onLine) return;
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('quests')
         .select('*')
         .eq('user_id', user.id);
@@ -36,7 +36,7 @@ export function QuestProvider({ children }) {
     if (userId && navigator.onLine) {
       quests.forEach((q) => {
         if (q.type === 'main' || q.urgent) {
-          supabase.from('quests').upsert({ ...q, user_id: userId });
+          supabaseClient.from('quests').upsert({ ...q, user_id: userId });
         }
       });
     }
@@ -50,7 +50,7 @@ export function QuestProvider({ children }) {
     };
     setQuests((prev) => [...prev, quest]);
     if (userId && navigator.onLine && (quest.type === 'main' || quest.urgent)) {
-      supabase.from('quests').insert({ ...quest, user_id: userId });
+      supabaseClient.from('quests').insert({ ...quest, user_id: userId });
     }
   };
 
@@ -61,7 +61,7 @@ export function QuestProvider({ children }) {
     if (userId && navigator.onLine) {
       const quest = quests.find((q) => q.id === id);
       if (quest && (quest.type === 'main' || quest.urgent)) {
-        supabase
+        supabaseClient
           .from('quests')
           .update({ accepted: true })
           .eq('user_id', userId)
@@ -79,7 +79,7 @@ export function QuestProvider({ children }) {
             (q.resource || 0);
           localStorage.setItem('resourceR', newResource);
           if (userId && navigator.onLine) {
-            supabase.from('profiles').update({ resources: newResource }).eq('id', userId);
+            supabaseClient.from('profiles').update({ resources: newResource }).eq('id', userId);
           }
           window.dispatchEvent(
             new CustomEvent('resourceChange', { detail: { resource: newResource } })
@@ -92,7 +92,7 @@ export function QuestProvider({ children }) {
     if (userId && navigator.onLine) {
       const quest = quests.find((q) => q.id === id);
       if (quest && (quest.type === 'main' || quest.urgent)) {
-        supabase
+        supabaseClient
           .from('quests')
           .update({ completed: true })
           .eq('user_id', userId)

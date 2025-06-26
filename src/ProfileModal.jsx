@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import AvatarUploadModal from './AvatarUploadModal.jsx';
 import './note-modal.css';
 import './profile-modal.css';
@@ -22,7 +22,7 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
     const load = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
       setEmail(user.email);
 
@@ -30,7 +30,7 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
       if (stored) {
         setUsername(stored);
       } else {
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseClient
           .from('profiles')
           .select('username')
           .eq('id', user.id)
@@ -49,25 +49,25 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
     const fetchAvatar = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
 
       const storedPath = localStorage.getItem(`avatarPath_${user.id}`);
       if (storedPath) {
-        const { data } = supabase.storage.from(BUCKET).getPublicUrl(storedPath);
+        const { data } = supabaseClient.storage.from(BUCKET).getPublicUrl(storedPath);
         setImgSrc(data.publicUrl);
       } else {
         const storedUrl = localStorage.getItem(`avatarUrl_${user.id}`);
         if (storedUrl) setImgSrc(storedUrl);
       }
 
-      const { data: profile } = await supabase
+      const { data: profile } = await supabaseClient
         .from('profiles')
         .select('avatar_url')
         .eq('id', user.id)
         .single();
       if (profile?.avatar_url) {
-        const { data } = supabase.storage
+        const { data } = supabaseClient.storage
           .from(BUCKET)
           .getPublicUrl(profile.avatar_url);
         setImgSrc(data.publicUrl);
@@ -86,10 +86,10 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
   const handleUsernameSave = async () => {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabaseClient.auth.getUser();
     if (!user || !newUsername) return;
     const clean = newUsername.trim().toLowerCase();
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('profiles')
       .update({ username: clean })
       .eq('id', user.id);

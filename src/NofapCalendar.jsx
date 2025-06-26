@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './nofap-calendar.css';
 import RunEndModal from './RunEndModal.jsx';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -37,10 +37,10 @@ export default function NofapCalendar({ onBack }) {
       if (!navigator.onLine) return;
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('runs')
         .select('*')
         .eq('user_id', user.id);
@@ -118,7 +118,7 @@ export default function NofapCalendar({ onBack }) {
   const startRun = async () => {
     const newRun = { start: Date.now() };
     if (userId && navigator.onLine) {
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('runs')
         .insert({ user_id: userId, start: newRun.start })
         .select()
@@ -151,12 +151,12 @@ export default function NofapCalendar({ onBack }) {
     const entry = { ...run, end: nowTime, relapsed, reason };
     if (userId && navigator.onLine) {
       if (run.id) {
-        await supabase
+        await supabaseClient
           .from('runs')
           .update({ end: nowTime, relapsed, reason })
           .eq('id', run.id);
       } else {
-        await supabase.from('runs').insert({
+        await supabaseClient.from('runs').insert({
           user_id: userId,
           start: run.start,
           end: nowTime,

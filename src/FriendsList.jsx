@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import './world.css';
 
 export default function FriendsList() {
@@ -13,10 +13,10 @@ export default function FriendsList() {
     const load = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseClient
           .from('profiles')
           .select('username')
           .eq('id', user.id)
@@ -31,13 +31,13 @@ export default function FriendsList() {
   }, []);
 
   const fetchFriendships = async (id) => {
-    const { data } = await supabase
+    const { data } = await supabaseClient
       .from('friendships')
       .select('*')
       .or(`user_id.eq.${id},friend_id.eq.${id}`);
     if (data) {
       const otherIds = data.map((f) => (f.user_id === id ? f.friend_id : f.user_id));
-      const { data: profiles } = await supabase
+      const { data: profiles } = await supabaseClient
         .from('profiles')
         .select('id, username')
         .in('id', otherIds);
@@ -63,13 +63,13 @@ export default function FriendsList() {
 
   const sendRequest = async () => {
     if (!newFriendName || !userId) return;
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseClient
       .from('profiles')
       .select('id')
       .eq('username', newFriendName)
       .single();
     if (profile) {
-      await supabase
+      await supabaseClient
         .from('friendships')
         .insert({ user_id: userId, friend_id: profile.id, status: 'pending' });
       setNewFriendName('');
@@ -79,7 +79,7 @@ export default function FriendsList() {
 
   const acceptRequest = async (requesterId) => {
     if (!userId) return;
-    await supabase
+    await supabaseClient
       .from('friendships')
       .update({ status: 'accepted' })
       .eq('user_id', requesterId)

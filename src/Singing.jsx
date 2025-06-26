@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import './music-search.css';
 
 export default function Singing({ onBack }) {
@@ -7,7 +7,7 @@ export default function Singing({ onBack }) {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('sing_logs')
         .select('*')
         .order('timestamp', { ascending: false });

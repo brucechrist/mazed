@@ -2,7 +2,7 @@ export const signInWithPassword = jest.fn().mockResolvedValue({ error: { message
 export const getUser = jest.fn();
 export const maybeSingle = jest.fn().mockResolvedValue({ data: null });
 
-export const supabase = {
+export const supabaseClient = {
   auth: {
     signInWithPassword,
     getUser,

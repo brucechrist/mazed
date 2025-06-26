@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import './auth.css';
 
 function EyeShow() {
@@ -60,14 +60,14 @@ export default function Auth() {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if (error) {
       setErrorMsg(error.message);
       return;
     }
     if (data?.user) {
       const cleanName = username.trim().toLowerCase();
-      await supabase
+      await supabaseClient
         .from('profiles')
         .upsert({
           id: data.user.id,
@@ -88,7 +88,7 @@ export default function Auth() {
     e.preventDefault();
     setErrorMsg(null);
     const userInput = identifier.trim();
-    let { error } = await supabase.auth.signInWithPassword({
+    let { error } = await supabaseClient.auth.signInWithPassword({
       email: userInput,
       password,
     });
@@ -96,7 +96,7 @@ export default function Auth() {
     if (error && !userInput.includes('@')) {
       // maybe the user entered a username; resolve it to an email and retry
       const lookup = userInput.toLowerCase();
-      const { data: profile } = await supabase
+      const { data: profile } = await supabaseClient
         .from('profiles')
         .select('email')
         .eq('username', lookup)
@@ -108,7 +108,7 @@ export default function Auth() {
       }
 
       if (profile.email) {
-        ({ error } = await supabase.auth.signInWithPassword({
+        ({ error } = await supabaseClient.auth.signInWithPassword({
           email: profile.email,
           password,
         }));
@@ -122,9 +122,9 @@ export default function Auth() {
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabaseClient.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase
+      const { data: profile } = await supabaseClient
         .from('profiles')
         .select('username')
         .eq('id', user.id)

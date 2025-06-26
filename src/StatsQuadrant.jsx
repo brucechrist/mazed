@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import IdentityCard from './IdentityCard.jsx';
 import './stats-quadrant.css';
 
@@ -18,7 +18,7 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
   useEffect(() => {
     localStorage.setItem('characterStats', JSON.stringify(stats));
     if (userId) {
-      supabase.from('profiles').update({ stats }).eq('id', userId);
+      supabaseClient.from('profiles').update({ stats }).eq('id', userId);
     }
   }, [stats, userId]);
 
@@ -33,10 +33,10 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
     const fetchStats = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('profiles')
         .select('stats, mbti, enneagram, username')
         .eq('id', user.id)
