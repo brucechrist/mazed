@@ -7,6 +7,10 @@ import QuestJournal from './QuestJournal.jsx';
 import WhoAmI from './WhoAmI.jsx';
 import MusicSearch from './MusicSearch.jsx';
 import Singing from './Singing.jsx';
+import ShadowWork from './ShadowWork.jsx';
+import Calendar from './Calendar.jsx';
+import Typomancy from './Typomancy.jsx';
+import Moodtracker from './Moodtracker.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -32,6 +36,10 @@ export default function QuadrantPage({ initialTab }) {
   const [showWhoAmI, setShowWhoAmI] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
   const [showSinging, setShowSinging] = useState(false);
+  const [showShadowWork, setShowShadowWork] = useState(false);
+  const [showCalendarApp, setShowCalendarApp] = useState(false);
+  const [showTypomancy, setShowTypomancy] = useState(false);
+  const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
 
@@ -108,6 +116,14 @@ export default function QuadrantPage({ initialTab }) {
               <MusicSearch onBack={() => setShowMusic(false)} />
             ) : showSinging ? (
               <Singing onBack={() => setShowSinging(false)} />
+            ) : showShadowWork ? (
+              <ShadowWork onBack={() => setShowShadowWork(false)} />
+            ) : showCalendarApp ? (
+              <Calendar onBack={() => setShowCalendarApp(false)} />
+            ) : showTypomancy ? (
+              <Typomancy onBack={() => setShowTypomancy(false)} />
+            ) : showMoodtracker ? (
+              <Moodtracker onBack={() => setShowMoodtracker(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -133,6 +149,22 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowSinging(true)}>
                   <div className="star-icon">🎤</div>
                   <span>Singing</span>
+                </div>
+                <div className="app-card" onClick={() => setShowShadowWork(true)}>
+                  <div className="star-icon">🌑</div>
+                  <span>Shadow Work</span>
+                </div>
+                <div className="app-card" onClick={() => setShowCalendarApp(true)}>
+                  <div className="star-icon">📅</div>
+                  <span>Calendar</span>
+                </div>
+                <div className="app-card" onClick={() => setShowTypomancy(true)}>
+                  <div className="star-icon">⌨️</div>
+                  <span>Typomancy</span>
+                </div>
+                <div className="app-card" onClick={() => setShowMoodtracker(true)}>
+                  <div className="star-icon">😊</div>
+                  <span>Moodtracker</span>
                 </div>
               </div>
             )}
