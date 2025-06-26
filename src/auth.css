@@ -55,10 +55,8 @@
 
 .auth-box h2 {
   margin: 0 0 20px;
-  font-size: 49px;
+  font-size: 28px;
   font-family: 'ExodiusD-regular', sans-serif;
-  text-align: left;
-  align-self: flex-start;
 }
 
 .auth-box input {
