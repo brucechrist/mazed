@@ -5,7 +5,7 @@ import IEmain from './IEmain.jsx';
 import EImain from './EImain.jsx';
 import EEmain from './EEmain.jsx';
 import Auth from './Auth.jsx';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -13,14 +13,14 @@ export default function PageRouter() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data } = await supabaseClient.auth.getUser();
       setUser(data.user);
     };
     fetchUser();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
     return () => {
@@ -34,7 +34,7 @@ export default function PageRouter() {
     }
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
       });
     }
   }, []);

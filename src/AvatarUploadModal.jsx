@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import './note-modal.css';
 import './avatar-upload-modal.css';
 import './auth.css';
@@ -50,15 +50,15 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.storage
+      const { data } = await supabaseClient.storage
         .from(BUCKET)
         .list(`${user.id}`, { limit: 5, sortBy: { column: 'created_at', order: 'desc' } });
       if (data) {
         const mapped = data.map((item) => {
           const path = `${user.id}/${item.name}`;
-          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+          const { data: urlData } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
           return { path, url: urlData.publicUrl };
         });
         setRecents(mapped);
@@ -70,11 +70,11 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
   const finish = async (path) => {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    await supabase.from('profiles').update({ avatar_url: path }).eq('id', user.id);
-    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    await supabaseClient.from('profiles').update({ avatar_url: path }).eq('id', user.id);
+    const { data: urlData } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
     const finalUrl = urlData.publicUrl;
     localStorage.setItem(`avatarPath_${user.id}`, path);
     localStorage.setItem(`avatarUrl_${user.id}`, finalUrl);
@@ -107,7 +107,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
     setUploading(true);
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabaseClient.auth.getUser();
     if (!user) {
       setUploading(false);
       return;
@@ -117,7 +117,7 @@ export default function AvatarUploadModal({ onClose, onUploaded }) {
       : 'avatar.jpg';
     const filePath = `${user.id}/${Date.now()}-${safeName}`;
     const blob = await getCroppedImg(imageSrc, croppedArea);
-    const { error } = await supabase.storage
+    const { error } = await supabaseClient.storage
       .from(BUCKET)
       .upload(filePath, blob, {
         upsert: true,

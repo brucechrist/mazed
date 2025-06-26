@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import './note-modal.css';
 
 export default function MainQuestModal({ onClose, onSaved, initialMbti = '', initialEnneagram = '', initialInstinct = '' }) {
@@ -20,9 +20,9 @@ export default function MainQuestModal({ onClose, onSaved, initialMbti = '', ini
   const instincts = ['sx', 'sp', 'so'];
 
   const handleSave = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
-    await supabase
+    await supabaseClient
       .from('profiles')
       .update({ mbti, enneagram, instinct })
       .eq('id', user.id);
