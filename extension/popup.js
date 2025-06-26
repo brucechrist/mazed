@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabaseClient } from './supabase.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('sing-btn');
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
       url: tab.url || '',
       timestamp: new Date().toISOString(),
     };
-    const { error } = await supabase.from('sing_logs').insert(payload);
+    const { error } = await supabaseClient.from('sing_logs').insert(payload);
     if (error) {
       console.error('Supabase error:', error);
     } else {
