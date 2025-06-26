@@ -151,7 +151,7 @@ export default function Auth() {
         <source src={loginVideo} type="video/mp4" />
       </video>
       <div className="auth-box">
-        <h2>Welcome</h2>
+        <h2>Mazed</h2>
         {mode === 'signin' ? (
           <form onSubmit={handleSignIn}>
             <input
