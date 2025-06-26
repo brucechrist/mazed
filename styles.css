@@ -1,0 +1,197 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: #121212;
+  color: white;
+}
+
+
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 70px;
+  background-color: rgba(128, 128, 128, 0.6);
+  padding: 20px 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  color: black;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 10px;
+  user-select: none;
+  transition: background-color 0.2s;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.tab.active {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+.tab:hover {
+  background-color: #222;
+  color: #fff;
+  background-color: #e0e0e0
+}
+
+.content {
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.icon {
+  font-size: 1.2em;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.home-button,
+.profile-button {
+  width: 50px;
+  height: 50px;
+  background: white;
+  color: black;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+body.character-page .content {
+  padding: 0;
+  height: 100vh;
+}
+
+body.character-page h1 {
+  display: none;
+}
+
+.sidebar-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  object-fit: cover;
+}
+
+.bottom-buttons {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  cursor: pointer;
+  gap: 10px;
+  transition: background-color 0.2s;
+}
+
+.app-card:hover {
+  background: #2a2a2a;
+}
+
+.calendar-preview {
+  width: 80px;
+  height: 60px;
+  background-image:
+    linear-gradient(#444 2px, transparent 2px),
+    linear-gradient(90deg, #444 2px, transparent 2px);
+  background-size: 14px 14px;
+  background-position: -1px -1px;
+  border-radius: 4px;
+}
+
+.training-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.feature-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.star-icon {
+  font-size: 1.5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.question-icon {
+  font-size: 1.5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.journal-icon {
+  font-size: 2em;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.back-button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+.quest-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.journal-tabs button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.journal-tabs button.active {
+  background: #555;
+}
