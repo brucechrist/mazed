@@ -12,6 +12,7 @@ import Calendar from './Calendar.jsx';
 import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
+import Anima from './Anima.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -42,6 +43,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  const [showAnima, setShowAnima] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
 
@@ -128,6 +130,8 @@ export default function QuadrantPage({ initialTab }) {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
+            ) : showAnima ? (
+              <Anima onBack={() => setShowAnima(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -173,6 +177,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowMoodtracker(true)}>
                   <div className="star-icon">😊</div>
                   <span>Moodtracker</span>
+                </div>
+                <div className="app-card" onClick={() => setShowAnima(true)}>
+                  <div className="star-icon">💃</div>
+                  <span>Anima</span>
                 </div>
               </div>
             )}
