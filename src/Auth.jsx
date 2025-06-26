@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabaseClient } from './supabaseClient';
 import './auth.css';
+import loginVideo from './assets/backgrounds/loginscreen.mp4';
 
 function EyeShow() {
   return (
@@ -140,6 +141,15 @@ export default function Auth() {
 
   return (
     <div className="auth-container">
+      <video
+        className="background-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+      >
+        <source src={loginVideo} type="video/mp4" />
+      </video>
       <div className="auth-box">
         <h2>Welcome</h2>
         {mode === 'signin' ? (
