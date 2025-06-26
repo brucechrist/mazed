@@ -9,6 +9,7 @@ import MusicSearch from './MusicSearch.jsx';
 import Singing from './Singing.jsx';
 import ShadowWork from './ShadowWork.jsx';
 import Calendar from './Calendar.jsx';
+import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import World from './World.jsx';
@@ -38,6 +39,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showSinging, setShowSinging] = useState(false);
   const [showShadowWork, setShowShadowWork] = useState(false);
   const [showCalendarApp, setShowCalendarApp] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -120,6 +122,8 @@ export default function QuadrantPage({ initialTab }) {
               <ShadowWork onBack={() => setShowShadowWork(false)} />
             ) : showCalendarApp ? (
               <Calendar onBack={() => setShowCalendarApp(false)} />
+            ) : showTimeline ? (
+              <Timeline onBack={() => setShowTimeline(false)} />
             ) : showTypomancy ? (
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
@@ -157,6 +161,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowCalendarApp(true)}>
                   <div className="star-icon">📅</div>
                   <span>Calendar</span>
+                </div>
+                <div className="app-card" onClick={() => setShowTimeline(true)}>
+                  <div className="star-icon">🕒</div>
+                  <span>Timeline</span>
                 </div>
                 <div className="app-card" onClick={() => setShowTypomancy(true)}>
                   <div className="star-icon">⌨️</div>
