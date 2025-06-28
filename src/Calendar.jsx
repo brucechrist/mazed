@@ -39,7 +39,7 @@ export default function Calendar({ onBack }) {
   };
 
   const handleSelectEvent = (event) => {
-    setModalEvent({ ...event, index: events.indexOf(event) });
+    setModalEvent({ ...event, index: events.indexOf(event) })
   };
 
   const eventPropGetter = (event) => ({
