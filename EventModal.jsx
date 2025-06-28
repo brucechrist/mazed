@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
 import './note-modal.css';
 
-export default function EventModal({ start, end, onSave, onClose }) {
-  const [title, setTitle] = useState('');
-  const [startTime, setStartTime] = useState(new Date(start).toISOString().slice(0,16));
-  const [endTime, setEndTime] = useState(new Date(end).toISOString().slice(0,16));
-  const [color, setColor] = useState('#1a73e8');
+export default function EventModal({
+  start,
+  end,
+  title: initialTitle = '',
+  color: initialColor = '#1a73e8',
+  onSave,
+  onDelete,
+  onClose,
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [startTime, setStartTime] = useState(
+    start ? new Date(start).toISOString().slice(0, 16) : ''
+  );
+  const [endTime, setEndTime] = useState(
+    end ? new Date(end).toISOString().slice(0, 16) : ''
+  );
+  const [color, setColor] = useState(initialColor);
 
   const handleSave = () => {
     onSave({
@@ -52,6 +64,11 @@ export default function EventModal({ start, end, onSave, onClose }) {
           />
         </label>
         <div className="actions">
+          {onDelete && (
+            <button className="save-button" onClick={() => { onDelete(); onClose(); }}>
+              Delete
+            </button>
+          )}
           <button className="save-button" onClick={onClose}>Cancel</button>
           <button className="save-button" onClick={() => { handleSave(); onClose(); }}>
             Save
