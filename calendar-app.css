@@ -1,0 +1,31 @@
+.calendar-app {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  height: calc(100vh - 60px);
+}
+
+.calendar-container {
+  flex: 1;
+  background: white;
+  color: black;
+  padding: 10px;
+  border-radius: 8px;
+  height: 100%;
+}
+
+.calendar-container .rbc-toolbar button {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  margin: 0 2px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.calendar-container .rbc-toolbar button.rbc-active {
+  background: #1a73e8;
+  color: white;
+}
