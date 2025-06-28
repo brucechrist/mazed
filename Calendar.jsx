@@ -3,6 +3,7 @@ import { Calendar as RBCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './calendar-app.css';
+import EventModal from './EventModal.jsx';
 
 const localizer = momentLocalizer(moment);
 
@@ -11,16 +12,18 @@ export default function Calendar({ onBack }) {
     const stored = localStorage.getItem('calendarEvents');
     return stored ? JSON.parse(stored) : [];
   });
+  const [newEvent, setNewEvent] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
   const handleSelectSlot = ({ start, end }) => {
-    const title = window.prompt('New event name');
-    if (title) {
-      setEvents([...events, { start, end, title }]);
-    }
+    setNewEvent({ start, end });
+  };
+
+  const handleSaveEvent = (event) => {
+    setEvents([...events, event]);
   };
 
   const handleSelectEvent = (event) => {
@@ -28,6 +31,10 @@ export default function Calendar({ onBack }) {
       setEvents(events.filter((e) => e !== event));
     }
   };
+
+  const eventPropGetter = (event) => ({
+    style: { backgroundColor: event.color || '#1a73e8' },
+  });
 
   return (
     <div className="calendar-app">
@@ -41,11 +48,20 @@ export default function Calendar({ onBack }) {
           endAccessor="end"
           defaultView="month"
           views={['month', 'week', 'day']}
-          style={{ height: '80vh' }}
+          style={{ height: '100%' }}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
+          eventPropGetter={eventPropGetter}
         />
       </div>
+      {newEvent && (
+        <EventModal
+          start={newEvent.start}
+          end={newEvent.end}
+          onSave={handleSaveEvent}
+          onClose={() => setNewEvent(null)}
+        />
+      )}
     </div>
   );
 }
