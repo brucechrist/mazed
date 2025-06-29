@@ -74,3 +74,29 @@
   inset: 0;
   background: #0d0e11;
 }
+
+.calendar-container .rbc-day-slot .rbc-time-slot {
+  position: relative;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.planned-event {
+  left: 0% !important;
+  width: 50% !important;
+}
+.done-event {
+  left: 50% !important;
+  width: 50% !important;
+}
+.fullpage-calendar {
+  position: fixed;
+  inset: 0;
+  background: #121212;
+}
