@@ -22,6 +22,7 @@ export default function Calendar({ onBack }) {
         ...e,
         start: new Date(e.start),
         end: new Date(e.end),
+        kind: e.kind || 'planned',
       }));
     } catch {
       return [];
@@ -33,12 +34,29 @@ export default function Calendar({ onBack }) {
     localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
+  useEffect(() => {
+    const handleAdd = (e) => {
+      const ev = e.detail;
+      setEvents((prev) => [
+        ...prev,
+        {
+          ...ev,
+          start: new Date(ev.start),
+          end: new Date(ev.end),
+          kind: ev.kind || 'planned',
+        },
+      ]);
+    };
+    window.addEventListener('calendar-add-event', handleAdd);
+    return () => window.removeEventListener('calendar-add-event', handleAdd);
+  }, []);
+
   const handleSelectSlot = ({ start, end }) => {
     if (!start || !end) return;
     const s = new Date(start);
     const e = new Date(end);
     if (isNaN(s) || isNaN(e)) return;
-    setModalEvent({ start: s, end: e });
+    setModalEvent({ start: s, end: e, kind: 'planned' });
   };
 
   const handleSaveEvent = (event) => {
@@ -55,9 +73,22 @@ export default function Calendar({ onBack }) {
     setModalEvent({ ...event, index: events.indexOf(event) });
   };
 
-  const eventPropGetter = (event) => ({
-    style: { backgroundColor: event.color || '#1a73e8' },
-  });
+  const eventPropGetter = (event) => {
+    const base = { backgroundColor: event.color || '#1a73e8' };
+    if (event.kind === 'planned') {
+      return {
+        className: 'planned-event',
+        style: base,
+      };
+    }
+    if (event.kind === 'done') {
+      return {
+        className: 'done-event',
+        style: base,
+      };
+    }
+    return { style: base };
+  };
 
   const moveEvent = ({ event, start, end }) => {
     const idx = events.indexOf(event);
@@ -105,6 +136,7 @@ export default function Calendar({ onBack }) {
           end={modalEvent.end}
           title={modalEvent.title}
           color={modalEvent.color}
+          kind={modalEvent.kind || 'planned'}
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
           onClose={() => setModalEvent(null)}
