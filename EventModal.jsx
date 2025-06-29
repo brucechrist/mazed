@@ -5,6 +5,7 @@ export default function EventModal({
   start,
   end,
   title: initialTitle = '',
+  kind: initialKind = 'planned',
   color: initialColor = '#1a73e8',
   onSave,
   onDelete,
@@ -18,6 +19,7 @@ export default function EventModal({
     end ? new Date(end).toISOString().slice(0, 16) : ''
   );
   const [color, setColor] = useState(initialColor);
+  const [kind, setKind] = useState(initialKind);
 
   const handleSave = () => {
     onSave({
@@ -25,6 +27,7 @@ export default function EventModal({
       start: new Date(startTime),
       end: new Date(endTime),
       color,
+      kind,
     });
   };
 
@@ -62,6 +65,13 @@ export default function EventModal({
             value={color}
             onChange={e => setColor(e.target.value)}
           />
+        </label>
+        <label className="note-label">
+          Type
+          <select className="note-title" value={kind} onChange={e => setKind(e.target.value)}>
+            <option value="planned">Planned</option>
+            <option value="done">Done</option>
+          </select>
         </label>
         <div className="actions">
           {onDelete && (
