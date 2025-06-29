@@ -69,6 +69,10 @@
   left: 50% !important;
   width: 50% !important;
 }
+.block-event {
+  background: #000 !important;
+  color: #fff !important;
+}
 .fullpage-calendar {
   position: fixed;
   inset: 0;
