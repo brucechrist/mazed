@@ -6,6 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./calendar-app.css";
 import EventModal from "../EventModal.jsx";
+import BlockModal from "./BlockModal.jsx";
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
@@ -34,13 +35,31 @@ export default function Calendar({ onBack }) {
       return [];
     }
   });
+  const [blocks, setBlocks] = useState(() => {
+    const stored = localStorage.getItem('calendarBlocks');
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored).map((b) => ({
+        ...b,
+        start: new Date(b.start),
+        end: new Date(b.end),
+      }));
+    } catch {
+      return [];
+    }
+  });
   const [modalEvent, setModalEvent] = useState(null);
+  const [selectedBlock, setSelectedBlock] = useState(null);
   const containerRef = useRef(null);
   const lastClickX = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("calendarEvents", JSON.stringify(events));
   }, [events]);
+
+  useEffect(() => {
+    localStorage.setItem('calendarBlocks', JSON.stringify(blocks));
+  }, [blocks]);
 
   useEffect(() => {
     const handleAdd = (e) => {
@@ -57,6 +76,30 @@ export default function Calendar({ onBack }) {
     };
     window.addEventListener("calendar-add-event", handleAdd);
     return () => window.removeEventListener("calendar-add-event", handleAdd);
+  }, []);
+
+  useEffect(() => {
+    const handleBlockAdd = (e) => {
+      const b = e.detail;
+      setBlocks((prev) => {
+        const idx = prev.findIndex(
+          (p) => new Date(p.start).getTime() === new Date(b.start).getTime()
+        );
+        const block = {
+          ...b,
+          start: new Date(b.start),
+          end: new Date(b.end),
+        };
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = block;
+          return updated;
+        }
+        return [...prev, block];
+      });
+    };
+    window.addEventListener('calendar-add-block', handleBlockAdd);
+    return () => window.removeEventListener('calendar-add-block', handleBlockAdd);
   }, []);
 
   useEffect(() => {
@@ -104,7 +147,11 @@ export default function Calendar({ onBack }) {
   };
 
   const handleSelectEvent = (event) => {
-    setModalEvent({ ...event, index: events.indexOf(event) });
+    if (event.kind === 'block') {
+      setSelectedBlock(event);
+    } else {
+      setModalEvent({ ...event, index: events.indexOf(event) });
+    }
   };
 
   const eventPropGetter = (event) => {
@@ -121,6 +168,12 @@ export default function Calendar({ onBack }) {
         style: { ...base, left: "50%", width: "50%" },
       };
     }
+    if (event.kind === "block") {
+      return {
+        className: 'block-event',
+        style: { backgroundColor: '#000', color: '#fff', left: '0%', width: '100%' },
+      };
+    }
     return { style: base };
   };
 
@@ -131,6 +184,7 @@ export default function Calendar({ onBack }) {
   };
 
   const moveEvent = ({ event, start, end }) => {
+    if (event.kind === 'block') return;
     const idx = events.indexOf(event);
     if (idx !== -1) {
       const updated = [...events];
@@ -153,7 +207,7 @@ export default function Calendar({ onBack }) {
           selectable
           resizable
           localizer={localizer}
-          events={events}
+          events={[...events, ...blocks]}
           startAccessor="start"
           endAccessor="end"
           defaultView="month"
@@ -176,6 +230,14 @@ export default function Calendar({ onBack }) {
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
           onClose={() => setModalEvent(null)}
+        />
+      )}
+      {selectedBlock && (
+        <BlockModal
+          start={selectedBlock.start}
+          end={selectedBlock.end}
+          items={selectedBlock.items}
+          onClose={() => setSelectedBlock(null)}
         />
       )}
     </div>
