@@ -34,3 +34,33 @@
   inset: 0;
   background: #121212;
 }
+
+.rbc-event.plan-event {
+  left: 0 !important;
+  width: 50% !important;
+}
+
+.rbc-event.log-event {
+  left: 50% !important;
+  width: 50% !important;
+}
+
+/* visual divider between planned and logged halves */
+.rbc-day-bg,
+.rbc-day-slot,
+.rbc-allday-cell {
+  position: relative;
+}
+
+.rbc-day-bg::after,
+.rbc-day-slot::after,
+.rbc-allday-cell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.2);
+}
