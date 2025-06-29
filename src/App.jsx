@@ -5,10 +5,19 @@ import NofapCalendar from './NofapCalendar.jsx';
 import VersionRating from './VersionRating.jsx';
 import QuestJournal from './QuestJournal.jsx';
 import WhoAmI from './WhoAmI.jsx';
+import MusicSearch from './MusicSearch.jsx';
+import Singing from './Singing.jsx';
+import ShadowWork from './ShadowWork.jsx';
+import Calendar from './Calendar.jsx';
+import Timeline from './Timeline.jsx';
+import Typomancy from './Typomancy.jsx';
+import Moodtracker from './Moodtracker.jsx';
+import Anima from './Anima.jsx';
+import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
-import { supabase } from './supabaseClient';
+import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
 
@@ -28,6 +37,15 @@ export default function QuadrantPage({ initialTab }) {
   const [showNofap, setShowNofap] = useState(false);
   const [showRatings, setShowRatings] = useState(false);
   const [showWhoAmI, setShowWhoAmI] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
+  const [showSinging, setShowSinging] = useState(false);
+  const [showShadowWork, setShowShadowWork] = useState(false);
+  const [showCalendarApp, setShowCalendarApp] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [showTypomancy, setShowTypomancy] = useState(false);
+  const [showMoodtracker, setShowMoodtracker] = useState(false);
+  const [showAnima, setShowAnima] = useState(false);
+  const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
 
@@ -35,22 +53,22 @@ export default function QuadrantPage({ initialTab }) {
     const loadAvatar = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabaseClient.auth.getUser();
       if (!user) return;
 
       const storedPath = localStorage.getItem(`avatarPath_${user.id}`);
       if (storedPath) {
-        const { data } = supabase.storage.from('avatars').getPublicUrl(storedPath);
+        const { data } = supabaseClient.storage.from('avatars').getPublicUrl(storedPath);
         setAvatarUrl(data.publicUrl);
       }
 
-      const { data: profile } = await supabase
+      const { data: profile } = await supabaseClient
         .from('profiles')
         .select('avatar_url')
         .eq('id', user.id)
         .single();
       if (profile?.avatar_url) {
-        const { data } = supabase.storage
+        const { data } = supabaseClient.storage
           .from('avatars')
           .getPublicUrl(profile.avatar_url);
         setAvatarUrl(data.publicUrl);
@@ -100,6 +118,24 @@ export default function QuadrantPage({ initialTab }) {
               <VersionRating onBack={() => setShowRatings(false)} />
             ) : showWhoAmI ? (
               <WhoAmI onBack={() => setShowWhoAmI(false)} />
+            ) : showMusic ? (
+              <MusicSearch onBack={() => setShowMusic(false)} />
+            ) : showSinging ? (
+              <Singing onBack={() => setShowSinging(false)} />
+            ) : showShadowWork ? (
+              <ShadowWork onBack={() => setShowShadowWork(false)} />
+            ) : showCalendarApp ? (
+              <Calendar onBack={() => setShowCalendarApp(false)} />
+            ) : showTimeline ? (
+              <Timeline onBack={() => setShowTimeline(false)} />
+            ) : showTypomancy ? (
+              <Typomancy onBack={() => setShowTypomancy(false)} />
+            ) : showMoodtracker ? (
+              <Moodtracker onBack={() => setShowMoodtracker(false)} />
+            ) : showQuadrantComb ? (
+              <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
+            ) : showAnima ? (
+              <Anima onBack={() => setShowAnima(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -117,6 +153,42 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowWhoAmI(true)}>
                   <div className="question-icon">❓</div>
                   <span>Who Am I?</span>
+                </div>
+                <div className="app-card" onClick={() => setShowMusic(true)}>
+                  <div className="star-icon">🎵</div>
+                  <span>Music Search</span>
+                </div>
+                <div className="app-card" onClick={() => setShowSinging(true)}>
+                  <div className="star-icon">🎤</div>
+                  <span>Singing</span>
+                </div>
+                <div className="app-card" onClick={() => setShowShadowWork(true)}>
+                  <div className="star-icon">🌑</div>
+                  <span>Shadow Work</span>
+                </div>
+                <div className="app-card" onClick={() => setShowCalendarApp(true)}>
+                  <div className="star-icon">📅</div>
+                  <span>Calendar</span>
+                </div>
+                <div className="app-card" onClick={() => setShowTimeline(true)}>
+                  <div className="star-icon">🕒</div>
+                  <span>Timeline</span>
+                </div>
+                <div className="app-card" onClick={() => setShowTypomancy(true)}>
+                  <div className="star-icon">⌨️</div>
+                  <span>Typomancy</span>
+                </div>
+                <div className="app-card" onClick={() => setShowMoodtracker(true)}>
+                  <div className="star-icon">😊</div>
+                  <span>Moodtracker</span>
+                </div>
+                <div className="app-card" onClick={() => setShowQuadrantComb(true)}>
+                  <div className="star-icon">🔀</div>
+                  <span>Quadrant combinaisons</span>
+                </div>
+                <div className="app-card" onClick={() => setShowAnima(true)}>
+                  <div className="star-icon">💃</div>
+                  <span>Anima</span>
                 </div>
               </div>
             )}
