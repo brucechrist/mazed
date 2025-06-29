@@ -16,7 +16,16 @@ const DnDCalendar = withDragAndDrop(RBCalendar);
 export default function Calendar({ onBack }) {
   const [events, setEvents] = useState(() => {
     const stored = localStorage.getItem('calendarEvents');
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored).map(e => ({
+        ...e,
+        start: new Date(e.start),
+        end: new Date(e.end),
+      }));
+    } catch {
+      return [];
+    }
   });
   const [modalEvent, setModalEvent] = useState(null);
 
@@ -25,7 +34,11 @@ export default function Calendar({ onBack }) {
   }, [events]);
 
   const handleSelectSlot = ({ start, end }) => {
-    setModalEvent({ start, end });
+    if (!start || !end) return;
+    const s = new Date(start);
+    const e = new Date(end);
+    if (isNaN(s) || isNaN(e)) return;
+    setModalEvent({ start: s, end: e });
   };
 
   const handleSaveEvent = (event) => {
