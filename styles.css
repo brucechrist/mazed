@@ -1,8 +1,8 @@
 body {
   margin: 0;
   font-family: sans-serif;
-  background-color: #121212;
-  color: white;
+  background-color: #0d0e11;
+  color: #e6e7eb;
 }
 
 
@@ -106,7 +106,7 @@ body.character-page h1 {
   justify-content: center;
   width: 160px;
   height: 160px;
-  background: #1e1e1e;
+  background: #17181d;
   border-radius: 12px;
   cursor: pointer;
   gap: 10px;
@@ -114,7 +114,7 @@ body.character-page h1 {
 }
 
 .app-card:hover {
-  background: #2a2a2a;
+  background: #17181d;
 }
 
 .calendar-preview {
@@ -163,8 +163,8 @@ body.character-page h1 {
 }
 
 .back-button {
-  background: #333;
-  color: white;
+  background: #17181d;
+  color: #e6e7eb;
   border: none;
   padding: 6px 12px;
   border-radius: 4px;
@@ -184,8 +184,8 @@ body.character-page h1 {
 }
 
 .journal-tabs button {
-  background: #333;
-  color: white;
+  background: #17181d;
+  color: #e6e7eb;
   border: none;
   padding: 6px 12px;
   border-radius: 4px;
@@ -193,5 +193,5 @@ body.character-page h1 {
 }
 
 .journal-tabs button.active {
-  background: #555;
+  background: #0d0e11;
 }
