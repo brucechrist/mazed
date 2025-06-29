@@ -49,6 +49,13 @@ export default function QuadrantPage({ initialTab }) {
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
+  const [autoLog, setAutoLog] = useState(
+    () => localStorage.getItem('autoLog') === 'true'
+  );
+
+  useEffect(() => {
+    localStorage.setItem('autoLog', autoLog ? 'true' : 'false');
+  }, [autoLog]);
 
   useEffect(() => {
     const loadAvatar = async () => {
@@ -87,7 +94,7 @@ export default function QuadrantPage({ initialTab }) {
   if (showCalendarApp) {
     return (
       <QuestProvider>
-        <ActivityLogger />
+        <ActivityLogger enabled={autoLog} />
         <div className="fullpage-calendar">
           <Calendar onBack={() => setShowCalendarApp(false)} />
         </div>
@@ -97,6 +104,7 @@ export default function QuadrantPage({ initialTab }) {
 
   return (
     <QuestProvider>
+      <ActivityLogger enabled={autoLog} />
       <div className="app-container">
       <aside className="sidebar">
         {tabs.map((tab) => (
@@ -216,6 +224,17 @@ export default function QuadrantPage({ initialTab }) {
         />
       )}
         <VersionLabel />
+        <div className="activity-toggle">
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={autoLog}
+              onChange={(e) => setAutoLog(e.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+          <span>Auto Log</span>
+        </div>
       </div>
     </QuestProvider>
   );

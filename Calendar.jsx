@@ -33,6 +33,22 @@ export default function Calendar({ onBack }) {
     localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
+  useEffect(() => {
+    const handleAdd = (e) => {
+      const ev = e.detail;
+      setEvents((prev) => [
+        ...prev,
+        {
+          ...ev,
+          start: new Date(ev.start),
+          end: new Date(ev.end),
+        },
+      ]);
+    };
+    window.addEventListener('calendar-add-event', handleAdd);
+    return () => window.removeEventListener('calendar-add-event', handleAdd);
+  }, []);
+
   const handleSelectSlot = ({ start, end }) => {
     if (!start || !end) return;
     const s = new Date(start);

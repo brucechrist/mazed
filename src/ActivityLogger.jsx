@@ -1,18 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-export default function ActivityLogger() {
+export default function ActivityLogger({ enabled }) {
+  const enabledRef = useRef(enabled);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onActivity) {
       const handler = (_event, data) => {
+        if (!enabledRef.current) return;
         const stored = localStorage.getItem('calendarEvents');
         const events = stored ? JSON.parse(stored) : [];
-        events.push({
+        const newEvent = {
           title: `${data.app}: ${data.title}`,
           start: data.start,
           end: data.end,
           color: '#1a73e8',
-        });
+        };
+        events.push(newEvent);
         localStorage.setItem('calendarEvents', JSON.stringify(events));
+        window.dispatchEvent(
+          new CustomEvent('calendar-add-event', { detail: newEvent })
+        );
       };
       window.electronAPI.onActivity(handler);
     }
