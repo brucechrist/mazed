@@ -9,11 +9,27 @@
 
 .calendar-container {
   flex: 1;
-  background: white;
-  color: black;
+  background: #1e1e1e;
+  color: #f0f0f0;
   padding: 10px;
   border-radius: 8px;
   height: 100%;
+}
+
+.calendar-container .rbc-calendar,
+.calendar-container .rbc-month-view,
+.calendar-container .rbc-time-view,
+.calendar-container .rbc-agenda-view {
+  background: #1e1e1e;
+  color: #f0f0f0;
+}
+
+.calendar-container .rbc-time-content > * {
+  border-color: #444;
+}
+
+.calendar-container .rbc-off-range-bg {
+  background: #2a2a2a;
 }
 
 .calendar-container .rbc-toolbar button {
@@ -26,6 +42,31 @@
 }
 
 .calendar-container .rbc-toolbar button.rbc-active {
-  background: #1a73e8;
+  background: #555;
   color: white;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot {
+  position: relative;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.planned-event {
+  left: 0% !important;
+  width: 50% !important;
+}
+.done-event {
+  left: 50% !important;
+  width: 50% !important;
+}
+.fullpage-calendar {
+  position: fixed;
+  inset: 0;
+  background: #121212;
 }
