@@ -16,6 +16,22 @@
   height: 100%;
 }
 
+.calendar-container .rbc-calendar,
+.calendar-container .rbc-month-view,
+.calendar-container .rbc-time-view,
+.calendar-container .rbc-agenda-view {
+  background: #1e1e1e;
+  color: #f0f0f0;
+}
+
+.calendar-container .rbc-time-content > * {
+  border-color: #444;
+}
+
+.calendar-container .rbc-off-range-bg {
+  background: #2a2a2a;
+}
+
 .calendar-container .rbc-toolbar button {
   background: none;
   border: none;

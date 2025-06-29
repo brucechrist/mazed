@@ -16,7 +16,15 @@ export default function Calendar({ onBack }) {
     if (!stored) return [];
     try {
       return JSON.parse(stored)
-        .filter((e) => e && e.start && e.end && typeof e.title === "string")
+        .filter(
+          (e) =>
+            e &&
+            e.start &&
+            e.end &&
+            typeof e.title === "string" &&
+            e.title.trim() !== ""
+        )
+
         .map((e) => ({
           ...e,
           start: new Date(e.start),
@@ -105,13 +113,13 @@ export default function Calendar({ onBack }) {
     if (event.kind === "planned") {
       return {
         className: "planned-event",
-        style: base,
+        style: { ...base, left: "0%", width: "50%" },
       };
     }
     if (event.kind === "done") {
       return {
         className: "done-event",
-        style: base,
+        style: { ...base, left: "50%", width: "50%" },
       };
     }
     return { style: base };
