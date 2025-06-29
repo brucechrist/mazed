@@ -11,7 +11,7 @@ export default function ActivityLogger({ enabled }) {
     if (window.electronAPI && window.electronAPI.onActivity) {
       const handler = (_event, data) => {
         if (!enabledRef.current) return;
-        const stored = localStorage.getItem('calendarEvents');
+        const stored = localStorage.getItem('calendarLogs');
         const events = stored ? JSON.parse(stored) : [];
         const newEvent = {
           title: `${data.app}: ${data.title}`,
@@ -20,9 +20,9 @@ export default function ActivityLogger({ enabled }) {
           color: '#1a73e8',
         };
         events.push(newEvent);
-        localStorage.setItem('calendarEvents', JSON.stringify(events));
+        localStorage.setItem('calendarLogs', JSON.stringify(events));
         window.dispatchEvent(
-          new CustomEvent('calendar-add-event', { detail: newEvent })
+          new CustomEvent('calendar-add-log', { detail: newEvent })
         );
       };
       window.electronAPI.onActivity(handler);
