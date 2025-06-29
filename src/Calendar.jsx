@@ -1,29 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Calendar as RBCalendar,
-  momentLocalizer,
-} from 'react-big-calendar';
-import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-import './calendar-app.css';
-import EventModal from '../EventModal.jsx';
+import React, { useState, useEffect, useRef } from "react";
+import { Calendar as RBCalendar, momentLocalizer } from "react-big-calendar";
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+import "./calendar-app.css";
+import EventModal from "../EventModal.jsx";
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
 export default function Calendar({ onBack }) {
   const [events, setEvents] = useState(() => {
-    const stored = localStorage.getItem('calendarEvents');
+    const stored = localStorage.getItem("calendarEvents");
     if (!stored) return [];
     try {
-      return JSON.parse(stored).map(e => ({
-        ...e,
-        start: new Date(e.start),
-        end: new Date(e.end),
-        kind: e.kind || 'planned',
-      }));
+      return JSON.parse(stored)
+        .filter((e) => e && e.start && e.end && typeof e.title === "string")
+        .map((e) => ({
+          ...e,
+          start: new Date(e.start),
+          end: new Date(e.end),
+          kind: e.kind || (e.title.includes(":") ? "done" : "planned"),
+        }));
     } catch {
       return [];
     }
@@ -33,7 +32,7 @@ export default function Calendar({ onBack }) {
   const lastClickX = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem('calendarEvents', JSON.stringify(events));
+    localStorage.setItem("calendarEvents", JSON.stringify(events));
   }, [events]);
 
   useEffect(() => {
@@ -45,12 +44,12 @@ export default function Calendar({ onBack }) {
           ...ev,
           start: new Date(ev.start),
           end: new Date(ev.end),
-          kind: ev.kind || 'planned',
+          kind: ev.kind || "planned",
         },
       ]);
     };
-    window.addEventListener('calendar-add-event', handleAdd);
-    return () => window.removeEventListener('calendar-add-event', handleAdd);
+    window.addEventListener("calendar-add-event", handleAdd);
+    return () => window.removeEventListener("calendar-add-event", handleAdd);
   }, []);
 
   useEffect(() => {
@@ -59,10 +58,10 @@ export default function Calendar({ onBack }) {
     };
     const node = containerRef.current;
     if (node) {
-      node.addEventListener('mousedown', capture);
+      node.addEventListener("mousedown", capture);
     }
     return () => {
-      if (node) node.removeEventListener('mousedown', capture);
+      if (node) node.removeEventListener("mousedown", capture);
     };
   }, []);
 
@@ -84,7 +83,7 @@ export default function Calendar({ onBack }) {
     const s = new Date(start);
     const e = new Date(end);
     if (isNaN(s) || isNaN(e)) return;
-    setModalEvent({ start: s, end: e, kind: 'planned' });
+    setModalEvent({ start: s, end: e, kind: "planned" });
   };
 
   const handleSaveEvent = (event) => {
@@ -102,16 +101,16 @@ export default function Calendar({ onBack }) {
   };
 
   const eventPropGetter = (event) => {
-    const base = { backgroundColor: event.color || '#1a73e8' };
-    if (event.kind === 'planned') {
+    const base = { backgroundColor: event.color || "#1a73e8" };
+    if (event.kind === "planned") {
       return {
-        className: 'planned-event',
+        className: "planned-event",
         style: base,
       };
     }
-    if (event.kind === 'done') {
+    if (event.kind === "done") {
       return {
-        className: 'done-event',
+        className: "done-event",
         style: base,
       };
     }
@@ -139,7 +138,9 @@ export default function Calendar({ onBack }) {
 
   return (
     <div className="calendar-app">
-      <button className="back-button" onClick={onBack}>Back</button>
+      <button className="back-button" onClick={onBack}>
+        Back
+      </button>
       <div className="calendar-container" ref={containerRef}>
         <DnDCalendar
           selectable
@@ -149,8 +150,8 @@ export default function Calendar({ onBack }) {
           startAccessor="start"
           endAccessor="end"
           defaultView="month"
-          views={['month', 'week', 'day']}
-          style={{ height: '100%' }}
+          views={["month", "week", "day"]}
+          style={{ height: "100%" }}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           onEventDrop={moveEvent}
@@ -164,7 +165,7 @@ export default function Calendar({ onBack }) {
           end={modalEvent.end}
           title={modalEvent.title}
           color={modalEvent.color}
-          kind={modalEvent.kind || 'planned'}
+          kind={modalEvent.kind || "planned"}
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
           onClose={() => setModalEvent(null)}
