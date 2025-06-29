@@ -29,6 +29,7 @@
   background: #555;
   color: white;
 }
+
 .calendar-container .rbc-day-slot .rbc-time-slot {
   position: relative;
 }
@@ -40,6 +41,7 @@
   left: 50%;
   width: 1px;
   background: rgba(255, 255, 255, 0.2);
+
 }
 .planned-event {
   left: 0% !important;
