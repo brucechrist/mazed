@@ -28,20 +28,6 @@ export default function Calendar({ onBack }) {
       return [];
     }
   });
-  const [logs, setLogs] = useState(() => {
-    const stored = localStorage.getItem('calendarLogs');
-    if (!stored) return [];
-    try {
-      return JSON.parse(stored).map((e) => ({
-        ...e,
-        start: new Date(e.start),
-        end: new Date(e.end),
-        kind: e.kind || 'planned',
-      }));
-    } catch {
-      return [];
-    }
-  });
   const [modalEvent, setModalEvent] = useState(null);
   const events = useMemo(
     () => [
@@ -54,43 +40,6 @@ export default function Calendar({ onBack }) {
   useEffect(() => {
     localStorage.setItem('calendarPlans', JSON.stringify(plans));
   }, [plans]);
-
-  useEffect(() => {
-    localStorage.setItem('calendarLogs', JSON.stringify(logs));
-  }, [logs]);
-
-  useEffect(() => {
-    const handleAdd = (e) => {
-      const ev = e.detail;
-      setLogs((prev) => [
-        ...prev,
-        {
-          ...ev,
-          start: new Date(ev.start),
-          end: new Date(ev.end),
-        },
-      ]);
-    };
-    window.addEventListener('calendar-add-log', handleAdd);
-    return () => window.removeEventListener('calendar-add-log', handleAdd);
-  }, []);
-
-  useEffect(() => {
-    const handleAdd = (e) => {
-      const ev = e.detail;
-      setEvents((prev) => [
-        ...prev,
-        {
-          ...ev,
-          start: new Date(ev.start),
-          end: new Date(ev.end),
-          kind: ev.kind || 'planned',
-        },
-      ]);
-    };
-    window.addEventListener('calendar-add-event', handleAdd);
-    return () => window.removeEventListener('calendar-add-event', handleAdd);
-  }, []);
 
   useEffect(() => {
     const handleAdd = (e) => {

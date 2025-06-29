@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar as RBCalendar,
   momentLocalizer,
@@ -22,28 +22,69 @@ export default function Calendar({ onBack }) {
         ...e,
         start: new Date(e.start),
         end: new Date(e.end),
+        kind: e.kind || 'planned',
       }));
     } catch {
       return [];
     }
   });
   const [modalEvent, setModalEvent] = useState(null);
+  const containerRef = useRef(null);
+  const lastClickX = useRef(null);
 
   useEffect(() => {
     localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
+  useEffect(() => {
+    const handleAdd = (e) => {
+      const ev = e.detail;
+      setEvents((prev) => [
+        ...prev,
+        {
+          ...ev,
+          start: new Date(ev.start),
+          end: new Date(ev.end),
+          kind: ev.kind || 'planned',
+        },
+      ]);
+    };
+    window.addEventListener('calendar-add-event', handleAdd);
+    return () => window.removeEventListener('calendar-add-event', handleAdd);
+  }, []);
+
+  useEffect(() => {
+    const capture = (e) => {
+      lastClickX.current = e.clientX;
+    };
+    const node = containerRef.current;
+    if (node) {
+      node.addEventListener('mousedown', capture);
+    }
+    return () => {
+      if (node) node.removeEventListener('mousedown', capture);
+    };
+  }, []);
+
   const handleSelectSlot = ({ start, end, bounds, box }) => {
     if (!start || !end) return;
+    let mid = null;
+    let clickX = null;
     if (bounds && box) {
-      const mid = (bounds.left + bounds.right) / 2;
-      const clickX = box.x ?? bounds.left;
-      if (clickX > mid) return;
+      mid = (bounds.left + bounds.right) / 2;
+      clickX = box.x ?? bounds.left;
+    } else if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      mid = rect.left + rect.width / 2;
+      clickX = lastClickX.current;
+    }
+    if (mid != null && clickX != null && clickX > mid) {
+      return;
     }
     const s = new Date(start);
     const e = new Date(end);
     if (isNaN(s) || isNaN(e)) return;
-    setModalEvent({ start: s, end: e });
+    setModalEvent({ start: s, end: e, kind: 'planned' });
   };
 
   const handleSaveEvent = (event) => {
@@ -60,9 +101,22 @@ export default function Calendar({ onBack }) {
     setModalEvent({ ...event, index: events.indexOf(event) });
   };
 
-  const eventPropGetter = (event) => ({
-    style: { backgroundColor: event.color || '#1a73e8' },
-  });
+  const eventPropGetter = (event) => {
+    const base = { backgroundColor: event.color || '#1a73e8' };
+    if (event.kind === 'planned') {
+      return {
+        className: 'planned-event',
+        style: base,
+      };
+    }
+    if (event.kind === 'done') {
+      return {
+        className: 'done-event',
+        style: base,
+      };
+    }
+    return { style: base };
+  };
 
   const handleDelete = () => {
     if (modalEvent && modalEvent.index != null) {
@@ -86,7 +140,7 @@ export default function Calendar({ onBack }) {
   return (
     <div className="calendar-app">
       <button className="back-button" onClick={onBack}>Back</button>
-      <div className="calendar-container">
+      <div className="calendar-container" ref={containerRef}>
         <DnDCalendar
           selectable
           resizable
@@ -110,6 +164,7 @@ export default function Calendar({ onBack }) {
           end={modalEvent.end}
           title={modalEvent.title}
           color={modalEvent.color}
+          kind={modalEvent.kind || 'planned'}
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
           onClose={() => setModalEvent(null)}
