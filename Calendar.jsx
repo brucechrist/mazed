@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Calendar as RBCalendar,
   momentLocalizer,
@@ -14,11 +14,24 @@ const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
 export default function Calendar({ onBack }) {
-  const [events, setEvents] = useState(() => {
-    const stored = localStorage.getItem('calendarEvents');
+  const [plans, setPlans] = useState(() => {
+    const stored = localStorage.getItem('calendarPlans');
     if (!stored) return [];
     try {
-      return JSON.parse(stored).map(e => ({
+      return JSON.parse(stored).map((e) => ({
+        ...e,
+        start: new Date(e.start),
+        end: new Date(e.end),
+      }));
+    } catch {
+      return [];
+    }
+  });
+  const [logs, setLogs] = useState(() => {
+    const stored = localStorage.getItem('calendarLogs');
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored).map((e) => ({
         ...e,
         start: new Date(e.start),
         end: new Date(e.end),
@@ -29,10 +42,37 @@ export default function Calendar({ onBack }) {
     }
   });
   const [modalEvent, setModalEvent] = useState(null);
+  const events = useMemo(
+    () => [
+      ...plans.map((e) => ({ ...e, type: 'plan' })),
+      ...logs.map((e) => ({ ...e, type: 'log' })),
+    ],
+    [plans, logs]
+  );
 
   useEffect(() => {
-    localStorage.setItem('calendarEvents', JSON.stringify(events));
-  }, [events]);
+    localStorage.setItem('calendarPlans', JSON.stringify(plans));
+  }, [plans]);
+
+  useEffect(() => {
+    localStorage.setItem('calendarLogs', JSON.stringify(logs));
+  }, [logs]);
+
+  useEffect(() => {
+    const handleAdd = (e) => {
+      const ev = e.detail;
+      setLogs((prev) => [
+        ...prev,
+        {
+          ...ev,
+          start: new Date(ev.start),
+          end: new Date(ev.end),
+        },
+      ]);
+    };
+    window.addEventListener('calendar-add-log', handleAdd);
+    return () => window.removeEventListener('calendar-add-log', handleAdd);
+  }, []);
 
   useEffect(() => {
     const handleAdd = (e) => {
@@ -61,16 +101,29 @@ export default function Calendar({ onBack }) {
 
   const handleSaveEvent = (event) => {
     if (modalEvent && modalEvent.index != null) {
-      const updated = [...events];
-      updated[modalEvent.index] = event;
-      setEvents(updated);
+      if (modalEvent.type === 'log') {
+        const updated = [...logs];
+        updated[modalEvent.index] = event;
+        setLogs(updated);
+      } else {
+        const updated = [...plans];
+        updated[modalEvent.index] = event;
+        setPlans(updated);
+      }
     } else {
-      setEvents([...events, event]);
+      if (modalEvent && modalEvent.type === 'log') {
+        setLogs([...logs, event]);
+      } else {
+        setPlans([...plans, event]);
+      }
     }
   };
 
   const handleSelectEvent = (event) => {
-    setModalEvent({ ...event, index: events.indexOf(event) });
+    const idx = event.type === 'log'
+      ? logs.indexOf(event)
+      : plans.indexOf(event);
+    setModalEvent({ ...event, index: idx, type: event.type });
   };
 
   const eventPropGetter = (event) => {
@@ -91,11 +144,20 @@ export default function Calendar({ onBack }) {
   };
 
   const moveEvent = ({ event, start, end }) => {
-    const idx = events.indexOf(event);
-    if (idx !== -1) {
-      const updated = [...events];
-      updated[idx] = { ...event, start, end };
-      setEvents(updated);
+    if (event.type === 'log') {
+      const idx = logs.indexOf(event);
+      if (idx !== -1) {
+        const updated = [...logs];
+        updated[idx] = { ...event, start, end };
+        setLogs(updated);
+      }
+    } else {
+      const idx = plans.indexOf(event);
+      if (idx !== -1) {
+        const updated = [...plans];
+        updated[idx] = { ...event, start, end };
+        setPlans(updated);
+      }
     }
   };
 
@@ -105,7 +167,11 @@ export default function Calendar({ onBack }) {
 
   const handleDelete = () => {
     if (modalEvent && modalEvent.index != null) {
-      setEvents(events.filter((_, i) => i !== modalEvent.index));
+      if (modalEvent.type === 'log') {
+        setLogs(logs.filter((_, i) => i !== modalEvent.index));
+      } else {
+        setPlans(plans.filter((_, i) => i !== modalEvent.index));
+      }
     }
   };
 
