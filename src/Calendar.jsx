@@ -24,7 +24,6 @@ export default function Calendar({ onBack }) {
             typeof e.title === "string" &&
             e.title.trim() !== ""
         )
-
         .map((e) => ({
           ...e,
           start: new Date(e.start),
