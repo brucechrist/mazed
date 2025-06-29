@@ -29,3 +29,8 @@
   background: #1a73e8;
   color: white;
 }
+.fullpage-calendar {
+  position: fixed;
+  inset: 0;
+  background: #121212;
+}
