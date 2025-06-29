@@ -22,6 +22,7 @@ export default function Calendar({ onBack }) {
         ...e,
         start: new Date(e.start),
         end: new Date(e.end),
+        kind: e.kind || 'planned',
       }));
     } catch {
       return [];
@@ -91,8 +92,35 @@ export default function Calendar({ onBack }) {
     return () => window.removeEventListener('calendar-add-event', handleAdd);
   }, []);
 
-  const handleSelectSlot = ({ start, end }) => {
+  useEffect(() => {
+    const handleAdd = (e) => {
+      const ev = e.detail;
+      setEvents((prev) => [
+        ...prev,
+        {
+          ...ev,
+          start: new Date(ev.start),
+          end: new Date(ev.end),
+          kind: ev.kind || 'planned',
+        },
+      ]);
+    };
+    window.addEventListener('calendar-add-event', handleAdd);
+    return () => window.removeEventListener('calendar-add-event', handleAdd);
+  }, []);
+
+  const handleSelectSlot = ({ start, end, bounds, box }) => {
     if (!start || !end) return;
+
+    if (bounds && box) {
+      const mid = (bounds.left + bounds.right) / 2;
+      const clickX = box.x ?? bounds.left;
+      if (clickX > mid) {
+        // Ignore clicks on the right half; reserved for auto logs
+        return;
+      }
+    }
+
     const s = new Date(start);
     const e = new Date(end);
     if (isNaN(s) || isNaN(e)) return;

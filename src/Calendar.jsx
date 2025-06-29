@@ -33,8 +33,13 @@ export default function Calendar({ onBack }) {
     localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
-  const handleSelectSlot = ({ start, end }) => {
+  const handleSelectSlot = ({ start, end, bounds, box }) => {
     if (!start || !end) return;
+    if (bounds && box) {
+      const mid = (bounds.left + bounds.right) / 2;
+      const clickX = box.x ?? bounds.left;
+      if (clickX > mid) return;
+    }
     const s = new Date(start);
     const e = new Date(end);
     if (isNaN(s) || isNaN(e)) return;
