@@ -32,6 +32,13 @@
   background: #0d0e11;
 }
 
+/* Neutral style for calendar events */
+.calendar-container .rbc-event,
+.calendar-container .rbc-addons-dnd .rbc-event {
+  background-color: #333;
+  color: #e6e7eb;
+}
+
 .calendar-container .rbc-toolbar button {
   background: none;
   border: none;
