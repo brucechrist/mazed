@@ -1,0 +1,66 @@
+body {
+  margin: 0;
+  background-color: #F5F5F5;
+}
+
+.main-page {
+  display: flex;
+  height: 100vh;
+  position: relative;
+}
+
+.side {
+  background-color: #2C2C2C;
+  box-shadow: 0 0 0 1px #424242;
+  position: relative;
+  height: 100%;
+  min-width: 253px;
+  max-width: 523px;
+}
+
+.content-area {
+  flex: 1;
+}
+
+.drag-handle {
+  width: 5px;
+  cursor: ew-resize;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.left .drag-handle {
+  right: 0;
+}
+
+.right .drag-handle {
+  left: 0;
+}
+
+.bottom-menu {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.side-button {
+  width: 55px;
+  height: 55px;
+  background-color: #2C2C2C;
+  border-radius: 15px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.side-button svg {
+  width: 27px;
+  height: 27px;
+}

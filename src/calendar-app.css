@@ -1,0 +1,124 @@
+.calendar-app {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  height: 100vh;
+}
+
+.calendar-container {
+  flex: 1;
+  background: #000;
+  color: #e6e7eb;
+  padding: 10px;
+  border-radius: 8px;
+  height: 100%;
+}
+
+.calendar-container .rbc-calendar,
+.calendar-container .rbc-month-view,
+.calendar-container .rbc-time-view,
+.calendar-container .rbc-agenda-view {
+  background: #000;
+  color: #e6e7eb;
+}
+
+.calendar-container .rbc-time-content > * {
+  border-color: #333;
+}
+
+.calendar-container .rbc-off-range-bg {
+  background: #000;
+}
+
+/* Neutral style for calendar events */
+.calendar-container .rbc-event,
+.calendar-container .rbc-addons-dnd .rbc-event {
+  background-color: #17181d;
+  color: #fff;
+}
+
+.calendar-container .rbc-toolbar button {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  margin: 0 2px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.calendar-container .rbc-toolbar button.rbc-active {
+  background: #17181d;
+  color: #e6e7eb;
+}
+.calendar-container .rbc-time-slot {
+  min-height: 3rem;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot {
+  position: relative;
+  /* Increase the height of each timeslot for better visibility */
+  min-height: 3rem;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.calendar-container .rbc-day-bg.rbc-today,
+.calendar-container .rbc-time-header .rbc-today,
+.calendar-container .rbc-today {
+  background-color: #000 !important;
+}
+.planned-event {
+  left: 0% !important;
+  width: 50% !important;
+}
+.done-event {
+  left: 50% !important;
+  width: 50% !important;
+}
+.block-event {
+  background: #17181d !important;
+  color: #fff !important;
+}
+.fullpage-calendar {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+
+
+/* Override default blue highlights */
+.calendar-container .rbc-event.rbc-selected,
+.calendar-container .rbc-day-slot .rbc-selected.rbc-background-event {
+  background-color: #444;
+}
+
+.calendar-container .rbc-selected-cell {
+  background-color: #222;
+}
+
+.calendar-container .rbc-show-more {
+  color: #ccc;
+}
+
+.calendar-container .rbc-slot-selection {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-event-content {
+  position: relative;
+}
+
+.calendar-event-content .event-delete-icon {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 12px;
+  cursor: pointer;
+}

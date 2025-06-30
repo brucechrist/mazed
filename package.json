@@ -15,7 +15,9 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2",
+    "active-win": "^8.2.1",
     "react": "^19.1.0",
+    "react-big-calendar": "^1.19.4",
     "react-dom": "^19.1.0",
     "react-easy-crop": "^5.0.1",
     "styled-components": "^6.1.18"
