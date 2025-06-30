@@ -11,30 +11,24 @@ const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
 export default function Calendar({ onBack }) {
-  const [events, setEvents] = useState(() => {
-    const stored = localStorage.getItem("calendarEvents");
+  const parseStored = (key) => {
+    const stored = localStorage.getItem(key);
     if (!stored) return [];
     try {
-      return JSON.parse(stored)
-        .filter(
-          (e) =>
-            e &&
-            e.start &&
-            e.end &&
-            typeof e.title === "string" &&
-            e.title.trim() !== ""
-        )
-        .map((e) => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end),
-          kind: e.kind || (e.title.includes(":") ? "done" : "planned"),
-          description: e.description || "",
-        }));
+      return JSON.parse(stored).map((e) => ({
+        ...e,
+        start: new Date(e.start),
+        end: new Date(e.end),
+        kind: e.kind || (e.title?.includes(":") ? "done" : "planned"),
+        description: e.description || "",
+      }));
     } catch {
       return [];
     }
-  });
+  };
+
+  const [plans, setPlans] = useState(() => parseStored('calendarPlans'));
+  const [logs, setLogs] = useState(() => parseStored('calendarLogs'));
   const [modalEvent, setModalEvent] = useState(null);
   const events = useMemo(
     () => [
@@ -49,25 +43,31 @@ export default function Calendar({ onBack }) {
   }, [plans]);
 
   useEffect(() => {
-    localStorage.setItem("calendarEvents", JSON.stringify(events));
+    localStorage.setItem('calendarLogs', JSON.stringify(logs));
+  }, [logs]);
+
+  useEffect(() => {
+    localStorage.setItem('calendarEvents', JSON.stringify(events));
   }, [events]);
 
   useEffect(() => {
     const handleAdd = (e) => {
       const ev = e.detail;
-        setEvents((prev) => [
-          ...prev,
-          {
-            ...ev,
-            start: new Date(ev.start),
-            end: new Date(ev.end),
-            kind: ev.kind || "planned",
-            description: ev.description || "",
-          },
-        ]);
+      const newEvent = {
+        ...ev,
+        start: new Date(ev.start),
+        end: new Date(ev.end),
+        kind: ev.kind || 'planned',
+        description: ev.description || '',
+      };
+      if (newEvent.kind === 'done') {
+        setLogs((prev) => [...prev, newEvent]);
+      } else {
+        setPlans((prev) => [...prev, newEvent]);
+      }
     };
-    window.addEventListener("calendar-add-event", handleAdd);
-    return () => window.removeEventListener("calendar-add-event", handleAdd);
+    window.addEventListener('calendar-add-event', handleAdd);
+    return () => window.removeEventListener('calendar-add-event', handleAdd);
   }, []);
 
   const handleSelectSlot = ({ start, end, bounds, box }) => {
