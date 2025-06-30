@@ -92,3 +92,15 @@
   inset: 0;
   background: #000;
 }
+
+.calendar-event-content {
+  position: relative;
+}
+
+.calendar-event-content .event-delete-icon {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 12px;
+  cursor: pointer;
+}
