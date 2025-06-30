@@ -150,12 +150,16 @@ export default function Calendar({ onBack }) {
     if (event.kind === 'block') {
       setSelectedBlock(event);
     } else {
-      setModalEvent({ ...event, index: events.indexOf(event) });
+      setModalEvent({
+        ...event,
+        index: events.indexOf(event),
+        original: event,
+      });
     }
   };
 
   const eventPropGetter = (event) => {
-    const base = { backgroundColor: event.color || "#1a73e8" };
+    const base = { backgroundColor: event.color || "#888888" };
     if (event.kind === "planned") {
       return {
         className: "planned-event",
@@ -171,15 +175,15 @@ export default function Calendar({ onBack }) {
     if (event.kind === "block") {
       return {
         className: 'block-event',
-        style: { backgroundColor: '#000', color: '#fff', left: '0%', width: '100%' },
+        style: { backgroundColor: '#000', color: '#fff', left: '50%', width: '50%' },
       };
     }
     return { style: base };
   };
 
   const handleDelete = () => {
-    if (modalEvent && modalEvent.index != null) {
-      setEvents(events.filter((_, i) => i !== modalEvent.index));
+    if (modalEvent && modalEvent.original) {
+      setEvents(events.filter((ev) => ev !== modalEvent.original));
     }
   };
 
