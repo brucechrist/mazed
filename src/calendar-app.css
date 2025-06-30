@@ -73,6 +73,14 @@
 .calendar-container .rbc-time-header .rbc-today {
   background: #17181d;
 }
+.planned-event {
+  left: 0% !important;
+  width: 50% !important;
+}
+.done-event {
+  left: 50% !important;
+  width: 50% !important;
+}
 .block-event {
   background: #000 !important;
   color: #fff !important;
