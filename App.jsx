@@ -8,7 +8,7 @@ import WhoAmI from './WhoAmI.jsx';
 import MusicSearch from './MusicSearch.jsx';
 import Singing from './Singing.jsx';
 import ShadowWork from './ShadowWork.jsx';
-import Calendar from './Calendar.jsx';
+import Calendar from './src/Calendar.jsx';
 import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
