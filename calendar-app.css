@@ -9,7 +9,7 @@
 
 .calendar-container {
   flex: 1;
-  background: #17181d;
+  background: #000;
   color: #e6e7eb;
   padding: 10px;
   border-radius: 8px;
@@ -20,7 +20,7 @@
 .calendar-container .rbc-month-view,
 .calendar-container .rbc-time-view,
 .calendar-container .rbc-agenda-view {
-  background: #17181d;
+  background: #000;
   color: #e6e7eb;
 }
 
@@ -29,14 +29,14 @@
 }
 
 .calendar-container .rbc-off-range-bg {
-  background: #0d0e11;
+  background: #000;
 }
 
 /* Neutral style for calendar events */
 .calendar-container .rbc-event,
 .calendar-container .rbc-addons-dnd .rbc-event {
-  background-color: #333;
-  color: #e6e7eb;
+  background-color: #17181d;
+  color: #fff;
 }
 
 .calendar-container .rbc-toolbar button {
@@ -71,7 +71,19 @@
 }
 .calendar-container .rbc-day-bg.rbc-today,
 .calendar-container .rbc-time-header .rbc-today {
-  background: #17181d;
+  background: #000;
+}
+.planned-event {
+  left: 0% !important;
+  width: 50% !important;
+}
+.done-event {
+  left: 50% !important;
+  width: 50% !important;
+}
+.block-event {
+  background: #17181d !important;
+  color: #fff !important;
 }
 .planned-event {
   left: 0% !important;
@@ -88,5 +100,5 @@
 .fullpage-calendar {
   position: fixed;
   inset: 0;
-  background: #0d0e11;
+  background: #000;
 }

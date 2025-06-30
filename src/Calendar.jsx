@@ -196,7 +196,7 @@ export default function Calendar({ onBack }) {
       return {
         className: "block-event",
         style: {
-          backgroundColor: "#000",
+          backgroundColor: "#17181d",
           color: "#fff",
           left: "50%",
           width: "50%",
