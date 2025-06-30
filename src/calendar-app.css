@@ -123,3 +123,15 @@
 .calendar-container .rbc-slot-selection {
   background-color: rgba(255, 255, 255, 0.1);
 }
+
+.calendar-event-content {
+  position: relative;
+}
+
+.calendar-event-content .event-delete-icon {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 12px;
+  cursor: pointer;
+}
