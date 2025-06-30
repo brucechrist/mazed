@@ -159,26 +159,14 @@ export default function Calendar({ onBack }) {
   };
 
   const eventPropGetter = (event) => {
-    const base = { backgroundColor: event.color || "#888888" };
-    if (event.kind === "planned") {
-      return {
-        className: "planned-event",
-        style: { ...base, left: "0%", width: "50%" },
-      };
-    }
-    if (event.kind === "done") {
-      return {
-        className: "done-event",
-        style: { ...base, left: "50%", width: "50%" },
-      };
-    }
+    let style = {
+      backgroundColor:
+        event.color || (event.kind === "done" ? "#34a853" : "#888888"),
+    };
     if (event.kind === "block") {
-      return {
-        className: 'block-event',
-        style: { backgroundColor: '#000', color: '#fff', left: '50%', width: '50%' },
-      };
+      style = { backgroundColor: "#000", color: "#fff" };
     }
-    return { style: base };
+    return { style };
   };
 
   const handleDelete = () => {

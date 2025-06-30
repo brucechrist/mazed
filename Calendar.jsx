@@ -114,20 +114,11 @@ export default function Calendar({ onBack }) {
   };
 
   const eventPropGetter = (event) => {
-    const base = { backgroundColor: event.color || "#1a73e8" };
-    if (event.kind === "planned") {
-      return {
-        className: "planned-event",
-        style: { ...base, left: "0%", width: "50%" },
-      };
-    }
-    if (event.kind === "done") {
-      return {
-        className: "done-event",
-        style: { ...base, left: "50%", width: "50%" },
-      };
-    }
-    return { style: base };
+    const style = {
+      backgroundColor:
+        event.color || (event.kind === "done" ? "#34a853" : "#1a73e8"),
+    };
+    return { style };
   };
 
   const moveEvent = ({ event, start, end }) => {
