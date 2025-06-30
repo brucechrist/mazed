@@ -99,3 +99,11 @@ the **Get username** button to choose one. After saving, the profile will show
 All password inputs include a small eye button on the right side to toggle
 visibility. Use it if you need to double‑check what you typed.
 
+## Calendar UI
+
+The calendar now uses a black background throughout for improved readability.
+Events are positioned in two columns: planned items occupy the left half of a
+slot while completed entries appear on the right. The accompanying styles
+(`.planned-event`, `.done-event` and `.block-event`) ensure consistent colors
+and widths for each type.
+
