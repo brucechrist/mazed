@@ -10,6 +10,23 @@ import EventModal from "./EventModal.jsx";
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
+function CalendarEvent({ event, onDelete }) {
+  return (
+    <div className="calendar-event-content">
+      {event.title}
+      <span
+        className="event-delete-icon"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(event);
+        }}
+      >
+        ×
+      </span>
+    </div>
+  );
+}
+
 export default function Calendar({ onBack }) {
   const [events, setEvents] = useState(() => {
     const stored = localStorage.getItem("calendarEvents");
@@ -200,6 +217,11 @@ export default function Calendar({ onBack }) {
           onEventDrop={moveEvent}
           onEventResize={resizeEvent}
           eventPropGetter={eventPropGetter}
+          components={{
+            event: (props) => (
+              <CalendarEvent {...props} onDelete={handleDelete} />
+            ),
+          }}
         />
       </div>
       {modalEvent && (
