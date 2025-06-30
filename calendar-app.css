@@ -45,8 +45,13 @@
   background: #17181d;
   color: #e6e7eb;
 }
+.calendar-container .rbc-time-slot {
+  min-height: 3rem;
+}
 .calendar-container .rbc-day-slot .rbc-time-slot {
   position: relative;
+  /* Increase the height of each timeslot for better visibility */
+  min-height: 3rem;
 }
 .calendar-container .rbc-day-slot .rbc-time-slot::after {
   content: "";
@@ -77,6 +82,7 @@
 
 .calendar-container .rbc-day-slot .rbc-time-slot {
   position: relative;
+  min-height: 3rem;
 }
 .calendar-container .rbc-day-slot .rbc-time-slot::after {
   content: "";
