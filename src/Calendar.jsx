@@ -11,6 +11,23 @@ import BlockModal from "./BlockModal.jsx";
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
+function CalendarEvent({ event, onDelete }) {
+  return (
+    <div className="calendar-event-content">
+      {event.title}
+      <span
+        className="event-delete-icon"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(event);
+        }}
+      >
+        ×
+      </span>
+    </div>
+  );
+}
+
 export default function Calendar({ onBack }) {
   const [events, setEvents] = useState(() => {
     const stored = localStorage.getItem("calendarEvents");
@@ -159,31 +176,20 @@ export default function Calendar({ onBack }) {
   };
 
   const eventPropGetter = (event) => {
-    const base = { backgroundColor: event.color || "#888888" };
-    if (event.kind === "planned") {
-      return {
-        className: "planned-event",
-        style: { ...base, left: "0%", width: "50%" },
-      };
-    }
-    if (event.kind === "done") {
-      return {
-        className: "done-event",
-        style: { ...base, left: "50%", width: "50%" },
-      };
-    }
+    let style = {
+      backgroundColor:
+        event.color || (event.kind === "done" ? "#34a853" : "#888888"),
+    };
     if (event.kind === "block") {
-      return {
-        className: 'block-event',
-        style: { backgroundColor: '#000', color: '#fff', left: '50%', width: '50%' },
-      };
+      style = { backgroundColor: "#000", color: "#fff" };
     }
-    return { style: base };
+    return { style };
   };
 
-  const handleDelete = () => {
-    if (modalEvent && modalEvent.original) {
-      setEvents(events.filter((ev) => ev !== modalEvent.original));
+  const handleDelete = (target) => {
+    const toDelete = target || (modalEvent && modalEvent.original);
+    if (toDelete) {
+      setEvents(events.filter((ev) => ev !== toDelete));
     }
   };
 
@@ -222,6 +228,11 @@ export default function Calendar({ onBack }) {
           onEventDrop={moveEvent}
           onEventResize={resizeEvent}
           eventPropGetter={eventPropGetter}
+          components={{
+            event: (props) => (
+              <CalendarEvent {...props} onDelete={handleDelete} />
+            ),
+          }}
         />
       </div>
       {modalEvent && (
