@@ -11,6 +11,23 @@ import BlockModal from "./BlockModal.jsx";
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
+function CalendarEvent({ event, onDelete }) {
+  return (
+    <div className="calendar-event-content">
+      {event.title}
+      <span
+        className="event-delete-icon"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(event);
+        }}
+      >
+        ×
+      </span>
+    </div>
+  );
+}
+
 export default function Calendar({ onBack }) {
   const [events, setEvents] = useState(() => {
     const stored = localStorage.getItem("calendarEvents");
@@ -169,9 +186,10 @@ export default function Calendar({ onBack }) {
     return { style };
   };
 
-  const handleDelete = () => {
-    if (modalEvent && modalEvent.original) {
-      setEvents(events.filter((ev) => ev !== modalEvent.original));
+  const handleDelete = (target) => {
+    const toDelete = target || (modalEvent && modalEvent.original);
+    if (toDelete) {
+      setEvents(events.filter((ev) => ev !== toDelete));
     }
   };
 
@@ -210,6 +228,11 @@ export default function Calendar({ onBack }) {
           onEventDrop={moveEvent}
           onEventResize={resizeEvent}
           eventPropGetter={eventPropGetter}
+          components={{
+            event: (props) => (
+              <CalendarEvent {...props} onDelete={handleDelete} />
+            ),
+          }}
         />
       </div>
       {modalEvent && (
