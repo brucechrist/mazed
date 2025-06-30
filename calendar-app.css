@@ -70,6 +70,7 @@
   background: rgba(255, 255, 255, 0.2);
 }
 .calendar-container .rbc-day-bg.rbc-today,
+
 .calendar-container .rbc-time-header .rbc-today,
 .calendar-container .rbc-today {
   background-color: #000 !important;
