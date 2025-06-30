@@ -6,7 +6,7 @@ export default function EventModal({
   end,
   title: initialTitle = '',
   kind: initialKind = 'planned',
-  color: initialColor = '#1a73e8',
+  color: initialColor = '#888888',
   onSave,
   onDelete,
   onClose,

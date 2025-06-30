@@ -23,7 +23,7 @@ export default function ActivityLogger({ enabled }) {
           title: `${data.app}: ${data.title}`,
           start: data.start,
           end: data.end,
-          color: '#1a73e8',
+          color: '#888888',
           kind: 'done',
         };
         events.push(newEvent);

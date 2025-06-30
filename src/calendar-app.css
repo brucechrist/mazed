@@ -105,3 +105,21 @@
   inset: 0;
   background: #121212;
 }
+
+/* Override default blue highlights */
+.calendar-container .rbc-event.rbc-selected,
+.calendar-container .rbc-day-slot .rbc-selected.rbc-background-event {
+  background-color: #444;
+}
+
+.calendar-container .rbc-selected-cell {
+  background-color: #222;
+}
+
+.calendar-container .rbc-show-more {
+  color: #ccc;
+}
+
+.calendar-container .rbc-slot-selection {
+  background-color: rgba(255, 255, 255, 0.1);
+}
