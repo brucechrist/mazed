@@ -17,19 +17,15 @@ export default function ActivityLogger({ enabled }) {
     if (window.electronAPI && window.electronAPI.onActivity) {
       const handler = (_event, data) => {
         if (!enabledRef.current) return;
-        const stored = localStorage.getItem('calendarEvents');
-        const events = stored ? JSON.parse(stored) : [];
-        const newEvent = {
-          title: `${data.app}: ${data.title}`,
-          start: data.start,
-          end: data.end,
-          color: '#888888',
-          kind: 'done',
-        };
-        events.push(newEvent);
-        localStorage.setItem('calendarEvents', JSON.stringify(events));
-        window.dispatchEvent(
-          new CustomEvent('calendar-add-event', { detail: newEvent })
+        // Only create aggregated blocks rather than individual done events
+        // Remove old event log storage to keep the interface clean
+        localStorage.setItem(
+          'calendarEvents',
+          JSON.stringify(
+            (JSON.parse(localStorage.getItem('calendarEvents') || '[]') || []).filter(
+              (e) => e && (e.kind === 'planned')
+            )
+          )
         );
 
         const blockStart = roundSlot(data.start);

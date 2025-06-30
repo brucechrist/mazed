@@ -85,6 +85,8 @@
 .block-event {
   background: #17181d !important;
   color: #fff !important;
+  left: 50% !important;
+  width: 50% !important;
 }
 .fullpage-calendar {
   position: fixed;
