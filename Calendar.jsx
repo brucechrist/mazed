@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Calendar as RBCalendar, momentLocalizer } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import moment from "moment";
@@ -29,6 +29,7 @@ export default function Calendar({ onBack }) {
           start: new Date(e.start),
           end: new Date(e.end),
           kind: e.kind || (e.title.includes(":") ? "done" : "planned"),
+          description: e.description || "",
         }));
     } catch {
       return [];
@@ -54,15 +55,16 @@ export default function Calendar({ onBack }) {
   useEffect(() => {
     const handleAdd = (e) => {
       const ev = e.detail;
-      setEvents((prev) => [
-        ...prev,
-        {
-          ...ev,
-          start: new Date(ev.start),
-          end: new Date(ev.end),
-          kind: ev.kind || "planned",
-        },
-      ]);
+        setEvents((prev) => [
+          ...prev,
+          {
+            ...ev,
+            start: new Date(ev.start),
+            end: new Date(ev.end),
+            kind: ev.kind || "planned",
+            description: ev.description || "",
+          },
+        ]);
     };
     window.addEventListener("calendar-add-event", handleAdd);
     return () => window.removeEventListener("calendar-add-event", handleAdd);
@@ -83,7 +85,7 @@ export default function Calendar({ onBack }) {
     const s = new Date(start);
     const e = new Date(end);
     if (isNaN(s) || isNaN(e)) return;
-    setModalEvent({ start: s, end: e, kind: "planned" });
+    setModalEvent({ start: s, end: e, kind: "planned", description: "" });
   };
 
   const handleSaveEvent = (event) => {
@@ -175,6 +177,7 @@ export default function Calendar({ onBack }) {
           events={events}
           startAccessor="start"
           endAccessor="end"
+          tooltipAccessor="description"
           defaultView="month"
           views={["month", "week", "day"]}
           style={{ height: "100%" }}
@@ -186,16 +189,17 @@ export default function Calendar({ onBack }) {
         />
       </div>
       {modalEvent && (
-        <EventModal
-          start={modalEvent.start}
-          end={modalEvent.end}
-          title={modalEvent.title}
-          color={modalEvent.color}
-          kind={modalEvent.kind || "planned"}
-          onSave={handleSaveEvent}
-          onDelete={modalEvent.index != null ? handleDelete : undefined}
-          onClose={() => setModalEvent(null)}
-        />
+          <EventModal
+            start={modalEvent.start}
+            end={modalEvent.end}
+            title={modalEvent.title}
+            color={modalEvent.color}
+            kind={modalEvent.kind || "planned"}
+            description={modalEvent.description}
+            onSave={handleSaveEvent}
+            onDelete={modalEvent.index != null ? handleDelete : undefined}
+            onClose={() => setModalEvent(null)}
+          />
       )}
     </div>
   );
