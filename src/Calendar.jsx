@@ -11,6 +11,79 @@ import BlockModal from "./BlockModal.jsx";
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
+// Round a date down to the nearest 30 minute slot
+function roundSlot(date) {
+  const d = new Date(date);
+  d.setMinutes(Math.floor(d.getMinutes() / 30) * 30, 0, 0);
+  return d;
+}
+
+function loadInitialData() {
+  let rawEvents = [];
+  let blocks = [];
+  try {
+    rawEvents = JSON.parse(localStorage.getItem("calendarEvents")) || [];
+  } catch {}
+  try {
+    blocks = JSON.parse(localStorage.getItem("calendarBlocks")) || [];
+  } catch {}
+
+  const newBlocks = {};
+  const filtered = [];
+
+  for (const e of rawEvents) {
+    if (!e || !e.start || !e.end || !e.title || e.title.trim() === "") continue;
+    const kind = e.kind || (e.title.includes(":" ) ? "done" : "planned");
+    if (kind === "done" && e.color === "#888888") {
+      const slot = roundSlot(e.start).toISOString();
+      const endSlot = new Date(roundSlot(e.start).getTime() + 30 * 60000).toISOString();
+      if (!newBlocks[slot]) {
+        const existing = blocks.find((b) => b.start === slot);
+        newBlocks[slot] = existing || {
+          start: slot,
+          end: endSlot,
+          items: [],
+          kind: "block",
+          color: "#000000",
+        };
+      }
+      newBlocks[slot].items.push({
+        label: e.title,
+        duration: new Date(e.end).getTime() - new Date(e.start).getTime(),
+      });
+    } else {
+      filtered.push({
+        ...e,
+        start: new Date(e.start),
+        end: new Date(e.end),
+        kind,
+        description: e.description || "",
+      });
+    }
+  }
+
+  const mergedBlocks = blocks.map((b) => ({
+    ...b,
+    start: new Date(b.start),
+    end: new Date(b.end),
+  }));
+
+  Object.values(newBlocks).forEach((b) => {
+    b.title = b.items
+      .map((i) => i.label.split(":")[0])
+      .slice(0, 2)
+      .join(", ");
+    if (b.items.length > 2) b.title += " & more";
+    mergedBlocks.push({
+      ...b,
+      start: new Date(b.start),
+      end: new Date(b.end),
+    });
+  });
+
+  return { events: filtered, blocks: mergedBlocks };
+}
+
 function CalendarEvent({ event, onDelete }) {
   return (
     <div className="calendar-event-content">
@@ -29,42 +102,9 @@ function CalendarEvent({ event, onDelete }) {
 }
 
 export default function Calendar({ onBack }) {
-  const [events, setEvents] = useState(() => {
-    const stored = localStorage.getItem("calendarEvents");
-    if (!stored) return [];
-    try {
-      return JSON.parse(stored)
-        .filter(
-          (e) =>
-            e &&
-            e.start &&
-            e.end &&
-            typeof e.title === "string" &&
-            e.title.trim() !== ""
-        )
-        .map((e) => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end),
-          kind: e.kind || (e.title.includes(":") ? "done" : "planned"),
-        }));
-    } catch {
-      return [];
-    }
-  });
-  const [blocks, setBlocks] = useState(() => {
-    const stored = localStorage.getItem('calendarBlocks');
-    if (!stored) return [];
-    try {
-      return JSON.parse(stored).map((b) => ({
-        ...b,
-        start: new Date(b.start),
-        end: new Date(b.end),
-      }));
-    } catch {
-      return [];
-    }
-  });
+  const { events: initialEvents, blocks: initialBlocks } = loadInitialData();
+  const [events, setEvents] = useState(initialEvents);
+  const [blocks, setBlocks] = useState(initialBlocks);
   const [modalEvent, setModalEvent] = useState(null);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const containerRef = useRef(null);
@@ -176,14 +216,34 @@ export default function Calendar({ onBack }) {
   };
 
   const eventPropGetter = (event) => {
-    let style = {
+    const base = {
       backgroundColor:
         event.color || (event.kind === "done" ? "#34a853" : "#888888"),
     };
-    if (event.kind === "block") {
-      style = { backgroundColor: "#000", color: "#fff" };
+    if (event.kind === "planned") {
+      return {
+        className: "planned-event",
+        style: { ...base, left: "0%", width: "50%" },
+      };
     }
-    return { style };
+    if (event.kind === "done") {
+      return {
+        className: "done-event",
+        style: { ...base, left: "50%", width: "50%" },
+      };
+    }
+    if (event.kind === "block") {
+      return {
+        className: "block-event",
+        style: {
+          backgroundColor: "#17181d",
+          color: "#fff",
+          left: "50%",
+          width: "50%",
+        },
+      };
+    }
+    return { style: base };
   };
 
   const handleDelete = (target) => {

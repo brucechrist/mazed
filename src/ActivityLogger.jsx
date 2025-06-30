@@ -17,20 +17,8 @@ export default function ActivityLogger({ enabled }) {
     if (window.electronAPI && window.electronAPI.onActivity) {
       const handler = (_event, data) => {
         if (!enabledRef.current) return;
-        const stored = localStorage.getItem('calendarEvents');
-        const events = stored ? JSON.parse(stored) : [];
-        const newEvent = {
-          title: `${data.app}: ${data.title}`,
-          start: data.start,
-          end: data.end,
-          color: '#888888',
-          kind: 'done',
-        };
-        events.push(newEvent);
-        localStorage.setItem('calendarEvents', JSON.stringify(events));
-        window.dispatchEvent(
-          new CustomEvent('calendar-add-event', { detail: newEvent })
-        );
+        // Convert activity logs directly into blocks instead of storing
+        // individual events. Old log events cluttered the calendar.
 
         const blockStart = roundSlot(data.start);
         const blockEnd = new Date(blockStart.getTime() + 30 * 60000);
