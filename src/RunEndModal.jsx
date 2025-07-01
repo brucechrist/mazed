@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import './note-modal.css';
 
-export default function RunEndModal({ onSave, onClose }) {
+export default function RunEndModal({ onSave, onClose, type }) {
   const [reason, setReason] = useState('');
+  const [time, setTime] = useState(
+    () => new Date().toISOString().slice(11, 16)
+  );
 
   const handleSave = () => {
-    onSave(reason);
+    if (type === 'relapse') {
+      onSave(reason, time);
+    } else {
+      onSave(reason);
+    }
   };
 
   return (
@@ -18,6 +25,14 @@ export default function RunEndModal({ onSave, onClose }) {
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
+        {type === 'relapse' && (
+          <input
+            type="time"
+            className="note-content"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
+        )}
         <div className="actions">
           <button className="save-button" onClick={handleSave}>Save</button>
         </div>
