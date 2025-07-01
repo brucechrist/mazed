@@ -1,0 +1,84 @@
+.todo-goals {
+  padding: 20px;
+  color: #e6e7eb;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tabs button {
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background: #0d0e11;
+}
+
+.eisenhower {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+}
+
+.quadrant-wrapper {
+  background: #2c2d33;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.quadrant-wrapper h3 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+}
+
+.quadrant {
+  flex: 1;
+  min-height: 80px;
+  background: #17181d;
+  border-radius: 4px;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.task {
+  background: #0d0e11;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: grab;
+}
+
+.add {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.add input {
+  flex: 1;
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.add button {
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
