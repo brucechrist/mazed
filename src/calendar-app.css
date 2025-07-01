@@ -88,11 +88,6 @@
   left: 50% !important;
   width: 50% !important;
 }
-.fullpage-calendar {
-  position: fixed;
-  inset: 0;
-  background: #000;
-}
 
 
 /* Override default blue highlights */
