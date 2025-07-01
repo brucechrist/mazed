@@ -133,6 +133,24 @@ export default function Timeline({ onBack }) {
           </text>
         </g>
       </svg>
+      <svg className="time-freqs-chart" width="300" height="90">
+        <rect width="100%" height="100%" fill="#f5f5f5" />
+        <text
+          x="50%"
+          y="20"
+          textAnchor="middle"
+          className="time-freqs-title"
+        >
+          Time &amp; Freqs (0.01)
+        </text>
+        {/* top blue line */}
+        <line x1="20" x2="90" y1="40" y2="40" stroke="#add8e6" strokeWidth="4" />
+        <line x1="100" x2="170" y1="40" y2="40" stroke="blue" strokeWidth="4" />
+        {/* middle red line */}
+        <line x1="60" x2="130" y1="60" y2="60" stroke="#ffb6c1" strokeWidth="4" />
+        {/* bottom green line */}
+        <line x1="220" x2="290" y1="80" y2="80" stroke="#90ee90" strokeWidth="4" />
+      </svg>
     </div>
   );
 }

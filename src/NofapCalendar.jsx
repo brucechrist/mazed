@@ -51,15 +51,24 @@ export default function NofapCalendar({ onBack }) {
           saveRun({ id: active.id, start: active.start });
         }
         if (completed.length) {
-          saveRuns(
-            completed.map((r) => ({
-              id: r.id,
-              start: r.start,
-              end: r.end,
-              relapsed: r.relapsed,
-              reason: r.reason,
-            }))
-          );
+          const mapped = completed.map((r) => ({
+            id: r.id,
+            start: r.start,
+            end: r.end,
+            relapsed: r.relapsed,
+            reason: r.reason,
+            relapseTime: r.relapse_time,
+          }));
+          setRuns((prev) => {
+            const byId = {};
+            [...prev, ...mapped].forEach((run) => {
+              const key = run.id || `start_${run.start}`;
+              byId[key] = { ...byId[key], ...run };
+            });
+            const list = Object.values(byId).sort((a, b) => a.start - b.start);
+            localStorage.setItem('nofapRuns', JSON.stringify(list));
+            return list;
+          });
         }
       }
     };
@@ -94,16 +103,22 @@ export default function NofapCalendar({ onBack }) {
     const compute = () => {
       const updated = {};
       let longest = 0;
-      runs.forEach((r) => {
+      const ordered = [...runs].sort((a, b) => a.start - b.start);
+      ordered.forEach((r) => {
         const startDay = new Date(r.start);
         startDay.setHours(0, 0, 0, 0);
         const endDay = new Date(r.end);
         endDay.setHours(0, 0, 0, 0);
-        for (let d = new Date(startDay), idx = 0; d <= endDay; d.setDate(d.getDate() + 1), idx++) {
+        for (
+          let d = new Date(startDay), idx = 0;
+          d <= endDay;
+          d.setDate(d.getDate() + 1), idx++
+        ) {
           const key = d.toISOString().slice(0, 10);
-          if (r.relapsed && d.getTime() === endDay.getTime()) {
+          const isRelapseDay = r.relapsed && d.getTime() === endDay.getTime();
+          if (isRelapseDay) {
             updated[key] = 'relapse';
-          } else {
+          } else if (!updated[key]) {
             updated[key] = colorForIndex(idx);
           }
         }
@@ -144,16 +159,17 @@ export default function NofapCalendar({ onBack }) {
     return 'white';
   };
 
-  const finishRun = async (reason) => {
+  const finishRun = async (reason, relapseTime) => {
     if (!run) return;
     const relapsed = endType === 'relapse';
     const nowTime = Date.now();
     const entry = { ...run, end: nowTime, relapsed, reason };
+    if (relapsed) entry.relapseTime = relapseTime;
     if (userId && navigator.onLine) {
       if (run.id) {
         await supabaseClient
           .from('runs')
-          .update({ end: nowTime, relapsed, reason })
+          .update({ end: nowTime, relapsed, reason, relapse_time: relapseTime })
           .eq('id', run.id);
       } else {
         await supabaseClient.from('runs').insert({
@@ -162,6 +178,7 @@ export default function NofapCalendar({ onBack }) {
           end: nowTime,
           relapsed,
           reason,
+          relapse_time: relapseTime,
         });
       }
     }
@@ -293,11 +310,16 @@ export default function NofapCalendar({ onBack }) {
               {new Date(r.start).getDate()} {new Date(r.start).toLocaleString('default', { month: 'long' })} {new Date(r.start).getFullYear()} to {new Date(r.end).getDate()} {new Date(r.end).toLocaleString('default', { month: 'long' })} {new Date(r.end).getFullYear()}, {Math.ceil((r.end - r.start) / DAY_MS)} days
             </div>
             <div>Reason: {r.reason || 'N/A'}</div>
+            {r.relapseTime && <div>Relapse at: {r.relapseTime}</div>}
           </div>
         ))}
       </div>
       {showEndModal && (
-        <RunEndModal onSave={finishRun} onClose={() => setShowEndModal(false)} />
+        <RunEndModal
+          type={endType}
+          onSave={finishRun}
+          onClose={() => setShowEndModal(false)}
+        />
       )}
     </div>
   );

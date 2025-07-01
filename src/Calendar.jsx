@@ -29,25 +29,72 @@ function CalendarEvent({ event, onDelete }) {
 }
 
 export default function Calendar({ onBack }) {
+  const roundSlot = (date) => {
+    const d = new Date(date);
+    d.setMinutes(Math.floor(d.getMinutes() / 30) * 30, 0, 0);
+    return d;
+  };
+
   const [events, setEvents] = useState(() => {
     const stored = localStorage.getItem("calendarEvents");
     if (!stored) return [];
     try {
-      return JSON.parse(stored)
-        .filter(
-          (e) =>
-            e &&
-            e.start &&
-            e.end &&
-            typeof e.title === "string" &&
-            e.title.trim() !== ""
-        )
-        .map((e) => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end),
-          kind: e.kind || (e.title.includes(":") ? "done" : "planned"),
-        }));
+      const parsed = JSON.parse(stored).filter(
+        (e) =>
+          e &&
+          e.start &&
+          e.end &&
+          typeof e.title === "string" &&
+          e.title.trim() !== ""
+      );
+
+      const planned = [];
+      const done = [];
+      parsed.forEach((e) => {
+        const kind = e.kind || (e.title.includes(":") ? "done" : "planned");
+        const ev = { ...e, start: new Date(e.start), end: new Date(e.end), kind };
+        if (kind === "planned") planned.push(ev);
+        else if (kind === "done") done.push(ev);
+      });
+
+      if (done.length) {
+        let blocks = [];
+        try {
+          blocks = JSON.parse(localStorage.getItem("calendarBlocks") || "[]");
+        } catch {
+          blocks = [];
+        }
+        done.forEach((ev) => {
+          const slot = roundSlot(ev.start);
+          const blockEnd = new Date(slot.getTime() + 30 * 60000);
+          let block = blocks.find(
+            (b) => new Date(b.start).getTime() === slot.getTime()
+          );
+          if (!block) {
+            block = {
+              start: slot.toISOString(),
+              end: blockEnd.toISOString(),
+              items: [],
+              kind: "block",
+              color: "#000000",
+            };
+            blocks.push(block);
+          }
+          block.items.push({
+            label: ev.title,
+            duration: new Date(ev.end).getTime() - new Date(ev.start).getTime(),
+          });
+          block.title = block.items
+            .map((i) => i.label.split(":")[0])
+            .slice(0, 2)
+            .join(", ");
+          if (block.items.length > 2) block.title += " & more";
+        });
+        localStorage.setItem("calendarBlocks", JSON.stringify(blocks));
+        localStorage.setItem("calendarEvents", JSON.stringify(planned));
+      }
+
+      return planned;
     } catch {
       return [];
     }

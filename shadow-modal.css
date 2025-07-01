@@ -45,6 +45,14 @@
   resize: vertical;
 }
 
+select {
+  padding: 6px 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #333;
+  color: #eee;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
