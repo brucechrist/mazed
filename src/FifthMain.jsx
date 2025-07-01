@@ -3,6 +3,7 @@ import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
+import Orb from '../Orb.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;
@@ -60,7 +61,9 @@ export default function FifthMain({ onSelectQuadrant }) {
       <div className="side left" style={{ width: leftWidth }}>
         <div className="drag-handle" onMouseDown={startLeftDrag}></div>
       </div>
-      <div className="content-area" />
+      <div className="content-area">
+        <Orb />
+      </div>
       <div className="side right" style={{ width: rightWidth }}>
         <div className="drag-handle" onMouseDown={startRightDrag}></div>
       </div>
