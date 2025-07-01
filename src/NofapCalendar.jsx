@@ -51,16 +51,24 @@ export default function NofapCalendar({ onBack }) {
           saveRun({ id: active.id, start: active.start });
         }
         if (completed.length) {
-          saveRuns(
-            completed.map((r) => ({
-              id: r.id,
-              start: r.start,
-              end: r.end,
-              relapsed: r.relapsed,
-              reason: r.reason,
-              relapseTime: r.relapse_time,
-            }))
-          );
+          const mapped = completed.map((r) => ({
+            id: r.id,
+            start: r.start,
+            end: r.end,
+            relapsed: r.relapsed,
+            reason: r.reason,
+            relapseTime: r.relapse_time,
+          }));
+          setRuns((prev) => {
+            const byId = {};
+            [...prev, ...mapped].forEach((run) => {
+              const key = run.id || `start_${run.start}`;
+              byId[key] = { ...byId[key], ...run };
+            });
+            const list = Object.values(byId).sort((a, b) => a.start - b.start);
+            localStorage.setItem('nofapRuns', JSON.stringify(list));
+            return list;
+          });
         }
       }
     };
