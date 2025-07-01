@@ -4,7 +4,7 @@ import './note-modal.css';
 export default function RunEndModal({ onSave, onClose, type }) {
   const [reason, setReason] = useState('');
   const [time, setTime] = useState(
-    () => new Date().toISOString().slice(11, 16)
+    () => new Date().toTimeString().slice(0, 5)
   );
 
   const handleSave = () => {
