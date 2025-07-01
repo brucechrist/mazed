@@ -97,9 +97,7 @@ export default function QuadrantPage({ initialTab }) {
     return (
       <QuestProvider>
         <ActivityLogger enabled={autoLog} />
-        <div className="fullpage-calendar">
-          <Calendar onBack={() => setShowCalendarApp(false)} />
-        </div>
+        <Calendar onBack={() => setShowCalendarApp(false)} />
       </QuestProvider>
     );
   }
