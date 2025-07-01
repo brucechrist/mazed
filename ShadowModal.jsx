@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import './shadow-modal.css';
 
-export default function ShadowModal({ onAdd, onClose }) {
+export default function ShadowModal({ categories, onAdd, onClose }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const [category, setCategory] = useState(categories[0]);
 
   const handleSave = () => {
-    onAdd({
+    onAdd(category, {
       id: Date.now(),
       name: name || 'Unnamed',
       description,
@@ -37,6 +38,13 @@ export default function ShadowModal({ onAdd, onClose }) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c.charAt(0).toUpperCase() + c.slice(1)}
+            </option>
+          ))}
+        </select>
         <div className="actions">
           <button className="save-button" onClick={handleSave}>Save</button>
         </div>

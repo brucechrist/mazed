@@ -20,5 +20,6 @@ create table if not exists runs (
   start bigint,
   "end" bigint,
   relapsed boolean,
-  reason text
+  reason text,
+  relapse_time text
 );

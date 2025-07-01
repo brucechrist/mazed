@@ -17,6 +17,7 @@ import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
+import TodoGoals from './TodoGoals.jsx';
 import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
@@ -47,6 +48,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
+  const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
   const [autoLog, setAutoLog] = useState(
@@ -95,9 +97,7 @@ export default function QuadrantPage({ initialTab }) {
     return (
       <QuestProvider>
         <ActivityLogger enabled={autoLog} />
-        <div className="fullpage-calendar">
-          <Calendar onBack={() => setShowCalendarApp(false)} />
-        </div>
+        <Calendar onBack={() => setShowCalendarApp(false)} />
       </QuestProvider>
     );
   }
@@ -156,6 +156,8 @@ export default function QuadrantPage({ initialTab }) {
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
+              ) : showTodoGoals ? (
+              <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -209,6 +211,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowAnima(true)}>
                   <div className="star-icon">💃</div>
                   <span>Anima</span>
+                </div>
+                <div className="app-card" onClick={() => setShowTodoGoals(true)}>
+                  <div className="star-icon">✅</div>
+                  <span>Todo & Goals</span>
                 </div>
               </div>
             )}
