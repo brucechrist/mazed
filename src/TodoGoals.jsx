@@ -72,7 +72,7 @@ export default function TodoGoals({ onBack }) {
     const items = (tasks[activeTab] || []).filter((t) => t.quadrant === qKey);
     return (
       <div
-        className="quadrant"
+        className="goal-quadrant"
         onDragOver={allowDrop}
         onDrop={(e) => handleDrop(e, qKey, activeTab)}
       >
@@ -110,7 +110,7 @@ export default function TodoGoals({ onBack }) {
       </div>
       <div className="eisenhower">
         {QUADRANTS.map((q) => (
-          <div key={q.key} className="quadrant-wrapper">
+          <div key={q.key} className="goal-quadrant-wrapper">
             <h3>{q.label}</h3>
             {renderQuadrant(q.key)}
           </div>
