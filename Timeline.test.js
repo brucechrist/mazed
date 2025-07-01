@@ -3,7 +3,10 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Timeline from './src/Timeline.jsx';
 
-test('shows timeline placeholder', () => {
+test('renders timeline nodes', () => {
   render(<Timeline onBack={() => {}} />);
-  expect(screen.getByText(/timeline coming soon/i)).toBeInTheDocument();
+  // should contain stage and track labels
+  expect(screen.getAllByText('S1')[0]).toBeInTheDocument();
+  expect(screen.getAllByText('D')[0]).toBeInTheDocument();
+  expect(screen.getAllByText('B')[0]).toBeInTheDocument();
 });

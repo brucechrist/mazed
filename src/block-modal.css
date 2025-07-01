@@ -1,0 +1,27 @@
+.block-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.block-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.block-icon {
+  width: 12px;
+  height: 12px;
+  background: #888;
+  display: inline-block;
+}
+
+.block-duration {
+  margin-left: auto;
+  font-size: 0.8em;
+  color: #666;
+}
