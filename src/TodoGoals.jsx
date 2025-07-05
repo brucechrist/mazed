@@ -15,7 +15,15 @@ export default function TodoGoals({ onBack }) {
     const stored = localStorage.getItem('todoGoals');
     return stored ? JSON.parse(stored) : {};
   });
+  const [doneLog, setDoneLog] = useState(() => {
+    const stored = localStorage.getItem('todoDoneLog');
+    return stored ? JSON.parse(stored) : [];
+  });
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('todoDoneLog', JSON.stringify(doneLog));
+  }, [doneLog]);
 
   useEffect(() => {
     localStorage.setItem('todoGoals', JSON.stringify(tasks));
@@ -66,6 +74,37 @@ export default function TodoGoals({ onBack }) {
     });
   };
 
+  const handleDone = (taskId) => {
+    const current = (tasks[activeTab] || []).find((t) => t.id === taskId);
+    if (!current) return;
+    setTasks((prev) => {
+      const next = { ...prev };
+      next[activeTab] = (next[activeTab] || []).filter((t) => t.id !== taskId);
+      return next;
+    });
+    const entry = { text: current.text, time: Date.now() };
+    setDoneLog((prev) => {
+      const updated = [...prev, entry].slice(-50);
+      return updated;
+    });
+    const ev = {
+      title: current.text,
+      start: new Date(),
+      end: new Date(Date.now() + 10 * 60000),
+      kind: 'done',
+    };
+    try {
+      const stored = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+      stored.push({
+        ...ev,
+        start: ev.start.toISOString(),
+        end: ev.end.toISOString(),
+      });
+      localStorage.setItem('calendarEvents', JSON.stringify(stored));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('calendar-add-event', { detail: ev }));
+  };
+
   const allowDrop = (e) => e.preventDefault();
 
   const renderQuadrant = (qKey) => {
@@ -83,7 +122,13 @@ export default function TodoGoals({ onBack }) {
             draggable
             onDragStart={(e) => handleDragStart(e, task, activeTab)}
           >
-            {task.text}
+            <span className="task-text">{task.text}</span>
+            <button
+              className="done-button"
+              onClick={() => handleDone(task.id)}
+            >
+              Done
+            </button>
           </div>
         ))}
       </div>
@@ -92,12 +137,28 @@ export default function TodoGoals({ onBack }) {
 
   return (
     <div className="todo-goals">
-      {onBack && (
-        <button className="back-button" onClick={onBack}>Back</button>
-      )}
-      <div className="tabs">
-        {TIMEFRAMES.map((t) => (
-          <button
+      <div className="done-log">
+        {doneLog
+          .slice()
+          .reverse()
+          .map((entry, idx) => {
+            const d = new Date(entry.time);
+            const date = d.toLocaleDateString();
+            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={idx} className="done-banner">
+                {date} {time} - {entry.text}
+              </div>
+            );
+          })}
+      </div>
+      <div className="main-panel">
+        {onBack && (
+          <button className="back-button" onClick={onBack}>Back</button>
+        )}
+        <div className="tabs">
+          {TIMEFRAMES.map((t) => (
+            <button
             key={t}
             className={activeTab === t ? 'active' : ''}
             onClick={() => setActiveTab(t)}
@@ -107,22 +168,23 @@ export default function TodoGoals({ onBack }) {
             {t}
           </button>
         ))}
-      </div>
-      <div className="eisenhower">
-        {QUADRANTS.map((q) => (
-          <div key={q.key} className="goal-quadrant-wrapper">
-            <h3>{q.label}</h3>
-            {renderQuadrant(q.key)}
-          </div>
-        ))}
-      </div>
-      <div className="add">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Add goal"
-        />
-        <button onClick={handleAdd}>Add</button>
+        </div>
+        <div className="eisenhower">
+          {QUADRANTS.map((q) => (
+            <div key={q.key} className="goal-quadrant-wrapper">
+              <h3>{q.label}</h3>
+              {renderQuadrant(q.key)}
+            </div>
+          ))}
+        </div>
+        <div className="add">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Add goal"
+          />
+          <button onClick={handleAdd}>Add</button>
+        </div>
       </div>
     </div>
   );
