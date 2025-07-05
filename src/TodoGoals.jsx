@@ -137,21 +137,6 @@ export default function TodoGoals({ onBack }) {
 
   return (
     <div className="todo-goals">
-      <div className="done-log">
-        {doneLog
-          .slice()
-          .reverse()
-          .map((entry, idx) => {
-            const d = new Date(entry.time);
-            const date = d.toLocaleDateString();
-            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return (
-              <div key={idx} className="done-banner">
-                {date} {time} - {entry.text}
-              </div>
-            );
-          })}
-      </div>
       <div className="main-panel">
         {onBack && (
           <button className="back-button" onClick={onBack}>Back</button>
@@ -185,6 +170,21 @@ export default function TodoGoals({ onBack }) {
           />
           <button onClick={handleAdd}>Add</button>
         </div>
+      </div>
+      <div className="done-log">
+        {doneLog
+          .slice()
+          .reverse()
+          .map((entry, idx) => {
+            const d = new Date(entry.time);
+            const date = d.toLocaleDateString();
+            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={idx} className="done-banner">
+                {date} {time} - {entry.text}
+              </div>
+            );
+          })}
       </div>
     </div>
   );
