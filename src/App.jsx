@@ -18,6 +18,7 @@ import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import TodoGoals from './TodoGoals.jsx';
+import ActivityApp from './ActivityApp.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
@@ -50,6 +51,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showAnima, setShowAnima] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
@@ -166,6 +168,8 @@ export default function QuadrantPage({ initialTab }) {
               <Anima onBack={() => setShowAnima(false)} />
               ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
+            ) : showActivity ? (
+              <ActivityApp onBack={() => setShowActivity(false)} />
             ) : (
               <div className="feature-cards">
                 <div className="app-card" onClick={() => setShowJournal(true)}>
@@ -223,6 +227,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowTodoGoals(true)}>
                   <div className="star-icon">✅</div>
                   <span>Todo & Goals</span>
+                </div>
+                <div className="app-card" onClick={() => setShowActivity(true)}>
+                  <div className="star-icon">🏃</div>
+                  <span>Activity</span>
                 </div>
               </div>
             )}
