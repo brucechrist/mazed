@@ -3,9 +3,9 @@ import './placeholder-app.css';
 import './activity-app.css';
 
 const SUGGESTIONS = [
-  { title: 'Meditation', duration: 30, reward: 5, cost: 0 },
-  { title: 'Workout', duration: 45, reward: 8, cost: 0 },
-  { title: 'Reading', duration: 20, reward: 3, cost: 0 },
+  { title: 'Meditation', icon: '🧘', duration: 30 },
+  { title: 'Workout', icon: '🏋️', duration: 45 },
+  { title: 'Reading', icon: '📚', duration: 20 },
 ];
 
 export default function ActivityApp({ onBack }) {
@@ -13,6 +13,28 @@ export default function ActivityApp({ onBack }) {
   const [duration, setDuration] = useState(30);
   const [reward, setReward] = useState(0);
   const [cost, setCost] = useState(0);
+  const [xp, setXp] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('activityXP')) || {};
+    } catch {
+      return {};
+    }
+  });
+
+  const computeReward = (mins) => {
+    let base = 10 + mins;
+    let mult = 1;
+    if (mins >= 30) mult *= 1.2;
+    if (mins >= 60) mult *= 1.2;
+    if (mins >= 120) mult *= 1.5;
+    if (mins >= 180) mult *= 2;
+    return Math.round(base * mult);
+  };
+
+  const saveXp = (next) => {
+    setXp(next);
+    localStorage.setItem('activityXP', JSON.stringify(next));
+  };
 
   const addEvent = (kind, startTime) => {
     const start = startTime ? new Date(startTime) : new Date();
@@ -23,13 +45,17 @@ export default function ActivityApp({ onBack }) {
       end: end.toISOString(),
       kind,
       color: '#34a853',
-      reward,
+      reward: computeReward(duration),
       cost,
     };
     const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
     events.push(ev);
     localStorage.setItem('calendarEvents', JSON.stringify(events));
     window.dispatchEvent(new CustomEvent('calendar-add-event', { detail: ev }));
+
+    const titleKey = ev.title;
+    const nextXp = { ...xp, [titleKey]: (xp[titleKey] || 0) + duration };
+    saveXp(nextXp);
   };
 
   const handleStart = () => {
@@ -49,14 +75,14 @@ export default function ActivityApp({ onBack }) {
   const applySuggestion = (s) => {
     setTitle(s.title);
     setDuration(s.duration);
-    setReward(s.reward);
-    setCost(s.cost);
+    setReward(computeReward(s.duration));
+    setCost(0);
   };
 
   return (
     <div className="placeholder-app activity-app">
       <button className="back-button" onClick={onBack}>Back</button>
-      <h2>Activity</h2>
+      <h2>Meditation</h2>
       <div className="activity-form">
         <input
           className="activity-input"
@@ -89,10 +115,17 @@ export default function ActivityApp({ onBack }) {
       <h3>Suggestions</h3>
       <ul className="activity-suggestions">
         {SUGGESTIONS.map((s) => (
-          <li key={s.title}>
+          <li key={s.title} className="activity-suggestion">
             <button className="save-button" onClick={() => applySuggestion(s)}>
-              {s.title} ({s.duration}m, +{s.reward}xp)
+              <span className="activity-icon">{s.icon}</span> {s.title} ({s.duration}m)
+              <div className="reward-label">{computeReward(s.duration)} R</div>
             </button>
+            <div className="xp-bar">
+              <div
+                className="xp-fill"
+                style={{ width: `${Math.min((xp[s.title] || 0) / 180 * 100, 100)}%` }}
+              />
+            </div>
           </li>
         ))}
       </ul>
