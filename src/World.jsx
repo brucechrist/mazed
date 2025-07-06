@@ -10,6 +10,10 @@ export default function World() {
     const stored = localStorage.getItem('resourceR');
     return stored ? parseInt(stored, 10) : 0;
   });
+  const [xResource, setXResource] = useState(() => {
+    const stored = localStorage.getItem('resourceX');
+    return stored ? parseInt(stored, 10) : 0;
+  });
   const [userId, setUserId] = useState(null);
   const { quests, addQuest, acceptQuest } = useQuests();
   const [showModal, setShowModal] = useState(false);
@@ -66,6 +70,10 @@ export default function World() {
       supabaseClient.from('profiles').update({ resources: resource }).eq('id', userId);
     }
   }, [resource, userId]);
+
+  useEffect(() => {
+    localStorage.setItem('resourceX', xResource);
+  }, [xResource]);
 
   const handleQuestAdd = (q) => {
     addQuest(q);
@@ -140,7 +148,7 @@ export default function World() {
           initialInstinct={profile.instinct || ''}
         />
       )}
-      <div className="resource-box">{resource} R</div>
+      <div className="resource-box">{resource} R | {xResource} X</div>
       {showPublished && (
         <div className="published-popup">
           <span className="checkmark">✔</span> Quest published
