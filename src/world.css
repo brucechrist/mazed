@@ -22,6 +22,12 @@
   margin-top: 0;
 }
 
+.contracts-header {
+  margin-top: 20px;
+  font-size: 1.2em;
+  color: white;
+}
+
 .add-quest {
   width: 30px;
   height: 30px;
