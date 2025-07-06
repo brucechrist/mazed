@@ -1,0 +1,31 @@
+.activity-app {
+  width: 100%;
+  padding: 20px;
+}
+
+.activity-form {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.activity-input {
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.activity-input.short {
+  width: 80px;
+}
+
+.activity-suggestions {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
