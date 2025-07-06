@@ -148,6 +148,7 @@ export default function World() {
           initialInstinct={profile.instinct || ''}
         />
       )}
+      <h3 className="contracts-header">Contracts</h3>
       <div className="resource-box">{resource} R | {xResource} X</div>
       {showPublished && (
         <div className="published-popup">
