@@ -4,6 +4,8 @@
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
+  display: flex;
+  gap: 10px;
 }
 
 .resource-circle {
