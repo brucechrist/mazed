@@ -38,7 +38,6 @@ export default function ActivityApp({ onBack }) {
     setXp(next);
     localStorage.setItem('activityXP', JSON.stringify(next));
   };
-
   useEffect(() => {
     if (!timeLeft) return;
     const id = setInterval(() => {
@@ -115,6 +114,7 @@ export default function ActivityApp({ onBack }) {
           <span>{title || 'Drag activity here'}</span>
         )}
       </div>
+
       <div className="activity-form">
         <input
           className="activity-input"
