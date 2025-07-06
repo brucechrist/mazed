@@ -56,3 +56,16 @@
   height: 100%;
   background: #4caf50;
 }
+
+.activity-launcher {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #555;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.timer {
+  font-weight: bold;
+}

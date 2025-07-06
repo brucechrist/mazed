@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './placeholder-app.css';
 import './activity-app.css';
 
 const SUGGESTIONS = [
-  { title: 'Meditation', icon: '🧘', duration: 30 },
+  { title: 'Meditation - Vipassana', icon: '🧘', duration: 30 },
+  { title: 'Meditation - Ramana', icon: '🧘', duration: 30 },
+  { title: 'Yoga', icon: '🧘‍♂️', duration: 45 },
   { title: 'Workout', icon: '🏋️', duration: 45 },
   { title: 'Reading', icon: '📚', duration: 20 },
 ];
@@ -13,6 +15,7 @@ export default function ActivityApp({ onBack }) {
   const [duration, setDuration] = useState(30);
   const [reward, setReward] = useState(0);
   const [cost, setCost] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [xp, setXp] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('activityXP')) || {};
@@ -35,6 +38,13 @@ export default function ActivityApp({ onBack }) {
     setXp(next);
     localStorage.setItem('activityXP', JSON.stringify(next));
   };
+  useEffect(() => {
+    if (!timeLeft) return;
+    const id = setInterval(() => {
+      setTimeLeft((t) => (t > 0 ? t - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timeLeft]);
 
   const addEvent = (kind, startTime) => {
     const start = startTime ? new Date(startTime) : new Date();
@@ -60,6 +70,7 @@ export default function ActivityApp({ onBack }) {
 
   const handleStart = () => {
     if (!title.trim()) return;
+    setTimeLeft(duration * 60);
     addEvent('done');
     setTitle('');
   };
@@ -79,10 +90,31 @@ export default function ActivityApp({ onBack }) {
     setCost(0);
   };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const t = e.dataTransfer.getData('text/plain');
+    const s = SUGGESTIONS.find((x) => x.title === t);
+    if (s) applySuggestion(s);
+  };
+
   return (
     <div className="placeholder-app activity-app">
       <button className="back-button" onClick={onBack}>Back</button>
       <h2>Meditation</h2>
+      <div
+        className="activity-launcher"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+      >
+        {timeLeft > 0 ? (
+          <div className="timer">
+            {Math.floor(timeLeft / 60)}m {timeLeft % 60}s left
+          </div>
+        ) : (
+          <span>{title || 'Drag activity here'}</span>
+        )}
+      </div>
+
       <div className="activity-form">
         <input
           className="activity-input"
@@ -95,7 +127,11 @@ export default function ActivityApp({ onBack }) {
           min="1"
           className="activity-input short"
           value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
+          onChange={(e) => {
+            const d = Number(e.target.value);
+            setDuration(d);
+            setReward(computeReward(d));
+          }}
         />
         <input
           type="number"
@@ -115,7 +151,12 @@ export default function ActivityApp({ onBack }) {
       <h3>Suggestions</h3>
       <ul className="activity-suggestions">
         {SUGGESTIONS.map((s) => (
-          <li key={s.title} className="activity-suggestion">
+          <li
+            key={s.title}
+            className="activity-suggestion"
+            draggable
+            onDragStart={(e) => e.dataTransfer.setData('text/plain', s.title)}
+          >
             <button className="save-button" onClick={() => applySuggestion(s)}>
               <span className="activity-icon">{s.icon}</span> {s.title} ({s.duration}m)
               <div className="reward-label">{computeReward(s.duration)} R</div>
