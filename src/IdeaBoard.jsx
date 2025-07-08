@@ -6,7 +6,8 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   addEdge,
-} from 'react-flow-renderer';
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import './idea-board.css';
 
 function TextNode({ id, data }) {
