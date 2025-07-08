@@ -158,17 +158,19 @@ export default function World() {
           initialInstinct={profile.instinct || ""}
         />
       )}
-      <h3 className="contracts-header">Contracts</h3>
-      <div className="contracts-grid">
-        <div className="contract-box" id="contract-horizontal-top" />
-        <div className="contract-box" id="contract-vertical-left" />
-        <div className="contract-box square" id="contract-small-1" />
-        <div className="contract-box square" id="contract-small-2" />
-        <div className="contract-box square" id="contract-small-3" />
-        <div className="contract-box square" id="contract-small-4" />
-        <div className="contract-box circle" id="contract-center" />
-        <div className="contract-box" id="contract-vertical-right" />
-        <div className="contract-box" id="contract-horizontal-bottom" />
+      <div className="contracts-section">
+        <h3 className="contracts-header">Contracts</h3>
+        <div className="contracts-grid">
+          <div className="contract-box" id="contract-horizontal-top" />
+          <div className="contract-box" id="contract-vertical-left" />
+          <div className="contract-box square" id="contract-small-1" />
+          <div className="contract-box square" id="contract-small-2" />
+          <div className="contract-box square" id="contract-small-3" />
+          <div className="contract-box square" id="contract-small-4" />
+          <div className="contract-box circle" id="contract-center" />
+          <div className="contract-box" id="contract-vertical-right" />
+          <div className="contract-box" id="contract-horizontal-bottom" />
+        </div>
       </div>
       <div className="resource-box">
         {resource} R | {xResource} X
