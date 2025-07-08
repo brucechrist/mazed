@@ -177,7 +177,10 @@
   height: 256px;
 }
 
-.contract-box.wide,
-.contract-box.small {
+.contract-box.wide {
   height: 112px;
+}
+
+.contract-box.small {
+  aspect-ratio: 1 / 1;
 }
