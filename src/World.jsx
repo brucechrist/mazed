@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import QuestModal from './QuestModal.jsx';
-import MainQuestModal from './MainQuestModal.jsx';
-import { supabaseClient } from './supabaseClient';
-import { useQuests } from './QuestContext.jsx';
-import './world.css';
+import React, { useState, useEffect } from "react";
+import QuestModal from "./QuestModal.jsx";
+import MainQuestModal from "./MainQuestModal.jsx";
+import { supabaseClient } from "./supabaseClient";
+import { useQuests } from "./QuestContext.jsx";
+import "./world.css";
 
 export default function World() {
   const [resource, setResource] = useState(() => {
-    const stored = localStorage.getItem('resourceR');
+    const stored = localStorage.getItem("resourceR");
     return stored ? parseInt(stored, 10) : 0;
   });
   const [xResource, setXResource] = useState(() => {
-    const stored = localStorage.getItem('resourceX');
+    const stored = localStorage.getItem("resourceX");
     return stored ? parseInt(stored, 10) : 0;
   });
   const [userId, setUserId] = useState(null);
@@ -38,12 +38,12 @@ export default function World() {
       if (!user) return;
       setUserId(user.id);
       const { data: profileData } = await supabaseClient
-        .from('profiles')
-        .select('resources, mbti, enneagram, instinct')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("resources, mbti, enneagram, instinct")
+        .eq("id", user.id)
         .single();
       if (profileData) {
-        if (typeof profileData.resources === 'number') {
+        if (typeof profileData.resources === "number") {
           setResource(profileData.resources);
         }
         setProfile(profileData);
@@ -56,23 +56,26 @@ export default function World() {
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.detail && typeof e.detail.resource === 'number') {
+      if (e.detail && typeof e.detail.resource === "number") {
         setResource(e.detail.resource);
       }
     };
-    window.addEventListener('resourceChange', handler);
-    return () => window.removeEventListener('resourceChange', handler);
+    window.addEventListener("resourceChange", handler);
+    return () => window.removeEventListener("resourceChange", handler);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('resourceR', resource);
+    localStorage.setItem("resourceR", resource);
     if (userId && navigator.onLine) {
-      supabaseClient.from('profiles').update({ resources: resource }).eq('id', userId);
+      supabaseClient
+        .from("profiles")
+        .update({ resources: resource })
+        .eq("id", userId);
     }
   }, [resource, userId]);
 
   useEffect(() => {
-    localStorage.setItem('resourceX', xResource);
+    localStorage.setItem("resourceX", xResource);
   }, [xResource]);
 
   const handleQuestAdd = (q) => {
@@ -87,7 +90,8 @@ export default function World() {
     <div className="world-container">
       <h3 className="quest-header">
         Quest
-        <button className="add-quest" onClick={() => setShowModal(true)}>+
+        <button className="add-quest" onClick={() => setShowModal(true)}>
+          +
         </button>
       </h3>
       <div className="quest-list">
@@ -99,28 +103,34 @@ export default function World() {
             Main Quest
           </div>
         )}
-        {quests.filter((q) => !q.accepted && !q.completed).map((q) => (
-          <div key={q.id} className="quest-banner">
-            <div className="quest-info">
-              <div className="quest-name">{q.name}</div>
-              <div className="quest-quadrant">{q.quadrant}</div>
-              {q.resource !== 0 && (
-                <div className="quest-resource">
-                  {q.resource > 0 ? '+' : ''}{q.resource} R
-                </div>
-              )}
+        {quests
+          .filter((q) => !q.accepted && !q.completed)
+          .map((q) => (
+            <div key={q.id} className="quest-banner">
+              <div className="quest-info">
+                <div className="quest-name">{q.name}</div>
+                <div className="quest-quadrant">{q.quadrant}</div>
+                {q.resource !== 0 && (
+                  <div className="quest-resource">
+                    {q.resource > 0 ? "+" : ""}
+                    {q.resource} R
+                  </div>
+                )}
+              </div>
+              <button
+                className="accept-button"
+                onClick={() => acceptQuest(q.id)}
+              >
+                ✔
+              </button>
             </div>
-            <button
-              className="accept-button"
-              onClick={() => acceptQuest(q.id)}
-            >
-              ✔
-            </button>
-          </div>
-        ))}
+          ))}
       </div>
       {showModal && (
-        <QuestModal onAdd={handleQuestAdd} onClose={() => setShowModal(false)} />
+        <QuestModal
+          onAdd={handleQuestAdd}
+          onClose={() => setShowModal(false)}
+        />
       )}
       {showMainQuest && (
         <MainQuestModal
@@ -130,22 +140,22 @@ export default function World() {
             setNeedsMainQuest(false);
             addQuest({
               id: Date.now(),
-              name: 'MBTI & Enneagram',
+              name: "MBTI & Enneagram",
               description:
                 `MBTI: ${p.mbti}\nEnneagram: ${p.enneagram}` +
-                (p.instinct ? `\nInstinct: ${p.instinct}` : ''),
-              quadrant: 'II',
+                (p.instinct ? `\nInstinct: ${p.instinct}` : ""),
+              quadrant: "II",
               resource: 0,
-              rarity: 'A',
+              rarity: "A",
               urgent: true,
               accepted: true,
               completed: true,
-              type: 'main',
+              type: "main",
             });
           }}
-          initialMbti={profile.mbti || ''}
-          initialEnneagram={profile.enneagram || ''}
-          initialInstinct={profile.instinct || ''}
+          initialMbti={profile.mbti || ""}
+          initialEnneagram={profile.enneagram || ""}
+          initialInstinct={profile.instinct || ""}
         />
       )}
       <h3 className="contracts-header">Contracts</h3>
@@ -159,7 +169,6 @@ export default function World() {
         <div className="contract-box" id="contract-vertical-right" />
         <div className="contract-box" id="contract-horizontal-bottom" />
       </div>
-      <div className="resource-box">{resource} R | {xResource} X</div>
       {showPublished && (
         <div className="published-popup">
           <span className="checkmark">✔</span> Quest published
