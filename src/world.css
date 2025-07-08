@@ -141,3 +141,46 @@
   80% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.contracts-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.contracts-tall-column {
+  grid-column: span 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contracts-wide-column {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contracts-small-grid {
+  grid-column: span 3;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.contract-box {
+  background: #d1d1d1;
+  border-radius: 12px;
+  width: 100%;
+}
+
+.contract-box.tall {
+  height: 256px;
+}
+
+.contract-box.wide,
+.contract-box.small {
+  height: 112px;
+}
