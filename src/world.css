@@ -166,8 +166,8 @@
   margin: 0 auto;
   display: grid;
   position: relative;
-  width: 80vmin;
-  height: 80vmin;
+  width: 95vmin;
+  height: 95vmin;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
   gap: 20px;
