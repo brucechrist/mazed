@@ -12,7 +12,7 @@ const zones = [
   { id: 'lore', label: 'Lore / Memory' }
 ];
 
-export default function Orb() {
+export default function Orb({ onBack }) {
   const [text, setText] = useState('');
   const [drops, setDrops] = useState({});
 
@@ -35,7 +35,11 @@ export default function Orb() {
   };
 
   return (
-    <div className="orb-container">
+    <div>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>Back</button>
+      )}
+      <div className="orb-container">
       <textarea
         className="orb-center"
         value={text}
@@ -55,6 +59,7 @@ export default function Orb() {
           {drops[z.id] && <p className="drop-text">{drops[z.id]}</p>}
         </div>
       ))}
+      </div>
     </div>
   );
 }
