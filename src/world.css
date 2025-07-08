@@ -150,10 +150,13 @@
 
 
 .contracts-grid {
-  margin-top: 10px;
+  margin: 10px auto 0;
   display: grid;
   position: relative;
-  transform: scale(5);
+  width: 90vmin;
+  height: 90vmin;
+  max-width: 400px;
+  max-height: 400px;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
   gap: 20px;

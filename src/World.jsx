@@ -166,8 +166,12 @@ export default function World() {
         <div className="contract-box square" id="contract-small-2" />
         <div className="contract-box square" id="contract-small-3" />
         <div className="contract-box square" id="contract-small-4" />
+        <div className="contract-box circle" id="contract-center" />
         <div className="contract-box" id="contract-vertical-right" />
         <div className="contract-box" id="contract-horizontal-bottom" />
+      </div>
+      <div className="resource-box">
+        {resource} R | {xResource} X
       </div>
       {showPublished && (
         <div className="published-popup">
