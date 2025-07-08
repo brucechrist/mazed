@@ -78,6 +78,13 @@ export default function World() {
     localStorage.setItem("resourceX", xResource);
   }, [xResource]);
 
+  useEffect(() => {
+    document.body.classList.add("world-page");
+    return () => {
+      document.body.classList.remove("world-page");
+    };
+  }, []);
+
   const handleQuestAdd = (q) => {
     addQuest(q);
     setShowPublished(true);
