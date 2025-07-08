@@ -10,9 +10,11 @@ export default function SettingsModal({ onClose, autoLog, onToggleAutoLog }) {
   });
 
   const changeRes = (e) => {
-    const val = e.target.value;
-    setResolution(val);
-    const [w, h] = val.split('x').map(Number);
+    setResolution(e.target.value);
+  };
+
+  const applyResolution = () => {
+    const [w, h] = resolution.split('x').map(Number);
     localStorage.setItem('windowWidth', w);
     localStorage.setItem('windowHeight', h);
     if (window.electronAPI && window.electronAPI.setWindowSize) {
@@ -38,6 +40,7 @@ export default function SettingsModal({ onClose, autoLog, onToggleAutoLog }) {
               <option key={r} value={r}>{r}</option>
             ))}
           </select>
+          <button className="save-button" onClick={applyResolution}>Validate</button>
         </label>
       </div>
     </div>
