@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './note-modal.css';
 
-export default function SettingsModal({ onClose, autoLog, onToggleAutoLog }) {
+export default function SettingsModal({ onClose, autoLog, onToggleAutoLog, onOpenAkashicRecords }) {
   const resolutions = ['800x600', '1024x768', '1280x720', '1600x900', '1920x1080'];
   const [resolution, setResolution] = useState(() => {
     const w = localStorage.getItem('windowWidth') || '1600';
@@ -42,6 +42,39 @@ export default function SettingsModal({ onClose, autoLog, onToggleAutoLog }) {
           </select>
           <button className="save-button" onClick={applyResolution}>Validate</button>
         </label>
+        <button
+          className="akashic-button"
+          onClick={() => {
+            onClose();
+            if (onOpenAkashicRecords) onOpenAkashicRecords();
+          }}
+          title="Akashic Records"
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       </div>
     </div>
   );
