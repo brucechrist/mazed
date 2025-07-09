@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { RIcon, XIcon } from "./ResourceIcons.jsx";
 import QuestModal from "./QuestModal.jsx";
 import MainQuestModal from "./MainQuestModal.jsx";
 import { supabaseClient } from "./supabaseClient";
@@ -120,7 +121,7 @@ export default function World() {
                 {q.resource !== 0 && (
                   <div className="quest-resource">
                     {q.resource > 0 ? "+" : ""}
-                    {q.resource} R
+                    {q.resource} <RIcon />
                   </div>
                 )}
               </div>
@@ -180,7 +181,7 @@ export default function World() {
         </div>
       </div>
       <div className="resource-box">
-        {resource} R | {xResource} X
+        {resource} <RIcon /> | {xResource} <XIcon />
       </div>
       {showPublished && (
         <div className="published-popup">

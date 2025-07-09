@@ -1,5 +1,6 @@
 import React from 'react';
 import { useResource } from './ResourceContext.jsx';
+import { RIcon, XIcon } from './ResourceIcons.jsx';
 import './resource-indicator.css';
 
 export default function ResourceIndicator() {
@@ -7,8 +8,12 @@ export default function ResourceIndicator() {
 
   return (
     <div className="resource-box">
-      <div className="resource-circle">{resource} R</div>
-      <div className="resource-circle">{xResource} X</div>
+      <div className="resource-circle">
+        {resource} <RIcon />
+      </div>
+      <div className="resource-circle">
+        {xResource} <XIcon />
+      </div>
     </div>
   );
 }
