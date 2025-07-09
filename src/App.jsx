@@ -22,6 +22,7 @@ import ActivityApp from './ActivityApp.jsx';
 import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import SettingsModal from './SettingsModal.jsx';
+import AkashicRecords from './AkashicRecords.jsx';
 import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
@@ -56,6 +57,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showActivity, setShowActivity] = useState(false);
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
+  const [showAkashicRecords, setShowAkashicRecords] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
@@ -106,6 +108,15 @@ export default function QuadrantPage({ initialTab }) {
       <QuestProvider>
         <ActivityLogger enabled={autoLog} />
         <Calendar onBack={() => setShowCalendarApp(false)} />
+      </QuestProvider>
+    );
+  }
+
+  if (showAkashicRecords) {
+    return (
+      <QuestProvider>
+        <ActivityLogger enabled={autoLog} />
+        <AkashicRecords onBack={() => setShowAkashicRecords(false)} />
       </QuestProvider>
     );
   }
@@ -266,6 +277,7 @@ export default function QuadrantPage({ initialTab }) {
           onClose={() => setShowSettings(false)}
           autoLog={autoLog}
           onToggleAutoLog={setAutoLog}
+          onOpenAkashicRecords={() => setShowAkashicRecords(true)}
         />
       )}
       <VersionLabel />
