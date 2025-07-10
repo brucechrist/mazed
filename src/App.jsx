@@ -21,6 +21,7 @@ import TodoGoals from './TodoGoals.jsx';
 import ActivityApp from './ActivityApp.jsx';
 import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
+import CharacterEvolve from './CharacterEvolve.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import AkashicRecords from './AkashicRecords.jsx';
 import { supabaseClient } from './supabaseClient';
@@ -55,6 +56,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showCharacterEvolve, setShowCharacterEvolve] = useState(false);
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
@@ -181,10 +183,12 @@ export default function QuadrantPage({ initialTab }) {
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
-              ) : showTodoGoals ? (
+            ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
               <ActivityApp onBack={() => setShowActivity(false)} />
+            ) : showCharacterEvolve ? (
+              <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
             ) : showIdeaBoard ? (
               <IdeaBoard onBack={() => setShowIdeaBoard(false)} />
             ) : showOrb ? (
@@ -250,6 +254,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowActivity(true)}>
                   <div className="star-icon">🏃</div>
                   <span>Activity</span>
+                </div>
+                <div className="app-card" onClick={() => setShowCharacterEvolve(true)}>
+                  <div className="star-icon">🌱</div>
+                  <span>Character Evolve</span>
                 </div>
                 <div className="app-card" onClick={() => setShowIdeaBoard(true)}>
                   <div className="star-icon">📝</div>
