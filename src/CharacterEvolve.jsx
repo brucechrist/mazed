@@ -23,7 +23,10 @@ export default function CharacterEvolve({ onBack }) {
   }, [values]);
 
   const increment = (key) => {
-    setValues((prev) => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+    setValues((prev) => ({
+      ...prev,
+      [key]: Math.min((prev[key] || 0) + 10, 100),
+    }));
   };
 
   return (
