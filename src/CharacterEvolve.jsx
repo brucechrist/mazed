@@ -29,15 +29,24 @@ export default function CharacterEvolve({ onBack }) {
   return (
     <div className="placeholder-app character-evolve">
       <button className="back-button" onClick={onBack}>Back</button>
-      {BARS.map((b) => (
-        <div key={b.key} className="evolve-line">
-          <div className="label">{b.key} {b.text}</div>
-          <div className="evolve-bar">
-            <div className="evolve-fill" style={{ width: `${Math.min(values[b.key] || 0, 100)}%` }} />
+        {BARS.map((b) => (
+          <div key={b.key} className="evolve-line">
+            <div className="label">{b.key} {b.text}</div>
+            <div className="evolve-bar">
+              <div
+                className="evolve-fill"
+                style={{ width: `${Math.min(values[b.key] || 0, 100)}%` }}
+              />
+            </div>
+            <button
+              className="add-btn"
+              aria-label={`add ${b.key}`}
+              onClick={() => increment(b.key)}
+            >
+              +
+            </button>
           </div>
-          <button className="add-btn" aria-label={`add ${b.key}`} onClick={() => increment(b.key)}>+</button>
-        </div>
-      ))}
+        ))}
     </div>
   );
 }
