@@ -1,0 +1,37 @@
+.character-evolve {
+  width: 100%;
+  padding: 20px;
+}
+
+.evolve-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.evolve-line .label {
+  width: 250px;
+}
+
+.evolve-bar {
+  flex: 1;
+  height: 20px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.evolve-fill {
+  height: 100%;
+  background: #4caf50;
+}
+
+.add-btn {
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
