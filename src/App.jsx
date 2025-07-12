@@ -21,6 +21,7 @@ import TodoGoals from './TodoGoals.jsx';
 import ActivityApp from './ActivityApp.jsx';
 import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
+import ImplementationIdeas from './ImplementationIdeas.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import AkashicRecords from './AkashicRecords.jsx';
@@ -58,6 +59,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showActivity, setShowActivity] = useState(false);
   const [showCharacterEvolve, setShowCharacterEvolve] = useState(false);
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
+  const [showImplementationIdeas, setShowImplementationIdeas] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -191,6 +193,8 @@ export default function QuadrantPage({ initialTab }) {
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
             ) : showIdeaBoard ? (
               <IdeaBoard onBack={() => setShowIdeaBoard(false)} />
+            ) : showImplementationIdeas ? (
+              <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
             ) : (
@@ -262,6 +266,10 @@ export default function QuadrantPage({ initialTab }) {
                 <div className="app-card" onClick={() => setShowIdeaBoard(true)}>
                   <div className="star-icon">📝</div>
                   <span>Idea Board</span>
+                </div>
+                <div className="app-card" onClick={() => setShowImplementationIdeas(true)}>
+                  <div className="star-icon">📑</div>
+                  <span>Implementation Ideas</span>
                 </div>
                 <div className="app-card" onClick={() => setShowOrb(true)}>
                   <div className="star-icon">🧿</div>

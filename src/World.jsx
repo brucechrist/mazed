@@ -17,6 +17,7 @@ export default function World() {
   });
   const [userId, setUserId] = useState(null);
   const { quests, addQuest, acceptQuest } = useQuests();
+  const [expanded, setExpanded] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [profile, setProfile] = useState({});
   const [needsMainQuest, setNeedsMainQuest] = useState(false);
@@ -114,23 +115,40 @@ export default function World() {
         {quests
           .filter((q) => !q.accepted && !q.completed)
           .map((q) => (
-            <div key={q.id} className="quest-banner">
-              <div className="quest-info">
-                <div className="quest-name">{q.name}</div>
-                <div className="quest-quadrant">{q.quadrant}</div>
-                {q.resource !== 0 && (
-                  <div className="quest-resource">
-                    {q.resource > 0 ? "+" : ""}
-                    {q.resource} <RIcon />
-                  </div>
-                )}
+            <div key={q.id}>
+              <div className="quest-banner">
+                <div className="quest-info">
+                  <div className="quest-name">{q.name}</div>
+                  <div className="quest-quadrant">{q.quadrant}</div>
+                  {q.resource !== 0 && (
+                    <div className="quest-resource">
+                      {q.resource > 0 ? "+" : ""}
+                      {q.resource} <RIcon />
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {q.description && (
+                    <button
+                      className="info-button"
+                      onClick={() =>
+                        setExpanded(expanded === q.id ? null : q.id)
+                      }
+                    >
+                      i
+                    </button>
+                  )}
+                  <button
+                    className="accept-button"
+                    onClick={() => acceptQuest(q.id)}
+                  >
+                    ✔
+                  </button>
+                </div>
               </div>
-              <button
-                className="accept-button"
-                onClick={() => acceptQuest(q.id)}
-              >
-                ✔
-              </button>
+              {expanded === q.id && q.description && (
+                <div className="quest-log">{q.description}</div>
+              )}
             </div>
           ))}
       </div>

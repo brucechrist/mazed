@@ -103,6 +103,16 @@
   cursor: pointer;
 }
 
+.info-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
 .completed-section > summary {
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.2);
