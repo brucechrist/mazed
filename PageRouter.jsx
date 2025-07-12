@@ -29,6 +29,20 @@ export default function PageRouter() {
   }, []);
 
   useEffect(() => {
+    if (window.electronAPI && window.electronAPI.setWindowSize) {
+      if (user) {
+        localStorage.setItem('windowWidth', '1920');
+        localStorage.setItem('windowHeight', '1080');
+        window.electronAPI.setWindowSize(1920, 1080);
+      } else {
+        localStorage.setItem('windowWidth', '1600');
+        localStorage.setItem('windowHeight', '900');
+        window.electronAPI.setWindowSize(1600, 900);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (window.electronAPI && window.electronAPI.onGoHome) {
       window.electronAPI.onGoHome(() => setPage('5th'));
     }
