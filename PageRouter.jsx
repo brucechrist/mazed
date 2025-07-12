@@ -48,6 +48,11 @@ export default function PageRouter() {
     }
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
+        if (window.electronAPI.setWindowSize) {
+          localStorage.setItem('windowWidth', '1600');
+          localStorage.setItem('windowHeight', '900');
+          window.electronAPI.setWindowSize(1600, 900);
+        }
         await supabaseClient.auth.signOut();
       });
     }
