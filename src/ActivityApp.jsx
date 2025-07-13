@@ -2,20 +2,62 @@ import React, { useState, useEffect } from 'react';
 import './placeholder-app.css';
 import './activity-app.css';
 
-const SUGGESTIONS = [
-  { title: 'Meditation - Vipassana', icon: '🧘', duration: 30 },
-  { title: 'Meditation - Ramana', icon: '🧘', duration: 30 },
-  { title: 'Yoga', icon: '🧘‍♂️', duration: 45 },
-  { title: 'Workout', icon: '🏋️', duration: 45 },
-  { title: 'Reading', icon: '📚', duration: 20 },
+const ACTIVITIES = [
+  { title: 'Meditation - Vipassana', icon: '🧘', base: 30, description: 'Focus on breath' },
+  { title: 'Meditation - Ramana', icon: '🧘', base: 30, description: 'Self inquiry' },
+  { title: 'Yoga', icon: '🧘‍♂️', base: 45, description: 'Stretch and breathe' },
+  { title: 'Workout', icon: '🏋️', base: 45, description: 'Strength training' },
+  { title: 'Reading', icon: '📚', base: 20, description: 'Read a book' },
 ];
 
+const computeReward = (mins) => {
+  let base = 10 + mins;
+  let mult = 1;
+  if (mins >= 30) mult *= 1.2;
+  if (mins >= 60) mult *= 1.2;
+  if (mins >= 120) mult *= 1.5;
+  if (mins >= 180) mult *= 2;
+  return Math.round(base * mult);
+};
+
+const getColor = (val) => {
+  if (val > 135) return '#f44336';
+  if (val > 90) return '#ff9800';
+  if (val > 45) return '#ffc107';
+  return '#4caf50';
+};
+
+function ActivityModal({ activity, onStart, onClose }) {
+  const [duration, setDuration] = useState(activity.base);
+  const reward = computeReward(duration);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>{activity.title}</h3>
+        <p>{activity.description}</p>
+        <label className="note-label">
+          Minutes
+          <input
+            type="number"
+            className="note-title"
+            min="1"
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+          />
+        </label>
+        <div className="reward-label">Reward: {reward} R</div>
+        <div className="actions">
+          <button className="save-button" onClick={onClose}>Cancel</button>
+          <button className="save-button" onClick={() => onStart(duration)}>
+            Start
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ActivityApp({ onBack }) {
-  const [title, setTitle] = useState('');
-  const [duration, setDuration] = useState(30);
-  const [reward, setReward] = useState(0);
-  const [cost, setCost] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [xp, setXp] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('activityXP')) || {};
@@ -23,153 +65,126 @@ export default function ActivityApp({ onBack }) {
       return {};
     }
   });
-
-  const computeReward = (mins) => {
-    let base = 10 + mins;
-    let mult = 1;
-    if (mins >= 30) mult *= 1.2;
-    if (mins >= 60) mult *= 1.2;
-    if (mins >= 120) mult *= 1.5;
-    if (mins >= 180) mult *= 2;
-    return Math.round(base * mult);
-  };
+  const [active, setActive] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('activeActivity')) || null;
+    } catch {
+      return null;
+    }
+  });
+  const [timeLeft, setTimeLeft] = useState(() => {
+    if (!active) return 0;
+    return Math.max(0, Math.floor((new Date(active.end) - Date.now()) / 1000));
+  });
+  const [modalAct, setModalAct] = useState(null);
 
   const saveXp = (next) => {
     setXp(next);
     localStorage.setItem('activityXP', JSON.stringify(next));
   };
+
   useEffect(() => {
-    if (!timeLeft) return;
+    if (!active) return;
     const id = setInterval(() => {
-      setTimeLeft((t) => (t > 0 ? t - 1 : 0));
+      setActive((cur) => {
+        if (!cur) return null;
+        const remaining = Math.floor((new Date(cur.end) - Date.now()) / 1000);
+        if (remaining <= 0) {
+          localStorage.removeItem('activeActivity');
+          return null;
+        }
+        setTimeLeft(remaining);
+        return cur;
+      });
     }, 1000);
     return () => clearInterval(id);
-  }, [timeLeft]);
+  }, [active]);
 
-  const addEvent = (kind, startTime) => {
-    const start = startTime ? new Date(startTime) : new Date();
-    const end = new Date(start.getTime() + duration * 60000);
+  useEffect(() => {
+    const onStorage = () => {
+      try {
+        const data = JSON.parse(localStorage.getItem('activeActivity')) || null;
+        setActive(data);
+        if (data) {
+          setTimeLeft(Math.max(0, Math.floor((new Date(data.end) - Date.now()) / 1000)));
+        }
+      } catch {
+        setActive(null);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const startActivity = (activity, mins) => {
+    const start = new Date();
+    const end = new Date(start.getTime() + mins * 60000);
+    localStorage.setItem('activeActivity', JSON.stringify({ title: activity.title, end: end.toISOString() }));
+
     const ev = {
-      title: title || 'Activity',
+      title: activity.title,
       start: start.toISOString(),
       end: end.toISOString(),
-      kind,
+      kind: 'done',
       color: '#34a853',
-      reward: computeReward(duration),
-      cost,
+      reward: computeReward(mins),
+      cost: 0,
     };
     const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
     events.push(ev);
     localStorage.setItem('calendarEvents', JSON.stringify(events));
     window.dispatchEvent(new CustomEvent('calendar-add-event', { detail: ev }));
 
-    const titleKey = ev.title;
-    const nextXp = { ...xp, [titleKey]: (xp[titleKey] || 0) + duration };
+    const nextXp = { ...xp, [activity.title]: (xp[activity.title] || 0) + mins };
     saveXp(nextXp);
-  };
-
-  const handleStart = () => {
-    if (!title.trim()) return;
-    setTimeLeft(duration * 60);
-    addEvent('done');
-    setTitle('');
-  };
-
-  const handleSchedule = () => {
-    if (!title.trim()) return;
-    const input = prompt('Start time (YYYY-MM-DDTHH:MM)', new Date().toISOString().slice(0,16));
-    if (!input) return;
-    addEvent('planned', input);
-    setTitle('');
-  };
-
-  const applySuggestion = (s) => {
-    setTitle(s.title);
-    setDuration(s.duration);
-    setReward(computeReward(s.duration));
-    setCost(0);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const t = e.dataTransfer.getData('text/plain');
-    const s = SUGGESTIONS.find((x) => x.title === t);
-    if (s) applySuggestion(s);
+    setModalAct(null);
+    setActive({ title: activity.title, end: end.toISOString() });
+    setTimeLeft(mins * 60);
   };
 
   return (
     <div className="placeholder-app activity-app">
       <button className="back-button" onClick={onBack}>Back</button>
-      <h2>Meditation</h2>
-      <div
-        className="activity-launcher"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
-      >
-        {timeLeft > 0 ? (
+      {active && (
+        <div className="activity-launcher">
           <div className="timer">
             {Math.floor(timeLeft / 60)}m {timeLeft % 60}s left
           </div>
-        ) : (
-          <span>{title || 'Drag activity here'}</span>
-        )}
-      </div>
-
-      <div className="activity-form">
-        <input
-          className="activity-input"
-          placeholder="Activity"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <input
-          type="number"
-          min="1"
-          className="activity-input short"
-          value={duration}
-          onChange={(e) => {
-            const d = Number(e.target.value);
-            setDuration(d);
-            setReward(computeReward(d));
-          }}
-        />
-        <input
-          type="number"
-          className="activity-input short"
-          value={reward}
-          onChange={(e) => setReward(Number(e.target.value))}
-        />
-        <input
-          type="number"
-          className="activity-input short"
-          value={cost}
-          onChange={(e) => setCost(Number(e.target.value))}
-        />
-        <button className="save-button" onClick={handleStart}>Start Now</button>
-        <button className="save-button" onClick={handleSchedule}>Schedule</button>
-      </div>
-      <h3>Suggestions</h3>
-      <ul className="activity-suggestions">
-        {SUGGESTIONS.map((s) => (
-          <li
-            key={s.title}
-            className="activity-suggestion"
-            draggable
-            onDragStart={(e) => e.dataTransfer.setData('text/plain', s.title)}
-          >
-            <button className="save-button" onClick={() => applySuggestion(s)}>
-              <span className="activity-icon">{s.icon}</span> {s.title} ({s.duration}m)
-              <div className="reward-label">{computeReward(s.duration)} R</div>
-            </button>
-            <div className="xp-bar">
-              <div
-                className="xp-fill"
-                style={{ width: `${Math.min((xp[s.title] || 0) / 180 * 100, 100)}%` }}
-              />
-            </div>
-          </li>
-        ))}
+        </div>
+      )}
+      <h2>Activities</h2>
+      <ul className="activity-grid">
+        {ACTIVITIES.map((act) => {
+          const spent = xp[act.title] || 0;
+          const pct = Math.min(spent / 180, 1);
+          return (
+            <li
+              key={act.title}
+              className="activity-box"
+              onClick={() => setModalAct(act)}
+            >
+              <div className="box-header">
+                <span className="activity-icon">{act.icon}</span>
+                <span>{act.title}</span>
+              </div>
+              <div className="activity-desc">{act.description}</div>
+              <div className="xp-bar">
+                <div
+                  className="xp-fill"
+                  style={{ width: `${pct * 100}%`, background: getColor(spent) }}
+                />
+              </div>
+            </li>
+          );
+        })}
       </ul>
+      {modalAct && (
+        <ActivityModal
+          activity={modalAct}
+          onStart={(mins) => startActivity(modalAct, mins)}
+          onClose={() => setModalAct(null)}
+        />
+      )}
     </div>
   );
 }

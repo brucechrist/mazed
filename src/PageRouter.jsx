@@ -6,6 +6,7 @@ import EImain from './EImain.jsx';
 import EEmain from './EEmain.jsx';
 import Auth from './Auth.jsx';
 import { supabaseClient } from './supabaseClient';
+import ActivityTimer from './ActivityTimer.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -62,16 +63,28 @@ export default function PageRouter() {
     return <Auth />;
   }
 
+  let content;
   switch (page) {
     case 'II':
-      return <IImain />;
+      content = <IImain />;
+      break;
     case 'IE':
-      return <IEmain />;
+      content = <IEmain />;
+      break;
     case 'EI':
-      return <EImain />;
+      content = <EImain />;
+      break;
     case 'EE':
-      return <EEmain />;
+      content = <EEmain />;
+      break;
     default:
-      return <FifthMain onSelectQuadrant={(label) => setPage(label)} />;
+      content = <FifthMain onSelectQuadrant={(label) => setPage(label)} />;
   }
+
+  return (
+    <>
+      <ActivityTimer />
+      {content}
+    </>
+  );
 }
