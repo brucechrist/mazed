@@ -14,6 +14,7 @@ export default function IdeaBoard({ onBack }) {
   };
 
   const [nodes, setNodes] = useState(initialNodes);
+  const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
     document.body.classList.add('idea-board-page');
@@ -25,6 +26,17 @@ export default function IdeaBoard({ onBack }) {
   useEffect(() => {
     localStorage.setItem('ideaBoardNodes', JSON.stringify(nodes));
   }, [nodes]);
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Delete' && selectedId) {
+        setNodes((nds) => nds.filter((n) => n.id !== selectedId));
+        setSelectedId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [selectedId]);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -69,7 +81,14 @@ export default function IdeaBoard({ onBack }) {
         <button className="action-button" onClick={addNode}>Add Idea</button>
       </div>
       <div className="idea-board-flow" ref={containerRef}>
-        <Stage width={size.width} height={size.height} className="idea-board-stage">
+        <Stage
+          width={size.width}
+          height={size.height}
+          className="idea-board-stage"
+          onMouseDown={(e) => {
+            if (e.target === e.target.getStage()) setSelectedId(null);
+          }}
+        >
           <Layer>
             {nodes.map((n) => (
               <Group
@@ -79,8 +98,16 @@ export default function IdeaBoard({ onBack }) {
                 draggable
                 onDragEnd={(e) => handleDragEnd(n.id, e)}
                 onDblClick={() => handleEdit(n.id)}
+                onClick={() => setSelectedId(n.id)}
               >
-                <Rect width={120} height={40} fill="#ffffff" cornerRadius={4} shadowBlur={2} />
+                <Rect
+                  width={120}
+                  height={40}
+                  fill="#ffffff"
+                  cornerRadius={4}
+                  shadowBlur={2}
+                  stroke={selectedId === n.id ? 'red' : undefined}
+                />
                 <Text text={n.text} fontSize={16} fill="#000" width={120} padding={8} />
               </Group>
             ))}
