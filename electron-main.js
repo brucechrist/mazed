@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
 let mainWindow;
@@ -66,6 +66,12 @@ function createWindow() {
   };
   setInterval(poll, 10000);
 }
+
+ipcMain.handle('set-window-size', (_e, { width, height }) => {
+  if (mainWindow) {
+    mainWindow.setSize(Number(width), Number(height));
+  }
+});
 
 app.whenReady().then(createWindow);
 

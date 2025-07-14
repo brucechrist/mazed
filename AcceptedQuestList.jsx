@@ -1,4 +1,5 @@
 import React from 'react';
+import { RIcon } from './ResourceIcons.jsx';
 import { useQuests } from './QuestContext.jsx';
 import './world.css';
 
@@ -29,8 +30,8 @@ export default function AcceptedQuestList() {
                   {q.urgent && <div className="quest-urgent">Urgent</div>}
                   {q.resource !== 0 && (
                     <div className="quest-resource">
-                      {q.resource > 0 ? '+' : ''}
-                      {q.resource} R
+                  {q.resource > 0 ? '+' : ''}
+                      {q.resource} <RIcon />
                     </div>
                   )}
                 </div>
