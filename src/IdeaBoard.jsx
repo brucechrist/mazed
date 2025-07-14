@@ -16,6 +16,13 @@ export default function IdeaBoard({ onBack }) {
   const [nodes, setNodes] = useState(initialNodes);
 
   useEffect(() => {
+    document.body.classList.add('idea-board-page');
+    return () => {
+      document.body.classList.remove('idea-board-page');
+    };
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('ideaBoardNodes', JSON.stringify(nodes));
   }, [nodes]);
 

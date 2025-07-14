@@ -102,6 +102,14 @@ body.world-page .content {
   overflow: hidden;
 }
 
+body.idea-board-page {
+  overflow: hidden;
+}
+
+body.idea-board-page .content {
+  height: 100vh;
+}
+
 .sidebar-avatar {
   width: 50px;
   height: 50px;
@@ -150,6 +158,7 @@ body.world-page .content {
   display: flex;
   align-items: flex-start;
   gap: 20px;
+  flex: 1;
 }
 
 .feature-cards {
