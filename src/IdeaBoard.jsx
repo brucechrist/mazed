@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Stage, Layer, Rect, Text, Group } from 'react-konva';
+import { Stage, Layer, Rect, Text, Group, Transformer } from 'react-konva';
 import './idea-board.css';
 
 export default function IdeaBoard({ onBack }) {
@@ -8,9 +8,11 @@ export default function IdeaBoard({ onBack }) {
   const initialNodes = () => {
     try {
       const stored = JSON.parse(localStorage.getItem('ideaBoardNodes'));
-      if (Array.isArray(stored)) return stored;
+      if (Array.isArray(stored)) {
+        return stored.map((n) => ({ width: 120, height: 40, ...n }));
+      }
     } catch {}
-    return [{ id: '1', text: 'Idea', x: 50, y: 50 }];
+    return [{ id: '1', text: 'Idea', x: 50, y: 50, width: 120, height: 40 }];
   };
 
   const [nodes, setNodes] = useState(initialNodes);
@@ -19,6 +21,9 @@ export default function IdeaBoard({ onBack }) {
   const [editingId, setEditingId] = useState(null);
   const [editPos, setEditPos] = useState({ x: 0, y: 0 });
   const [editingText, setEditingText] = useState('');
+  const [editSize, setEditSize] = useState({ width: 120, height: 40 });
+  const rectRefs = useRef({});
+  const transformerRef = useRef(null);
 
   useEffect(() => {
     document.body.classList.add('idea-board-page');
@@ -65,12 +70,24 @@ export default function IdeaBoard({ onBack }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!transformerRef.current) return;
+    const node = rectRefs.current[selectedId]?.current;
+    if (selectedId && node) {
+      transformerRef.current.nodes([node]);
+    } else {
+      transformerRef.current.nodes([]);
+    }
+    transformerRef.current.getLayer()?.batchDraw();
+  }, [selectedId, nodes]);
+
   const addNode = () => {
     const id = Date.now().toString();
-    const newNode = { id, text: '', x: 100, y: 100 };
+    const newNode = { id, text: '', x: 100, y: 100, width: 120, height: 40 };
     setNodes((nds) => [...nds, newNode]);
     setSelectedId(id);
     setEditPos({ x: newNode.x, y: newNode.y });
+    setEditSize({ width: newNode.width, height: newNode.height });
     setEditingText('');
     setEditingId(id);
   };
@@ -95,6 +112,7 @@ export default function IdeaBoard({ onBack }) {
     const node = nodes.find((n) => n.id === id);
     setEditingText(node.text);
     setEditPos({ x: node.x, y: node.y });
+    setEditSize({ width: node.width, height: node.height });
     setEditingId(id);
   };
 
@@ -131,23 +149,37 @@ export default function IdeaBoard({ onBack }) {
                   setSelectedId(n.id);
                 }}
               >
-               <Rect
-                  width={120}
-                  height={40}
+                <Rect
+                  ref={(el) => {
+                    if (el) rectRefs.current[n.id] = { current: el };
+                  }}
+                  width={n.width}
+                  height={n.height}
                   fill="#ffffff"
                   cornerRadius={4}
                   shadowBlur={2}
                   stroke={selectedId === n.id ? '#1646F1' : undefined}
-               />
-                <Text text={n.text} fontSize={16} fill="#000" width={120} padding={8} />
+                  onTransformEnd={(e) => {
+                    const node = e.target;
+                    const width = node.width() * node.scaleX();
+                    const height = node.height() * node.scaleY();
+                    node.scaleX(1);
+                    node.scaleY(1);
+                    setNodes((nds) =>
+                      nds.map((nn) => (nn.id === n.id ? { ...nn, width, height } : nn))
+                    );
+                  }}
+                />
+                <Text text={n.text} fontSize={16} fill="#000" width={n.width} height={n.height} padding={8} />
               </Group>
             ))}
+            <Transformer ref={transformerRef} rotateEnabled={false} />
           </Layer>
         </Stage>
         {editingId && (
           <textarea
             className="idea-edit-input"
-            style={{ left: editPos.x, top: editPos.y }}
+            style={{ left: editPos.x, top: editPos.y, width: editSize.width, height: editSize.height }}
             value={editingText}
             onChange={(e) => setEditingText(e.target.value)}
             onBlur={finishEdit}

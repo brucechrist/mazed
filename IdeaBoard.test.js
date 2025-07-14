@@ -11,6 +11,7 @@ jest.mock('react-konva', () => {
     Group: ({ children }) => <div>{children}</div>,
     Rect: () => <div />,
     Text: () => <div />,
+    Transformer: ({ children }) => <div>{children}</div>,
   };
 });
 
