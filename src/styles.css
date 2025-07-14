@@ -106,10 +106,14 @@ body.idea-board-page {
   overflow: hidden;
 }
 
+body.idea-board-page h1 {
+  display: none;
+}
+
 body.idea-board-page .content {
   height: 100vh;
   padding: 0;
-
+  align-items: stretch;
 }
 
 .sidebar-avatar {

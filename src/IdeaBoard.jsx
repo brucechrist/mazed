@@ -27,17 +27,21 @@ export default function IdeaBoard({ onBack }) {
   }, [nodes]);
 
   useLayoutEffect(() => {
+    if (!containerRef.current) return;
     const update = () => {
-      if (containerRef.current) {
-        setSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
-        });
-      }
+      setSize({
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight,
+      });
     };
     update();
+    const observer = new ResizeObserver(update);
+    observer.observe(containerRef.current);
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
   }, []);
 
   const addNode = () => {
