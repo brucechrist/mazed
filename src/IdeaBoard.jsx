@@ -16,6 +16,9 @@ export default function IdeaBoard({ onBack }) {
   const [nodes, setNodes] = useState(initialNodes);
   const [selectedId, setSelectedId] = useState(null);
   const [menu, setMenu] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editPos, setEditPos] = useState({ x: 0, y: 0 });
+  const [editingText, setEditingText] = useState('');
 
   useEffect(() => {
     document.body.classList.add('idea-board-page');
@@ -64,7 +67,12 @@ export default function IdeaBoard({ onBack }) {
 
   const addNode = () => {
     const id = Date.now().toString();
-    setNodes((nds) => [...nds, { id, text: 'New idea', x: 100, y: 100 }]);
+    const newNode = { id, text: '', x: 100, y: 100 };
+    setNodes((nds) => [...nds, newNode]);
+    setSelectedId(id);
+    setEditPos({ x: newNode.x, y: newNode.y });
+    setEditingText('');
+    setEditingId(id);
   };
 
   const handleDragEnd = (id, e) => {
@@ -72,12 +80,22 @@ export default function IdeaBoard({ onBack }) {
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, x, y } : n)));
   };
 
+  const finishEdit = () => {
+    if (editingId) {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === editingId ? { ...n, text: editingText || 'Idea' } : n
+        )
+      );
+    }
+    setEditingId(null);
+  };
+
   const handleEdit = (id) => {
     const node = nodes.find((n) => n.id === id);
-    const text = prompt('Edit idea', node.text);
-    if (text !== null) {
-      setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, text } : n)));
-    }
+    setEditingText(node.text);
+    setEditPos({ x: node.x, y: node.y });
+    setEditingId(id);
   };
 
   return (
@@ -126,6 +144,22 @@ export default function IdeaBoard({ onBack }) {
             ))}
           </Layer>
         </Stage>
+        {editingId && (
+          <textarea
+            className="idea-edit-input"
+            style={{ left: editPos.x, top: editPos.y }}
+            value={editingText}
+            onChange={(e) => setEditingText(e.target.value)}
+            onBlur={finishEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEdit();
+              }
+            }}
+            autoFocus
+          />
+        )}
         {menu && (
           <div
             className="context-menu"

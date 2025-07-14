@@ -42,3 +42,15 @@
   color: inherit;
   cursor: pointer;
 }
+
+.idea-edit-input {
+  position: absolute;
+  width: 120px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 4px;
+  font-size: 16px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  z-index: 20;
+}
