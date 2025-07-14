@@ -176,8 +176,8 @@
   margin: 0 auto;
   display: grid;
   position: relative;
-  width: 95vmin;
-  height: 95vmin;
+  width: 63vmin;
+  height: 63vmin;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
   gap: 20px;
