@@ -98,3 +98,11 @@
 .note-view-content {
   white-space: pre-wrap;
 }
+
+.akashic-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  align-self: flex-end;
+  color: inherit;
+}

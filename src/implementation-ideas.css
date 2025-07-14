@@ -1,0 +1,31 @@
+.implementation-ideas .idea-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 300px;
+}
+
+.implementation-ideas .ideas-table {
+  margin-top: 10px;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.implementation-ideas th,
+.implementation-ideas td {
+  border: 1px solid #ccc;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.desc-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.idea-desc {
+  white-space: pre-wrap;
+}

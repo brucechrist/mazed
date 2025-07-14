@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Anima from './src/Anima.jsx';
 
-test('shows anima placeholder', () => {
+test('shows note buttons', () => {
   render(<Anima onBack={() => {}} />);
-  expect(screen.getByText(/anima coming soon/i)).toBeInTheDocument();
+  expect(screen.getByText(/new note/i)).toBeInTheDocument();
+  expect(screen.getByText(/view notes/i)).toBeInTheDocument();
 });

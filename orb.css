@@ -1,0 +1,50 @@
+.orb-container {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  color: white;
+}
+
+.orb-center {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  resize: none;
+  border-radius: 50%;
+  padding: 20px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: 1px solid #555;
+}
+
+.zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #555;
+  border-radius: 10px;
+  padding: 5px;
+  min-height: 80px;
+  font-size: 0.8em;
+  background: rgba(0,0,0,0.3);
+}
+
+.drop-text {
+  margin-top: 4px;
+  font-size: 0.75em;
+  text-align: center;
+}
+
+.typomancy { grid-column: 1; grid-row: 1; }
+.decoupe   { grid-column: 2; grid-row: 1; }
+.aspect    { grid-column: 3; grid-row: 1; }
+.fear      { grid-column: 1; grid-row: 2; }
+.character { grid-column: 3; grid-row: 2; }
+.healing   { grid-column: 1; grid-row: 3; }
+.calendar  { grid-column: 2; grid-row: 3; }
+.lore      { grid-column: 3; grid-row: 3; }

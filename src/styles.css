@@ -1,7 +1,9 @@
 body {
   margin: 0;
   font-family: sans-serif;
-  background-color: #0d0e11;
+  /* Replace solid background with custom image */
+  background: url('./assets/backgrounds/background_EI.jpg') no-repeat center center fixed;
+  background-size: cover;
   color: #e6e7eb;
 }
 
@@ -61,7 +63,8 @@ body {
 }
 
 .home-button,
-.profile-button {
+.profile-button,
+.settings-button {
   width: 50px;
   height: 50px;
   background: white;
@@ -75,6 +78,12 @@ body {
   filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
 }
 
+.settings-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+
 body.character-page .content {
   padding: 0;
   height: 100vh;
@@ -82,6 +91,15 @@ body.character-page .content {
 
 body.character-page h1 {
   display: none;
+}
+
+body.world-page {
+  overflow: hidden;
+}
+
+body.world-page .content {
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar-avatar {
