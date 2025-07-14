@@ -108,6 +108,8 @@ body.idea-board-page {
 
 body.idea-board-page .content {
   height: 100vh;
+  padding: 0;
+
 }
 
 .sidebar-avatar {
