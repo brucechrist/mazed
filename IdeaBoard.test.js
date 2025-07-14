@@ -3,6 +3,17 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import IdeaBoard from './src/IdeaBoard.jsx';
 
+jest.mock('react-konva', () => {
+  const React = require('react');
+  return {
+    Stage: ({ children }) => <div>{children}</div>,
+    Layer: ({ children }) => <div>{children}</div>,
+    Group: ({ children }) => <div>{children}</div>,
+    Rect: () => <div />,
+    Text: () => <div />,
+  };
+});
+
 global.ResizeObserver = class {
   observe() {}
   unobserve() {}
