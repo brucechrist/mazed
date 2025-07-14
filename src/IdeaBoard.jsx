@@ -15,6 +15,7 @@ export default function IdeaBoard({ onBack }) {
 
   const [nodes, setNodes] = useState(initialNodes);
   const [selectedId, setSelectedId] = useState(null);
+  const [menu, setMenu] = useState(null);
 
   useEffect(() => {
     document.body.classList.add('idea-board-page');
@@ -27,11 +28,16 @@ export default function IdeaBoard({ onBack }) {
     localStorage.setItem('ideaBoardNodes', JSON.stringify(nodes));
   }, [nodes]);
 
+  const deleteNode = (id) => {
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    if (selectedId === id) setSelectedId(null);
+    setMenu(null);
+  };
+
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Delete' && selectedId) {
-        setNodes((nds) => nds.filter((n) => n.id !== selectedId));
-        setSelectedId(null);
+      if ((e.key === 'Backspace' || e.key === 'Delete') && selectedId) {
+        deleteNode(selectedId);
       }
     };
     window.addEventListener('keydown', handleKey);
@@ -87,6 +93,7 @@ export default function IdeaBoard({ onBack }) {
           className="idea-board-stage"
           onMouseDown={(e) => {
             if (e.target === e.target.getStage()) setSelectedId(null);
+            setMenu(null);
           }}
         >
           <Layer>
@@ -99,20 +106,34 @@ export default function IdeaBoard({ onBack }) {
                 onDragEnd={(e) => handleDragEnd(n.id, e)}
                 onDblClick={() => handleEdit(n.id)}
                 onClick={() => setSelectedId(n.id)}
+                onContextMenu={(e) => {
+                  e.evt.preventDefault();
+                  const rect = containerRef.current.getBoundingClientRect();
+                  setMenu({ id: n.id, x: e.evt.clientX - rect.left, y: e.evt.clientY - rect.top });
+                  setSelectedId(n.id);
+                }}
               >
-                <Rect
+               <Rect
                   width={120}
                   height={40}
                   fill="#ffffff"
                   cornerRadius={4}
                   shadowBlur={2}
-                  stroke={selectedId === n.id ? 'red' : undefined}
-                />
+                  stroke={selectedId === n.id ? '#1646F1' : undefined}
+               />
                 <Text text={n.text} fontSize={16} fill="#000" width={120} padding={8} />
               </Group>
             ))}
           </Layer>
         </Stage>
+        {menu && (
+          <div
+            className="context-menu"
+            style={{ left: menu.x, top: menu.y }}
+          >
+            <button onClick={() => deleteNode(menu.id)}>Delete</button>
+          </div>
+        )}
       </div>
     </div>
   );
