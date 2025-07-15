@@ -75,3 +75,34 @@
   cursor: pointer;
   text-align: left;
 }
+
+.idea-toolbar {
+  position: absolute;
+  bottom: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  z-index: 5;
+}
+
+.idea-toolbar .tool-button {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #000;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.idea-toolbar .tool-button.active {
+  border-color: #1646F1;
+}

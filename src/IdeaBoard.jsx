@@ -120,7 +120,11 @@ export default function IdeaBoard({ onBack }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (shapeMenu && !e.target.closest('.shape-menu')) {
+      if (
+        shapeMenu &&
+        !e.target.closest('.shape-menu') &&
+        !e.target.closest('.tool-button')
+      ) {
         setShapeMenu(false);
       }
     };
@@ -141,7 +145,7 @@ export default function IdeaBoard({ onBack }) {
           className="idea-board-stage"
           onMouseDown={(e) => {
             if (e.target === e.target.getStage()) setSelectedId(null);
-            if (!e.target.hasName('tool-button')) setShapeMenu(false);
+            setShapeMenu(false);
             setMenu(null);
           }}
         >
@@ -187,67 +191,27 @@ export default function IdeaBoard({ onBack }) {
               </Group>
             ))}
             <Transformer ref={transformerRef} rotateEnabled={false} />
-            {(() => {
-              const TOOL_SIZE = 96;
-              const GAP = 8;
-              const PAD = 10;
-              const tools = [
-                { name: 'select', icon: '🖱️' },
-                { name: 'frame', icon: '▭' },
-                { name: 'shape', icon: '□▾' },
-                { name: 'pencil', icon: '✏️' },
-                { name: 'text', icon: 'T' },
-              ];
-              const toolbarWidth =
-                PAD * 2 + tools.length * TOOL_SIZE + (tools.length - 1) * GAP;
-              const toolbarHeight = TOOL_SIZE + PAD * 2;
-              const x = size.width / 2 - toolbarWidth / 2;
-              const y = size.height - toolbarHeight - 35;
-              return (
-                <Group x={x} y={y} name="toolbar">
-                  <Rect
-                    width={toolbarWidth}
-                    height={toolbarHeight}
-                    fill="#fff"
-                    cornerRadius={8}
-                    shadowBlur={4}
-                  />
-                  {tools.map((t, i) => (
-                    <Group
-                      key={t.name}
-                      name="tool-button"
-                      x={PAD + i * (TOOL_SIZE + GAP)}
-                      y={PAD}
-                      onClick={() => {
-                        setTool(t.name);
-                        if (t.name === 'shape') setShapeMenu((o) => !o);
-                        else setShapeMenu(false);
-                      }}
-                    >
-                      <Rect
-                        width={TOOL_SIZE}
-                        height={TOOL_SIZE}
-                        fill="#fff"
-                        stroke={tool === t.name ? '#1646F1' : '#000'}
-                        strokeWidth={2}
-                        cornerRadius={4}
-                      />
-                      <Text
-                        text={t.icon}
-                        fontSize={TOOL_SIZE * 0.6}
-                        width={TOOL_SIZE}
-                        height={TOOL_SIZE}
-                        align="center"
-                        verticalAlign="middle"
-                        fill="#000"
-                      />
-                    </Group>
-                  ))}
-                </Group>
-              );
-            })()}
           </Layer>
         </Stage>
+        <div className="idea-toolbar">
+          {['select', 'frame', 'shape', 'pencil', 'text'].map((t) => (
+            <button
+              key={t}
+              className={`tool-button${tool === t ? ' active' : ''}`}
+              onClick={() => {
+                setTool(t);
+                if (t === 'shape') setShapeMenu((o) => !o);
+                else setShapeMenu(false);
+              }}
+            >
+              {t === 'select' && '🖱️'}
+              {t === 'frame' && '▭'}
+              {t === 'shape' && '□▾'}
+              {t === 'pencil' && '✏️'}
+              {t === 'text' && 'T'}
+            </button>
+          ))}
+        </div>
         {editingId && (
           <textarea
             className="idea-edit-input"
@@ -272,7 +236,6 @@ export default function IdeaBoard({ onBack }) {
             <button onClick={() => deleteNode(menu.id)}>Delete</button>
           </div>
         )}
-
       </div>
       {shapeMenu && (
         <div className="shape-menu">
