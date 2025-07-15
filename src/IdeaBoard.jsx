@@ -22,6 +22,8 @@ export default function IdeaBoard({ onBack }) {
   const [editPos, setEditPos] = useState({ x: 0, y: 0 });
   const [editingText, setEditingText] = useState('');
   const [editSize, setEditSize] = useState({ width: 120, height: 40 });
+  const [tool, setTool] = useState('select');
+  const [shapeMenu, setShapeMenu] = useState(false);
   const rectRefs = useRef({});
   const transformerRef = useRef(null);
 
@@ -116,6 +118,20 @@ export default function IdeaBoard({ onBack }) {
     setEditingId(id);
   };
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        shapeMenu &&
+        !e.target.closest('.shape-menu') &&
+        !e.target.closest('.tool-button')
+      ) {
+        setShapeMenu(false);
+      }
+    };
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [shapeMenu]);
+
   return (
     <div className="idea-board">
       <div className="idea-board-controls">
@@ -200,6 +216,55 @@ export default function IdeaBoard({ onBack }) {
             <button onClick={() => deleteNode(menu.id)}>Delete</button>
           </div>
         )}
+      </div>
+      <div className="idea-board-toolbar">
+        <button
+          className={`tool-button ${tool === 'select' ? 'active' : ''}`}
+          onClick={() => setTool('select')}
+        >
+          🖱️
+        </button>
+        <button
+          className={`tool-button ${tool === 'frame' ? 'active' : ''}`}
+          onClick={() => setTool('frame')}
+        >
+          ▭
+        </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            className={`tool-button ${tool === 'shape' ? 'active' : ''}`}
+            onClick={() => {
+              setTool('shape');
+              setShapeMenu((o) => !o);
+            }}
+          >
+            <span style={{ position: 'relative' }}>
+              □<span style={{ fontSize: '0.6em', position: 'absolute', right: -4, top: -2 }}>▾</span>
+            </span>
+          </button>
+          {shapeMenu && (
+            <div className="shape-menu">
+              <button onClick={() => setShapeMenu(false)}>Rectangle</button>
+              <button onClick={() => setShapeMenu(false)}>Line</button>
+              <button onClick={() => setShapeMenu(false)}>Arrow</button>
+              <button onClick={() => setShapeMenu(false)}>Ellipse</button>
+              <button onClick={() => setShapeMenu(false)}>Polygon</button>
+              <button onClick={() => setShapeMenu(false)}>Image</button>
+            </div>
+          )}
+        </div>
+        <button
+          className={`tool-button ${tool === 'pencil' ? 'active' : ''}`}
+          onClick={() => setTool('pencil')}
+        >
+          ✏️
+        </button>
+        <button
+          className={`tool-button ${tool === 'text' ? 'active' : ''}`}
+          onClick={() => setTool('text')}
+        >
+          T
+        </button>
       </div>
     </div>
   );
