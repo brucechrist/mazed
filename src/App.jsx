@@ -69,6 +69,15 @@ export default function QuadrantPage({ initialTab }) {
     () => localStorage.getItem('autoLog') === 'true'
   );
 
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('theme') || 'dark'
+  );
+
+  useEffect(() => {
+    document.body.classList.toggle('light-theme', theme === 'light');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   useEffect(() => {
     localStorage.setItem('autoLog', autoLog ? 'true' : 'false');
   }, [autoLog]);
@@ -293,6 +302,10 @@ export default function QuadrantPage({ initialTab }) {
           onClose={() => setShowSettings(false)}
           autoLog={autoLog}
           onToggleAutoLog={setAutoLog}
+          theme={theme}
+          onToggleTheme={() =>
+            setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+          }
           onOpenAkashicRecords={() => setShowAkashicRecords(true)}
         />
       )}
