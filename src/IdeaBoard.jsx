@@ -199,36 +199,23 @@ export default function IdeaBoard({ onBack }) {
         <button className="back-button" onClick={onBack}>Back</button>
         <button className="action-button" onClick={addNode}>Add Idea</button>
       </div>
+      <button
+        aria-label="toggle board theme"
+        className="board-theme-toggle"
+        onClick={() =>
+          setBoardTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+        }
+        style={{
+          background: boardTheme === 'light' ? '#fff' : '#333',
+          color: boardTheme === 'light' ? '#000' : '#fff',
+        }}
+      >
+        {boardTheme === 'light' ? '☀️' : '🌙'}
+      </button>
       <div
         className={`idea-board-flow${boardTheme === 'light' ? ' light' : ''}`}
         ref={containerRef}
       >
-        <button
-          aria-label="toggle board theme"
-          className="board-theme-toggle"
-          onClick={() =>
-            setBoardTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-          }
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 18,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 20,
-            background: boardTheme === 'light' ? '#fff' : '#333',
-            color: boardTheme === 'light' ? '#000' : '#fff',
-          }}
-        >
-          {boardTheme === 'light' ? '☀️' : '🌙'}
-        </button>
         <Stage
           width={size.width}
           height={size.height}
