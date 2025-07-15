@@ -288,6 +288,40 @@ body.idea-board-page .content {
   user-select: none;
 }
 
+body.light-theme {
+  /* Keep the same background image but switch text color */
+  color: #000;
+}
+
+body.light-theme .sidebar {
+  background-color: rgba(200, 200, 200, 0.6);
+}
+
+body.light-theme .tab {
+  background-color: #fff;
+  color: #000;
+}
+
+body.light-theme .tab:hover {
+  background-color: #ccc;
+  color: #000;
+}
+
+body.light-theme .home-button,
+body.light-theme .profile-button,
+body.light-theme .settings-button {
+  background: #f0f0f0;
+  color: #000;
+}
+
+body.light-theme .app-card,
+body.light-theme .back-button,
+body.light-theme .journal-tabs button,
+body.light-theme .journal-tabs button.active {
+  background: #fff;
+  color: #000;
+}
+
 .activity-toggle {
   position: fixed;
   bottom: 8px;
