@@ -25,3 +25,10 @@ test('shows add idea button', () => {
   render(<IdeaBoard onBack={() => {}} />);
   expect(screen.getByText(/add idea/i)).toBeInTheDocument();
 });
+
+test('shows board theme toggle', () => {
+  render(<IdeaBoard onBack={() => {}} />);
+  expect(
+    screen.getByLabelText(/toggle board theme/i)
+  ).toBeInTheDocument();
+});
