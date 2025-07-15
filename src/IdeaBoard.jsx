@@ -272,6 +272,7 @@ export default function IdeaBoard({ onBack }) {
             <button onClick={() => deleteNode(menu.id)}>Delete</button>
           </div>
         )}
+
       </div>
       {shapeMenu && (
         <div className="shape-menu">
