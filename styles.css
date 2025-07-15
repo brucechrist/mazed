@@ -206,7 +206,6 @@ body.character-page h1 {
 }
 
 body.light-theme {
-  /* Keep the same background image but switch text color */
   color: #000;
 }
 
