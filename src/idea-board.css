@@ -21,6 +21,11 @@
   position: relative;
 }
 
+body.light-theme .idea-board-flow {
+  /* Lighter canvas in light mode */
+  background: #fff;
+}
+
 .idea-board-stage {
   width: 100%;
   height: 100%;
