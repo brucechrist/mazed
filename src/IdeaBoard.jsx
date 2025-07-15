@@ -210,7 +210,7 @@ export default function IdeaBoard({ onBack }) {
             setBoardTheme((t) => (t === 'dark' ? 'light' : 'dark'))
           }
           style={{
-            position: 'fixed',
+            position: 'absolute',
             top: 8,
             right: 8,
             width: 32,

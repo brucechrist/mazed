@@ -27,7 +27,7 @@
 }
 
 .board-theme-toggle {
-  position: fixed;
+  position: absolute;
   top: 8px;
   right: 8px;
   width: 32px;
