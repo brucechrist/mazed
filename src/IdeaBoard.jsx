@@ -56,6 +56,15 @@ export default function IdeaBoard({ onBack }) {
   const rectRefs = useRef({});
   const transformerRef = useRef(null);
 
+  const [boardTheme, setBoardTheme] = useState(() =>
+    localStorage.getItem('ideaBoardTheme') ||
+    (document.body.classList.contains('light-theme') ? 'light' : 'dark')
+  );
+
+  useEffect(() => {
+    localStorage.setItem('ideaBoardTheme', boardTheme);
+  }, [boardTheme]);
+
   useEffect(() => {
     document.body.classList.add('idea-board-page');
     return () => {
@@ -190,7 +199,23 @@ export default function IdeaBoard({ onBack }) {
         <button className="back-button" onClick={onBack}>Back</button>
         <button className="action-button" onClick={addNode}>Add Idea</button>
       </div>
-      <div className="idea-board-flow" ref={containerRef}>
+      <div
+        className={`idea-board-flow${boardTheme === 'light' ? ' light' : ''}`}
+        ref={containerRef}
+      >
+        <button
+          aria-label="toggle board theme"
+          className="board-theme-toggle"
+          onClick={() =>
+            setBoardTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+          }
+          style={{
+            background: boardTheme === 'light' ? '#fff' : '#333',
+            color: boardTheme === 'light' ? '#000' : '#fff',
+          }}
+        >
+          {boardTheme === 'light' ? '☀️' : '🌙'}
+        </button>
         <Stage
           width={size.width}
           height={size.height}

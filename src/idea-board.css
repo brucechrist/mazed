@@ -21,9 +21,24 @@
   position: relative;
 }
 
-body.light-theme .idea-board-flow {
-  /* Lighter canvas in light mode */
+
+.idea-board-flow.light {
   background: #fff;
+}
+
+.board-theme-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .idea-board-stage {
