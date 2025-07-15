@@ -78,7 +78,7 @@
 
 .shape-menu {
   position: fixed;
-  bottom: 120px;
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -99,12 +99,12 @@
 
 .idea-toolbar {
   position: fixed;
-  bottom: 35px;
+  bottom: 25px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
-  padding: 10px;
+  gap: 6px;
+  padding: 8px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
@@ -112,9 +112,9 @@
 }
 
 .idea-toolbar .tool-button {
-  width: 48px;
-  height: 48px;
-  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
