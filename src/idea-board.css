@@ -5,6 +5,7 @@
   height: 100%;
   flex: 1;
   width: 100%;
+  position: relative;
 }
 
 .idea-board-controls {
@@ -27,7 +28,7 @@
 }
 
 .board-theme-toggle {
-  position: fixed;
+  position: absolute;
   top: 8px;
   right: 8px;
   width: 32px;
