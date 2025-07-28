@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import FifthMain from './FifthMain.jsx';
 import IImain from './IImain.jsx';
 import IEmain from './IEmain.jsx';
@@ -7,10 +7,14 @@ import EEmain from './EEmain.jsx';
 import Auth from './Auth.jsx';
 import { supabaseClient } from './supabaseClient';
 import ActivityTimer from './ActivityTimer.jsx';
+import ExitVideo from './ExitVideo.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
   const [user, setUser] = useState(null);
+  const [showExitVideo, setShowExitVideo] = useState(false);
+  const [pendingResize, setPendingResize] = useState(false);
+  const prevUser = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -30,17 +34,20 @@ export default function PageRouter() {
   }, []);
 
   useEffect(() => {
-    if (window.electronAPI && window.electronAPI.setWindowSize) {
-      if (user) {
-        localStorage.setItem('windowWidth', '1920');
-        localStorage.setItem('windowHeight', '1080');
-        window.electronAPI.setWindowSize(1920, 1080);
-      } else {
-        localStorage.setItem('windowWidth', '1600');
-        localStorage.setItem('windowHeight', '900');
-        window.electronAPI.setWindowSize(1600, 900);
-      }
+    if (!window.electronAPI || !window.electronAPI.setWindowSize) return;
+
+    if (user && !prevUser.current) {
+      setShowExitVideo(true);
+      setPendingResize(true);
+    } else if (!user && prevUser.current) {
+      window.electronAPI.setWindowSize(1600, 900);
     }
+
+    if (!user) {
+      setShowExitVideo(false);
+    }
+
+    prevUser.current = user;
   }, [user]);
 
   useEffect(() => {
@@ -50,8 +57,6 @@ export default function PageRouter() {
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
         if (window.electronAPI.setWindowSize) {
-          localStorage.setItem('windowWidth', '1600');
-          localStorage.setItem('windowHeight', '900');
           window.electronAPI.setWindowSize(1600, 900);
         }
         await supabaseClient.auth.signOut();
@@ -61,6 +66,20 @@ export default function PageRouter() {
 
   if (!user) {
     return <Auth />;
+  }
+
+  if (showExitVideo) {
+    return (
+      <ExitVideo
+        onEnded={() => {
+          if (pendingResize && window.electronAPI?.setWindowSize) {
+            window.electronAPI.setWindowSize(1920, 1080);
+          }
+          setPendingResize(false);
+          setShowExitVideo(false);
+        }}
+      />
+    );
   }
 
   let content;
