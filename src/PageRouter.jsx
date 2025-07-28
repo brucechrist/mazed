@@ -13,6 +13,7 @@ export default function PageRouter() {
   const [page, setPage] = useState('5th');
   const [user, setUser] = useState(null);
   const [showExitVideo, setShowExitVideo] = useState(false);
+  const [pendingResize, setPendingResize] = useState(false);
   const prevUser = useRef(null);
 
   useEffect(() => {
@@ -37,12 +38,8 @@ export default function PageRouter() {
 
     if (user && !prevUser.current) {
       setShowExitVideo(true);
-      localStorage.setItem('windowWidth', '1920');
-      localStorage.setItem('windowHeight', '1080');
-      window.electronAPI.setWindowSize(1920, 1080);
+      setPendingResize(true);
     } else if (!user && prevUser.current) {
-      localStorage.setItem('windowWidth', '1600');
-      localStorage.setItem('windowHeight', '900');
       window.electronAPI.setWindowSize(1600, 900);
     }
 
@@ -60,8 +57,6 @@ export default function PageRouter() {
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
         if (window.electronAPI.setWindowSize) {
-          localStorage.setItem('windowWidth', '1600');
-          localStorage.setItem('windowHeight', '900');
           window.electronAPI.setWindowSize(1600, 900);
         }
         await supabaseClient.auth.signOut();
@@ -74,7 +69,17 @@ export default function PageRouter() {
   }
 
   if (showExitVideo) {
-    return <ExitVideo onEnded={() => setShowExitVideo(false)} />;
+    return (
+      <ExitVideo
+        onEnded={() => {
+          if (pendingResize && window.electronAPI?.setWindowSize) {
+            window.electronAPI.setWindowSize(1920, 1080);
+          }
+          setPendingResize(false);
+          setShowExitVideo(false);
+        }}
+      />
+    );
   }
 
   let content;
