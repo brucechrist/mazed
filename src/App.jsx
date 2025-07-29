@@ -40,8 +40,15 @@ const tabs = [
   { label: 'Friends', icon: '🤝' },
 ];
 
+const layers = [
+  { label: 'Form', color: 'orange' },
+  { label: 'Semi-Formless', color: 'purple' },
+  { label: 'Formless', color: 'white' },
+];
+
 export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
+  const [activeLayer, setActiveLayer] = useState(layers[0].label);
   const [showJournal, setShowJournal] = useState(false);
   const [showNofap, setShowNofap] = useState(false);
   const [showRatings, setShowRatings] = useState(false);
@@ -163,8 +170,19 @@ export default function QuadrantPage({ initialTab }) {
           </div>
         </div>
       </aside>
+      <div className="layer-bar">
+        {layers.map((layer) => (
+          <div
+            key={layer.label}
+            className={`layer-dot ${activeLayer === layer.label ? 'active' : ''}`}
+            style={{ backgroundColor: layer.color }}
+            onClick={() => setActiveLayer(layer.label)}
+          />
+        ))}
+      </div>
       <div className="content">
         <h1>{activeTab}</h1>
+        <h2 className="layer-title">{activeLayer}</h2>
         {activeTab === 'Character' && <StatsQuadrant />}
         {activeTab === 'Training' && (
           <div className="training-layout">
