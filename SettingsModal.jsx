@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import './note-modal.css';
 
-export default function SettingsModal({ onClose, autoLog, onToggleAutoLog, onOpenAkashicRecords }) {
+export default function SettingsModal({
+  onClose,
+  autoLog,
+  onToggleAutoLog,
+  onOpenAkashicRecords,
+  theme,
+  onToggleTheme,
+}) {
   const resolutions = ['800x600', '1024x768', '1280x720', '1600x900', '1920x1080'];
   const [resolution, setResolution] = useState(() => {
     const w = localStorage.getItem('windowWidth') || '1600';
@@ -42,6 +49,9 @@ export default function SettingsModal({ onClose, autoLog, onToggleAutoLog, onOpe
           </select>
           <button className="save-button" onClick={applyResolution}>Validate</button>
         </label>
+        <button className="save-button" onClick={onToggleTheme}>
+          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </button>
         <button
           className="akashic-button"
           onClick={() => {
