@@ -102,6 +102,20 @@ body.world-page .content {
   overflow: hidden;
 }
 
+body.idea-board-page {
+  overflow: hidden;
+}
+
+body.idea-board-page h1 {
+  display: none;
+}
+
+body.idea-board-page .content {
+  height: 100vh;
+  padding: 0;
+  align-items: stretch;
+}
+
 .sidebar-avatar {
   width: 50px;
   height: 50px;
@@ -150,6 +164,7 @@ body.world-page .content {
   display: flex;
   align-items: flex-start;
   gap: 20px;
+  flex: 1;
 }
 
 .feature-cards {
@@ -271,6 +286,40 @@ body.world-page .content {
 
 .activity-toggle span {
   user-select: none;
+}
+
+body.light-theme {
+  /* Keep the same background image but switch text color */
+  color: #000;
+}
+
+body.light-theme .sidebar {
+  background-color: rgba(200, 200, 200, 0.6);
+}
+
+body.light-theme .tab {
+  background-color: #fff;
+  color: #000;
+}
+
+body.light-theme .tab:hover {
+  background-color: #ccc;
+  color: #000;
+}
+
+body.light-theme .home-button,
+body.light-theme .profile-button,
+body.light-theme .settings-button {
+  background: #f0f0f0;
+  color: #000;
+}
+
+body.light-theme .app-card,
+body.light-theme .back-button,
+body.light-theme .journal-tabs button,
+body.light-theme .journal-tabs button.active {
+  background: #fff;
+  color: #000;
 }
 
 .activity-toggle {
