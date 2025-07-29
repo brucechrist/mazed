@@ -1,0 +1,15 @@
+.training-blog {
+  background: #000;
+  color: #fff;
+  height: 80vh;
+  overflow: auto;
+  padding: 20px;
+  border-radius: 4px;
+}
+
+.blog-post {
+  background: #111;
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 6px;
+}
