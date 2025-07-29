@@ -40,8 +40,15 @@ const tabs = [
   { label: 'Friends', icon: '🤝' },
 ];
 
+const layers = [
+  { label: 'Form', color: 'orange' },
+  { label: 'Semi-Formless', color: 'purple' },
+  { label: 'Formless', color: 'white' },
+];
+
 export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
+  const [activeLayer, setActiveLayer] = useState(layers[0].label);
   const [showJournal, setShowJournal] = useState(false);
   const [showNofap, setShowNofap] = useState(false);
   const [showRatings, setShowRatings] = useState(false);
@@ -65,6 +72,35 @@ export default function QuadrantPage({ initialTab }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
+
+  const initialAppLayers = () => {
+    const stored = localStorage.getItem('appLayers');
+    if (stored) return JSON.parse(stored);
+    return {
+      journal: 'Form',
+      nofap: 'Form',
+      ratings: 'Form',
+      whoami: 'Form',
+      music: 'Form',
+      singing: 'Form',
+      shadow: 'Form',
+      calendar: 'Form',
+      timeline: 'Form',
+      typomancy: 'Form',
+      moodtracker: 'Form',
+      quadrantComb: 'Form',
+      anima: 'Form',
+      todoGoals: 'Form',
+      activity: 'Form',
+      characterEvolve: 'Form',
+      ideaBoard: 'Form',
+      implementationIdeas: 'Form',
+      orb: 'Form',
+    };
+  };
+
+  const [appLayers, setAppLayers] = useState(initialAppLayers);
+  const [contextMenu, setContextMenu] = useState(null);
   const [autoLog, setAutoLog] = useState(
     () => localStorage.getItem('autoLog') === 'true'
   );
@@ -77,6 +113,16 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('appLayers', JSON.stringify(appLayers));
+  }, [appLayers]);
+
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('autoLog', autoLog ? 'true' : 'false');
@@ -114,6 +160,25 @@ export default function QuadrantPage({ initialTab }) {
 
   const handleAvatarUpdated = (_path, url) => {
     setAvatarUrl(url);
+  };
+
+  const moveAppToLayer = (appId, layerLabel) => {
+    setAppLayers((prev) => ({ ...prev, [appId]: layerLabel }));
+  };
+
+  const handleDragStart = (e, appId) => {
+    e.dataTransfer.setData('text/plain', appId);
+  };
+
+  const handleDropOnLayer = (e, layerLabel) => {
+    e.preventDefault();
+    const appId = e.dataTransfer.getData('text/plain');
+    if (appId) moveAppToLayer(appId, layerLabel);
+  };
+
+  const handleContextMenu = (e, appId) => {
+    e.preventDefault();
+    setContextMenu({ appId, x: e.clientX, y: e.clientY });
   };
 
   if (showCalendarApp) {
@@ -163,8 +228,21 @@ export default function QuadrantPage({ initialTab }) {
           </div>
         </div>
       </aside>
+      <div className="layer-bar">
+        {layers.map((layer) => (
+          <div
+            key={layer.label}
+            className={`layer-dot ${activeLayer === layer.label ? 'active' : ''}`}
+            style={{ backgroundColor: layer.color }}
+            onClick={() => setActiveLayer(layer.label)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDropOnLayer(e, layer.label)}
+          />
+        ))}
+      </div>
       <div className="content">
         <h1>{activeTab}</h1>
+        <h2 className="layer-title">{activeLayer}</h2>
         {activeTab === 'Character' && <StatsQuadrant />}
         {activeTab === 'Training' && (
           <div className="training-layout">
@@ -208,82 +286,234 @@ export default function QuadrantPage({ initialTab }) {
               <Orb onBack={() => setShowOrb(false)} />
             ) : (
               <div className="feature-cards">
-                <div className="app-card" onClick={() => setShowJournal(true)}>
-                  <div className="journal-icon">📓</div>
-                  <span>Quest Journal</span>
-                </div>
-                <div className="app-card" onClick={() => setShowNofap(true)}>
-                  <div className="calendar-preview" />
-                  <span>NoFap Calendar</span>
-                </div>
-                <div className="app-card" onClick={() => setShowRatings(true)}>
-                  <div className="star-icon">⭐⭐⭐⭐⭐</div>
-                  <span>Version Ratings</span>
-                </div>
-                <div className="app-card" onClick={() => setShowWhoAmI(true)}>
-                  <div className="question-icon">❓</div>
-                  <span>Who Am I?</span>
-                </div>
-                <div className="app-card" onClick={() => setShowMusic(true)}>
-                  <div className="star-icon">🎵</div>
-                  <span>Music Search</span>
-                </div>
-                <div className="app-card" onClick={() => setShowSinging(true)}>
-                  <div className="star-icon">🎤</div>
-                  <span>Singing</span>
-                </div>
-                <div className="app-card" onClick={() => setShowShadowWork(true)}>
-                  <div className="star-icon">🌑</div>
-                  <span>Shadow Work</span>
-                </div>
-                <div className="app-card" onClick={() => setShowCalendarApp(true)}>
-                  <div className="star-icon">📅</div>
-                  <span>Calendar</span>
-                </div>
-                <div className="app-card" onClick={() => setShowTimeline(true)}>
-                  <div className="star-icon">🕒</div>
-                  <span>Timeline</span>
-                </div>
-                <div className="app-card" onClick={() => setShowTypomancy(true)}>
-                  <div className="star-icon">⌨️</div>
-                  <span>Typomancy</span>
-                </div>
-                <div className="app-card" onClick={() => setShowMoodtracker(true)}>
-                  <div className="star-icon">😊</div>
-                  <span>Moodtracker</span>
-                </div>
-                <div className="app-card" onClick={() => setShowQuadrantComb(true)}>
-                  <div className="star-icon">🔀</div>
-                  <span>Quadrant combinaisons</span>
-                </div>
-                <div className="app-card" onClick={() => setShowAnima(true)}>
-                  <div className="star-icon">💃</div>
-                  <span>Anima</span>
-                </div>
-                <div className="app-card" onClick={() => setShowTodoGoals(true)}>
-                  <div className="star-icon">✅</div>
-                  <span>Todo & Goals</span>
-                </div>
-                <div className="app-card" onClick={() => setShowActivity(true)}>
-                  <div className="star-icon">🏃</div>
-                  <span>Activity</span>
-                </div>
-                <div className="app-card" onClick={() => setShowCharacterEvolve(true)}>
-                  <div className="star-icon">🌱</div>
-                  <span>Character Evolve</span>
-                </div>
-                <div className="app-card" onClick={() => setShowIdeaBoard(true)}>
-                  <div className="star-icon">📝</div>
-                  <span>Idea Board</span>
-                </div>
-                <div className="app-card" onClick={() => setShowImplementationIdeas(true)}>
-                  <div className="star-icon">📑</div>
-                  <span>Implementation Ideas</span>
-                </div>
-                <div className="app-card" onClick={() => setShowOrb(true)}>
-                  <div className="star-icon">🧿</div>
-                  <span>Orb</span>
-                </div>
+                {appLayers.journal === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowJournal(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'journal')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'journal')}
+                  >
+                    <div className="journal-icon">📓</div>
+                    <span>Quest Journal</span>
+                  </div>
+                )}
+                {appLayers.nofap === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowNofap(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'nofap')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'nofap')}
+                  >
+                    <div className="calendar-preview" />
+                    <span>NoFap Calendar</span>
+                  </div>
+                )}
+                {appLayers.ratings === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowRatings(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'ratings')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'ratings')}
+                  >
+                    <div className="star-icon">⭐⭐⭐⭐⭐</div>
+                    <span>Version Ratings</span>
+                  </div>
+                )}
+                {appLayers.whoami === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowWhoAmI(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'whoami')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'whoami')}
+                  >
+                    <div className="question-icon">❓</div>
+                    <span>Who Am I?</span>
+                  </div>
+                )}
+                {appLayers.music === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowMusic(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'music')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'music')}
+                  >
+                    <div className="star-icon">🎵</div>
+                    <span>Music Search</span>
+                  </div>
+                )}
+                {appLayers.singing === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowSinging(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'singing')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'singing')}
+                  >
+                    <div className="star-icon">🎤</div>
+                    <span>Singing</span>
+                  </div>
+                )}
+                {appLayers.shadow === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowShadowWork(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'shadow')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'shadow')}
+                  >
+                    <div className="star-icon">🌑</div>
+                    <span>Shadow Work</span>
+                  </div>
+                )}
+                {appLayers.calendar === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowCalendarApp(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'calendar')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'calendar')}
+                  >
+                    <div className="star-icon">📅</div>
+                    <span>Calendar</span>
+                  </div>
+                )}
+                {appLayers.timeline === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowTimeline(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'timeline')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'timeline')}
+                  >
+                    <div className="star-icon">🕒</div>
+                    <span>Timeline</span>
+                  </div>
+                )}
+                {appLayers.typomancy === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowTypomancy(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'typomancy')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'typomancy')}
+                  >
+                    <div className="star-icon">⌨️</div>
+                    <span>Typomancy</span>
+                  </div>
+                )}
+                {appLayers.moodtracker === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowMoodtracker(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'moodtracker')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'moodtracker')}
+                  >
+                    <div className="star-icon">😊</div>
+                    <span>Moodtracker</span>
+                  </div>
+                )}
+                {appLayers.quadrantComb === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowQuadrantComb(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'quadrantComb')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'quadrantComb')}
+                  >
+                    <div className="star-icon">🔀</div>
+                    <span>Quadrant combinaisons</span>
+                  </div>
+                )}
+                {appLayers.anima === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowAnima(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'anima')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'anima')}
+                  >
+                    <div className="star-icon">💃</div>
+                    <span>Anima</span>
+                  </div>
+                )}
+                {appLayers.todoGoals === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowTodoGoals(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'todoGoals')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'todoGoals')}
+                  >
+                    <div className="star-icon">✅</div>
+                    <span>Todo & Goals</span>
+                  </div>
+                )}
+                {appLayers.activity === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowActivity(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'activity')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'activity')}
+                  >
+                    <div className="star-icon">🏃</div>
+                    <span>Activity</span>
+                  </div>
+                )}
+                {appLayers.characterEvolve === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowCharacterEvolve(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'characterEvolve')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'characterEvolve')}
+                  >
+                    <div className="star-icon">🌱</div>
+                    <span>Character Evolve</span>
+                  </div>
+                )}
+                {appLayers.ideaBoard === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowIdeaBoard(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'ideaBoard')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'ideaBoard')}
+                  >
+                    <div className="star-icon">📝</div>
+                    <span>Idea Board</span>
+                  </div>
+                )}
+                {appLayers.implementationIdeas === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowImplementationIdeas(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'implementationIdeas')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'implementationIdeas')}
+                  >
+                    <div className="star-icon">📑</div>
+                    <span>Implementation Ideas</span>
+                  </div>
+                )}
+                {appLayers.orb === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowOrb(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'orb')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'orb')}
+                  >
+                    <div className="star-icon">🧿</div>
+                    <span>Orb</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -308,6 +538,18 @@ export default function QuadrantPage({ initialTab }) {
           }
           onOpenAkashicRecords={() => setShowAkashicRecords(true)}
         />
+      )}
+      {contextMenu && (
+        <ul
+          className="layer-menu"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          {layers.map((layer) => (
+            <li key={layer.label} onClick={() => moveAppToLayer(contextMenu.appId, layer.label)}>
+              {layer.label}
+            </li>
+          ))}
+        </ul>
       )}
       <VersionLabel />
       </div>
