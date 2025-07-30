@@ -13,6 +13,7 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
+import TrainingBlog from './TrainingBlog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -60,6 +61,8 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  // Blog visibility starts hidden and becomes visible when on the Form layer
+  const [showBlog, setShowBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
@@ -113,6 +116,10 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (activeLayer === 'Form') setShowBlog(true);
+  }, [activeLayer]);
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -284,6 +291,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : activeLayer === 'Form' && showBlog ? (
+              <TrainingBlog onBack={() => setShowBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -500,6 +509,12 @@ export default function QuadrantPage({ initialTab }) {
                   >
                     <div className="star-icon">📑</div>
                     <span>Implementation Ideas</span>
+                  </div>
+                )}
+                {!showBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowBlog(true)}>
+                    <div className="star-icon">📝</div>
+                    <span>Blog</span>
                   </div>
                 )}
                 {appLayers.orb === activeLayer && (
