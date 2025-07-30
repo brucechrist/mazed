@@ -61,8 +61,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
-  // Blog visibility starts hidden and becomes visible when on the Form layer
-  const [showBlog, setShowBlog] = useState(false);
+  const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
@@ -295,8 +294,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
-            ) : activeLayer === 'Form' && showBlog ? (
-              <TrainingBlog onBack={() => setShowBlog(false)} />
+            ) : activeLayer === 'Form' && showTrainingBlog ? (
+              <TrainingBlog onBack={() => setShowTrainingBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -527,8 +526,8 @@ export default function QuadrantPage({ initialTab }) {
                     <span>Implementation Ideas</span>
                   </div>
                 )}
-                {!showBlog && activeLayer === 'Form' && (
-                  <div className="app-card" onClick={() => setShowBlog(true)}>
+                {!showTrainingBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowTrainingBlog(true)}>
                     <div className="star-icon">📝</div>
                     <span>Blog</span>
                   </div>
