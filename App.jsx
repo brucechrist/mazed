@@ -48,7 +48,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
-  const [showBlog, setShowBlog] = useState(false);
+  const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
@@ -168,8 +168,8 @@ export default function QuadrantPage({ initialTab }) {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
-            ) : showBlog ? (
-              <TrainingBlog onBack={() => setShowBlog(false)} />
+            ) : showTrainingBlog ? (
+              <TrainingBlog onBack={() => setShowTrainingBlog(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : (
@@ -218,7 +218,7 @@ export default function QuadrantPage({ initialTab }) {
                   <div className="star-icon">😊</div>
                   <span>Moodtracker</span>
                 </div>
-                <div className="app-card" onClick={() => setShowBlog(true)}>
+                <div className="app-card" onClick={() => setShowTrainingBlog(true)}>
                   <div className="star-icon">📝</div>
                   <span>Blog</span>
                 </div>

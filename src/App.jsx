@@ -61,7 +61,8 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
-  const [showBlog, setShowBlog] = useState(true);
+  // Blog visibility starts hidden and becomes visible when on the Form layer
+  const [showBlog, setShowBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
