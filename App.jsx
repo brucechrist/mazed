@@ -48,7 +48,6 @@ export default function QuadrantPage({ initialTab }) {
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
-  // Avoid naming clash with src/App.jsx by giving the blog state a unique name
   const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
