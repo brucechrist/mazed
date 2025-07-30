@@ -61,6 +61,8 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  // Blog visibility starts hidden and becomes visible when on the Form layer.
+  // Use a unique name to avoid clashes with the top-level App component.
   const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
