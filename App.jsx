@@ -13,7 +13,7 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
-import TrainingBlog from './TrainingBlog.jsx';
+import TrainingBlog from './src/TrainingBlog.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';

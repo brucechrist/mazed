@@ -289,6 +289,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : activeLayer === 'Form' ? (
+              <TrainingBlog />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
