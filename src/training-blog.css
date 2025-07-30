@@ -7,6 +7,19 @@
   border-radius: 4px;
 }
 
+.back-button {
+  background: #222;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background: #333;
+}
+
 .blog-post {
   background: #111;
   margin-bottom: 15px;
