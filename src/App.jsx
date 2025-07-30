@@ -61,6 +61,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  const [showBlog, setShowBlog] = useState(true);
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
@@ -116,6 +117,10 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (activeLayer === 'Form') setShowBlog(true);
+  }, [activeLayer]);
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -289,8 +294,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
-            ) : activeLayer === 'Form' ? (
-              <TrainingBlog />
+            ) : activeLayer === 'Form' && showBlog ? (
+              <TrainingBlog onBack={() => setShowBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -519,6 +524,12 @@ export default function QuadrantPage({ initialTab }) {
                   >
                     <div className="star-icon">📑</div>
                     <span>Implementation Ideas</span>
+                  </div>
+                )}
+                {!showBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowBlog(true)}>
+                    <div className="star-icon">📝</div>
+                    <span>Blog</span>
                   </div>
                 )}
                 {appLayers.orb === activeLayer && (
