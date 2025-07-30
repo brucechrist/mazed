@@ -65,6 +65,7 @@ export default function QuadrantPage({ initialTab }) {
   // Use a unique name to avoid clashes with the top-level App component.
   const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
+  const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -94,6 +95,7 @@ export default function QuadrantPage({ initialTab }) {
       moodtracker: 'Form',
       quadrantComb: 'Form',
       anima: 'Form',
+      blog: 'Form',
       todoGoals: 'Form',
       activity: 'Form',
       characterEvolve: 'Form',
@@ -123,6 +125,10 @@ export default function QuadrantPage({ initialTab }) {
     if (activeLayer !== 'Form') {
       setShowTrainingBlog(false);
     }
+  }, [activeLayer]);
+
+  useEffect(() => {
+    if (activeLayer === 'Form') setShowBlog(true);
   }, [activeLayer]);
 
   useEffect(() => {
@@ -283,6 +289,8 @@ export default function QuadrantPage({ initialTab }) {
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
+            ) : showBlog ? (
+              <TrainingBlog onBack={() => setShowBlog(false)} />
             ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
@@ -453,6 +461,18 @@ export default function QuadrantPage({ initialTab }) {
                   >
                     <div className="star-icon">💃</div>
                     <span>Anima</span>
+                  </div>
+                )}
+                {appLayers.blog === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowBlog(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'blog')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'blog')}
+                  >
+                    <div className="star-icon">📰</div>
+                    <span>Training Blog</span>
                   </div>
                 )}
                 {appLayers.todoGoals === activeLayer && (
