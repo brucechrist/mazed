@@ -13,6 +13,7 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
+import TrainingBlog from './TrainingBlog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -284,6 +285,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : activeLayer === 'Form' ? (
+              <TrainingBlog />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
