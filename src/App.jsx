@@ -120,6 +120,13 @@ export default function QuadrantPage({ initialTab }) {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Hide the Training blog whenever we switch away from the Form layer
+  useEffect(() => {
+    if (activeLayer !== 'Form') {
+      setShowTrainingBlog(false);
+    }
+  }, [activeLayer]);
+
   useEffect(() => {
     if (activeLayer === 'Form') setShowBlog(true);
   }, [activeLayer]);
