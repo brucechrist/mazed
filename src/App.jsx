@@ -128,10 +128,6 @@ export default function QuadrantPage({ initialTab }) {
   }, [activeLayer]);
 
   useEffect(() => {
-    if (activeLayer === 'Form') setShowBlog(true);
-  }, [activeLayer]);
-
-  useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
   }, [appLayers]);
 

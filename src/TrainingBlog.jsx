@@ -1,16 +1,18 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import InfiniteScroll from 'react-infinite-scroll-component';
 import './training-blog.css';
 
 export default function TrainingBlog({ onBack }) {
   const [posts, setPosts] = useState(
     Array.from({ length: 10 }, (_, i) => ({ id: i, text: `Post #${i + 1}` }))
   );
-  const [loading, setLoading] = useState(false);
-  const containerRef = useRef(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchMore = useCallback(() => {
-    if (loading) return;
-    setLoading(true);
+  const fetchMore = () => {
+    if (posts.length >= 100) {
+      setHasMore(false);
+      return;
+    }
     setTimeout(() => {
       setPosts((prev) =>
         prev.concat(
@@ -20,34 +22,25 @@ export default function TrainingBlog({ onBack }) {
           }))
         )
       );
-      setLoading(false);
     }, 300);
-  }, [loading]);
-
-  const handleScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-      fetchMore();
-    }
-  }, [fetchMore]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', handleScroll);
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+  };
 
   return (
-    <div className="training-blog" id="training-blog" ref={containerRef}>
+    <div className="training-blog" id="training-blog">
       <button className="back-button" onClick={onBack}>Back</button>
-      {posts.map((p) => (
-        <div key={p.id} className="blog-post">
-          {p.text}
-        </div>
-      ))}
-      {loading && <p>Loading...</p>}
+      <InfiniteScroll
+        dataLength={posts.length}
+        next={fetchMore}
+        hasMore={hasMore}
+        loader={<p>Loading...</p>}
+        scrollableTarget="training-blog"
+      >
+        {posts.map((p) => (
+          <div key={p.id} className="blog-post">
+            {p.text}
+          </div>
+        ))}
+      </InfiniteScroll>
     </div>
   );
 }
