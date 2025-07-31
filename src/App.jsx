@@ -13,6 +13,7 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
+import TrainingBlog from './TrainingBlog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -60,6 +61,9 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  // Blog visibility starts hidden and becomes visible when on the Form layer.
+  // Use a unique name to avoid clashes with the top-level App component.
+  const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
@@ -113,6 +117,13 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Hide the Training blog whenever we switch away from the Form layer
+  useEffect(() => {
+    if (activeLayer !== 'Form') {
+      setShowTrainingBlog(false);
+    }
+  }, [activeLayer]);
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -284,6 +295,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : activeLayer === 'Form' && showTrainingBlog ? (
+              <TrainingBlog onBack={() => setShowTrainingBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -500,6 +513,12 @@ export default function QuadrantPage({ initialTab }) {
                   >
                     <div className="star-icon">📑</div>
                     <span>Implementation Ideas</span>
+                  </div>
+                )}
+                {!showTrainingBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowTrainingBlog(true)}>
+                    <div className="star-icon">📝</div>
+                    <span>Blog</span>
                   </div>
                 )}
                 {appLayers.orb === activeLayer && (
