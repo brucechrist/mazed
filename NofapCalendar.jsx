@@ -50,7 +50,6 @@ export default function NofapCalendar({ onBack }) {
           .sort((a, b) => b.start - a.start);
         const active = activeRuns[0];
         const completed = data.filter((r) => r.end !== null);
-
         if (run) {
           if (active) {
             if (active.start > run.start) {
