@@ -13,6 +13,7 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
+import TrainingBlog from './TrainingBlog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -46,7 +47,10 @@ const layers = [
   { label: 'Formless', color: 'white' },
 ];
 
-export default function QuadrantPage({ initialTab }) {
+const defaultMainBg = './assets/backgrounds/background_EI.jpg';
+const defaultCharBg = './assets/backgrounds/Viego_0.jpg';
+
+export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
   const [activeLayer, setActiveLayer] = useState(layers[0].label);
   const [showJournal, setShowJournal] = useState(false);
@@ -60,7 +64,11 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  // Blog visibility starts hidden and becomes visible when on the Form layer.
+  // Use a unique name to avoid clashes with the top-level App component.
+  const [showTrainingBlog, setShowTrainingBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
+  const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -72,6 +80,12 @@ export default function QuadrantPage({ initialTab }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
+  const [mainBg, setMainBg] = useState(
+    () => localStorage.getItem('mainBg') || defaultMainBg
+  );
+  const [charBg, setCharBg] = useState(
+    () => localStorage.getItem('charBg') || defaultCharBg
+  );
 
   const initialAppLayers = () => {
     const stored = localStorage.getItem('appLayers');
@@ -90,6 +104,7 @@ export default function QuadrantPage({ initialTab }) {
       moodtracker: 'Form',
       quadrantComb: 'Form',
       anima: 'Form',
+      blog: 'Form',
       todoGoals: 'Form',
       activity: 'Form',
       characterEvolve: 'Form',
@@ -113,6 +128,23 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--main-bg-url', `url("${mainBg}")`);
+    localStorage.setItem('mainBg', mainBg);
+  }, [mainBg]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--char-bg-url', `url("${charBg}")`);
+    localStorage.setItem('charBg', charBg);
+  }, [charBg]);
+
+  // Hide the Training blog whenever we switch away from the Form layer
+  useEffect(() => {
+    if (activeLayer !== 'Form') {
+      setShowTrainingBlog(false);
+    }
+  }, [activeLayer]);
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -272,6 +304,8 @@ export default function QuadrantPage({ initialTab }) {
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
+            ) : showBlog ? (
+              <TrainingBlog onBack={() => setShowBlog(false)} />
             ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
@@ -284,6 +318,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : activeLayer === 'Form' && showTrainingBlog ? (
+              <TrainingBlog onBack={() => setShowTrainingBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -442,6 +478,18 @@ export default function QuadrantPage({ initialTab }) {
                     <span>Anima</span>
                   </div>
                 )}
+                {appLayers.blog === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowBlog(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'blog')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'blog')}
+                  >
+                    <div className="star-icon">📰</div>
+                    <span>Training Blog</span>
+                  </div>
+                )}
                 {appLayers.todoGoals === activeLayer && (
                   <div
                     className="app-card"
@@ -502,6 +550,12 @@ export default function QuadrantPage({ initialTab }) {
                     <span>Implementation Ideas</span>
                   </div>
                 )}
+                {!showTrainingBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowTrainingBlog(true)}>
+                    <div className="star-icon">📝</div>
+                    <span>Blog</span>
+                  </div>
+                )}
                 {appLayers.orb === activeLayer && (
                   <div
                     className="app-card"
@@ -537,6 +591,12 @@ export default function QuadrantPage({ initialTab }) {
             setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
           }
           onOpenAkashicRecords={() => setShowAkashicRecords(true)}
+          mainBg={mainBg}
+          onChangeMainBg={setMainBg}
+          charBg={charBg}
+          onChangeCharBg={setCharBg}
+          menuBg={menuBg}
+          onChangeMenuBg={onChangeMenuBg}
         />
       )}
       {contextMenu && (

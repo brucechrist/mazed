@@ -1,10 +1,26 @@
+:root {
+  --main-bg-url: url('./assets/backgrounds/background_EI.jpg');
+  --char-bg-url: url('./assets/backgrounds/Viego_0.jpg');
+  --menu-bg-url: url('./assets/backgrounds/background_EI.jpg');
+}
+
 body {
   margin: 0;
   font-family: sans-serif;
-  /* Replace solid background with custom image */
-  background: url('./assets/backgrounds/background_EI.jpg') no-repeat center center fixed;
+  background: var(--main-bg-url) no-repeat center center fixed;
   background-size: cover;
   color: #e6e7eb;
+}
+
+body.menu-page {
+  background: var(--menu-bg-url) no-repeat center center fixed;
+  background-size: cover;
+}
+
+body.character-page {
+  background: var(--char-bg-url) no-repeat center center fixed;
+  background-size: cover;
+  background-position: center;
 }
 
 
@@ -187,9 +203,11 @@ body.idea-board-page .content {
 
 .training-layout {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   gap: 20px;
   flex: 1;
+  width: 100%;
 }
 
 .feature-cards {
