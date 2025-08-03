@@ -48,7 +48,9 @@ export default function NofapCalendar({ onBack }) {
         const active = data.find((r) => r.end === null);
         const completed = data.filter((r) => r.end !== null);
         if (active) {
-          saveRun({ id: active.id, start: active.start });
+          if (!run || active.start > run.start) {
+            saveRun({ id: active.id, start: active.start });
+          }
         }
         if (completed.length) {
           const mapped = completed.map((r) => ({
