@@ -13,6 +13,8 @@ export default function SettingsModal({
   onChangeMainBg,
   charBg,
   onChangeCharBg,
+  menuBg,
+  onChangeMenuBg,
 }) {
   const resolutions = ['800x600', '1024x768', '1280x720', '1600x900', '1920x1080'];
   const [resolution, setResolution] = useState(() => {
@@ -34,7 +36,13 @@ export default function SettingsModal({
     }
   };
 
-  const [bgType, setBgType] = useState(null); // 'main' or 'character'
+  const [bgType, setBgType] = useState(null); // 'main', 'character', or 'menu'
+  const [showBgChoice, setShowBgChoice] = useState(false);
+
+  const openBgModal = (type) => {
+    setBgType(type);
+    setShowBgChoice(false);
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -59,12 +67,28 @@ export default function SettingsModal({
         <button className="save-button" onClick={onToggleTheme}>
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
         </button>
-        <button className="save-button" onClick={() => setBgType('main')}>
-          Change App Background
+        <button
+          className="save-button"
+          onClick={() => setShowBgChoice((s) => !s)}
+        >
+          Change Background
         </button>
-        <button className="save-button" onClick={() => setBgType('character')}>
-          Change Character Background
-        </button>
+        {showBgChoice && (
+          <div className="bg-selection">
+            <div className="bg-option" onClick={() => openBgModal('character')}>
+              <img src={charBg} className="bg-option-preview" />
+              Character
+            </div>
+            <div className="bg-option" onClick={() => openBgModal('main')}>
+              <img src={mainBg} className="bg-option-preview" />
+              App
+            </div>
+            <div className="bg-option" onClick={() => openBgModal('menu')}>
+              <img src={menuBg} className="bg-option-preview" />
+              Main Menu
+            </div>
+          </div>
+        )}
         <button
           className="akashic-button"
           onClick={() => {
@@ -101,11 +125,18 @@ export default function SettingsModal({
       </div>
       {bgType && (
         <BackgroundUploadModal
-          type={bgType === 'main' ? 'main' : 'character'}
-          current={bgType === 'main' ? mainBg : charBg}
+          type={bgType}
+          current={
+            bgType === 'main'
+              ? mainBg
+              : bgType === 'character'
+              ? charBg
+              : menuBg
+          }
           onApply={(url) => {
             if (bgType === 'main') onChangeMainBg(url);
-            else onChangeCharBg(url);
+            else if (bgType === 'character') onChangeCharBg(url);
+            else onChangeMenuBg(url);
           }}
           onClose={() => setBgType(null)}
         />

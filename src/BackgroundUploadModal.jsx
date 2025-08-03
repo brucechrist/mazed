@@ -8,6 +8,8 @@ export default function BackgroundUploadModal({ type, current, onApply, onClose 
   const [recents, setRecents] = useState([]);
 
   const storageKey = `${type}BgRecents`;
+  const bgKey =
+    type === 'main' ? 'mainBg' : type === 'character' ? 'charBg' : 'menuBg';
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
@@ -32,11 +34,13 @@ export default function BackgroundUploadModal({ type, current, onApply, onClose 
   const handleApply = () => {
     if (!preview) return;
     saveRecent(preview);
+    localStorage.setItem(bgKey, preview);
     onApply(preview);
     onClose();
   };
 
   const handleSelectRecent = (url) => {
+    localStorage.setItem(bgKey, url);
     onApply(url);
     onClose();
   };
@@ -44,7 +48,15 @@ export default function BackgroundUploadModal({ type, current, onApply, onClose 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal background-upload-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Change {type === 'main' ? 'App' : 'Character'} Background</h2>
+        <h2>
+          Change
+          {type === 'main'
+            ? ' App'
+            : type === 'character'
+            ? ' Character'
+            : ' Main Menu'}{' '}
+          Background
+        </h2>
         <div className="preview-grid">
           <div>
             <div className="preview-label">Current</div>

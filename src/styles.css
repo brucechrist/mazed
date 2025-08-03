@@ -1,6 +1,7 @@
 :root {
   --main-bg-url: url('./assets/backgrounds/background_EI.jpg');
   --char-bg-url: url('./assets/backgrounds/Viego_0.jpg');
+  --menu-bg-url: url('./assets/backgrounds/background_EI.jpg');
 }
 
 body {
@@ -9,6 +10,11 @@ body {
   background: var(--main-bg-url) no-repeat center center fixed;
   background-size: cover;
   color: #e6e7eb;
+}
+
+body.menu-page {
+  background: var(--menu-bg-url) no-repeat center center fixed;
+  background-size: cover;
 }
 
 body.character-page {
