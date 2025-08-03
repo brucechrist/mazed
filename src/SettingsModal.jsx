@@ -87,6 +87,7 @@ export default function SettingsModal({
               <img src={menuBg} className="bg-option-preview" />
               Main Menu
             </div>
+
           </div>
         )}
         <button
