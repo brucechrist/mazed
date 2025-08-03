@@ -35,6 +35,12 @@ export default function SettingsModal({
   };
 
   const [bgType, setBgType] = useState(null); // 'main' or 'character'
+  const [showBgChoice, setShowBgChoice] = useState(false);
+
+  const openBgModal = (type) => {
+    setBgType(type);
+    setShowBgChoice(false);
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -59,12 +65,24 @@ export default function SettingsModal({
         <button className="save-button" onClick={onToggleTheme}>
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
         </button>
-        <button className="save-button" onClick={() => setBgType('main')}>
-          Change App Background
+        <button
+          className="save-button"
+          onClick={() => setShowBgChoice((s) => !s)}
+        >
+          Change Background
         </button>
-        <button className="save-button" onClick={() => setBgType('character')}>
-          Change Character Background
-        </button>
+        {showBgChoice && (
+          <div className="bg-selection">
+            <div className="bg-option" onClick={() => openBgModal('character')}>
+              <img src={charBg} className="bg-option-preview" />
+              Character
+            </div>
+            <div className="bg-option" onClick={() => openBgModal('main')}>
+              <img src={mainBg} className="bg-option-preview" />
+              App
+            </div>
+          </div>
+        )}
         <button
           className="akashic-button"
           onClick={() => {
