@@ -5,11 +5,7 @@
   font-style: normal;
 }
 
-body.character-page {
-  background-image: url('./assets/backgrounds/Viego_0.jpg');
-  background-size: cover;
-  background-position: center;
-}
+
 
 .stats-quadrant {
   position: relative;

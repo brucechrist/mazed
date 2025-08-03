@@ -47,6 +47,9 @@ const layers = [
   { label: 'Formless', color: 'white' },
 ];
 
+const defaultMainBg = './assets/backgrounds/background_EI.jpg';
+const defaultCharBg = './assets/backgrounds/Viego_0.jpg';
+
 export default function QuadrantPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
   const [activeLayer, setActiveLayer] = useState(layers[0].label);
@@ -77,6 +80,12 @@ export default function QuadrantPage({ initialTab }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
+  const [mainBg, setMainBg] = useState(
+    () => localStorage.getItem('mainBg') || defaultMainBg
+  );
+  const [charBg, setCharBg] = useState(
+    () => localStorage.getItem('charBg') || defaultCharBg
+  );
 
   const initialAppLayers = () => {
     const stored = localStorage.getItem('appLayers');
@@ -119,6 +128,16 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--main-bg-url', `url("${mainBg}")`);
+    localStorage.setItem('mainBg', mainBg);
+  }, [mainBg]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--char-bg-url', `url("${charBg}")`);
+    localStorage.setItem('charBg', charBg);
+  }, [charBg]);
 
   // Hide the Training blog whenever we switch away from the Form layer
   useEffect(() => {
@@ -572,6 +591,10 @@ export default function QuadrantPage({ initialTab }) {
             setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
           }
           onOpenAkashicRecords={() => setShowAkashicRecords(true)}
+          mainBg={mainBg}
+          onChangeMainBg={setMainBg}
+          charBg={charBg}
+          onChangeCharBg={setCharBg}
         />
       )}
       {contextMenu && (

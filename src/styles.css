@@ -1,10 +1,20 @@
+:root {
+  --main-bg-url: url('./assets/backgrounds/background_EI.jpg');
+  --char-bg-url: url('./assets/backgrounds/Viego_0.jpg');
+}
+
 body {
   margin: 0;
   font-family: sans-serif;
-  /* Replace solid background with custom image */
-  background: url('./assets/backgrounds/background_EI.jpg') no-repeat center center fixed;
+  background: var(--main-bg-url) no-repeat center center fixed;
   background-size: cover;
   color: #e6e7eb;
+}
+
+body.character-page {
+  background: var(--char-bg-url) no-repeat center center fixed;
+  background-size: cover;
+  background-position: center;
 }
 
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './note-modal.css';
+import BackgroundUploadModal from './BackgroundUploadModal.jsx';
 
 export default function SettingsModal({
   onClose,
@@ -8,6 +9,10 @@ export default function SettingsModal({
   onOpenAkashicRecords,
   theme,
   onToggleTheme,
+  mainBg,
+  onChangeMainBg,
+  charBg,
+  onChangeCharBg,
 }) {
   const resolutions = ['800x600', '1024x768', '1280x720', '1600x900', '1920x1080'];
   const [resolution, setResolution] = useState(() => {
@@ -28,6 +33,8 @@ export default function SettingsModal({
       window.electronAPI.setWindowSize(w, h);
     }
   };
+
+  const [bgType, setBgType] = useState(null); // 'main' or 'character'
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -51,6 +58,12 @@ export default function SettingsModal({
         </label>
         <button className="save-button" onClick={onToggleTheme}>
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </button>
+        <button className="save-button" onClick={() => setBgType('main')}>
+          Change App Background
+        </button>
+        <button className="save-button" onClick={() => setBgType('character')}>
+          Change Character Background
         </button>
         <button
           className="akashic-button"
@@ -86,6 +99,17 @@ export default function SettingsModal({
           </svg>
         </button>
       </div>
+      {bgType && (
+        <BackgroundUploadModal
+          type={bgType === 'main' ? 'main' : 'character'}
+          current={bgType === 'main' ? mainBg : charBg}
+          onApply={(url) => {
+            if (bgType === 'main') onChangeMainBg(url);
+            else onChangeCharBg(url);
+          }}
+          onClose={() => setBgType(null)}
+        />
+      )}
     </div>
   );
 }
