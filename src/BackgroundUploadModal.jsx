@@ -8,6 +8,7 @@ export default function BackgroundUploadModal({ type, current, onApply, onClose 
   const [recents, setRecents] = useState([]);
 
   const storageKey = `${type}BgRecents`;
+  const bgKey = type === 'main' ? 'mainBg' : 'charBg';
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
@@ -32,11 +33,13 @@ export default function BackgroundUploadModal({ type, current, onApply, onClose 
   const handleApply = () => {
     if (!preview) return;
     saveRecent(preview);
+    localStorage.setItem(bgKey, preview);
     onApply(preview);
     onClose();
   };
 
   const handleSelectRecent = (url) => {
+    localStorage.setItem(bgKey, url);
     onApply(url);
     onClose();
   };
