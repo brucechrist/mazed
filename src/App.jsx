@@ -50,7 +50,7 @@ const layers = [
 const defaultMainBg = './assets/backgrounds/background_EI.jpg';
 const defaultCharBg = './assets/backgrounds/Viego_0.jpg';
 
-export default function QuadrantPage({ initialTab }) {
+export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
   const [activeLayer, setActiveLayer] = useState(layers[0].label);
   const [showJournal, setShowJournal] = useState(false);
@@ -595,6 +595,8 @@ export default function QuadrantPage({ initialTab }) {
           onChangeMainBg={setMainBg}
           charBg={charBg}
           onChangeCharBg={setCharBg}
+          menuBg={menuBg}
+          onChangeMenuBg={onChangeMenuBg}
         />
       )}
       {contextMenu && (

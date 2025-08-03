@@ -13,6 +13,8 @@ export default function SettingsModal({
   onChangeMainBg,
   charBg,
   onChangeCharBg,
+  menuBg,
+  onChangeMenuBg,
 }) {
   const resolutions = ['800x600', '1024x768', '1280x720', '1600x900', '1920x1080'];
   const [resolution, setResolution] = useState(() => {
@@ -34,7 +36,7 @@ export default function SettingsModal({
     }
   };
 
-  const [bgType, setBgType] = useState(null); // 'main' or 'character'
+  const [bgType, setBgType] = useState(null); // 'main', 'character', or 'menu'
   const [showBgChoice, setShowBgChoice] = useState(false);
 
   const openBgModal = (type) => {
@@ -81,6 +83,11 @@ export default function SettingsModal({
               <img src={mainBg} className="bg-option-preview" />
               App
             </div>
+            <div className="bg-option" onClick={() => openBgModal('menu')}>
+              <img src={menuBg} className="bg-option-preview" />
+              Main Menu
+            </div>
+
           </div>
         )}
         <button
@@ -119,11 +126,18 @@ export default function SettingsModal({
       </div>
       {bgType && (
         <BackgroundUploadModal
-          type={bgType === 'main' ? 'main' : 'character'}
-          current={bgType === 'main' ? mainBg : charBg}
+          type={bgType}
+          current={
+            bgType === 'main'
+              ? mainBg
+              : bgType === 'character'
+              ? charBg
+              : menuBg
+          }
           onApply={(url) => {
             if (bgType === 'main') onChangeMainBg(url);
-            else onChangeCharBg(url);
+            else if (bgType === 'character') onChangeCharBg(url);
+            else onChangeMenuBg(url);
           }}
           onClose={() => setBgType(null)}
         />
