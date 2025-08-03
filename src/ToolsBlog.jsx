@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
-import './training-blog.css';
+import './tools-blog.css';
 
-export default function TrainingBlog({ onBack }) {
+export default function ToolsBlog({ onBack }) {
   const [posts, setPosts] = useState(
     Array.from({ length: 10 }, (_, i) => ({ id: i, text: `Post #${i + 1}` }))
   );
@@ -26,14 +26,14 @@ export default function TrainingBlog({ onBack }) {
   };
 
   return (
-    <div className="training-blog" id="training-blog">
+    <div className="tools-blog" id="tools-blog">
       <button className="back-button" onClick={onBack}>Back</button>
       <InfiniteScroll
         dataLength={posts.length}
         next={fetchMore}
         hasMore={hasMore}
         loader={<p>Loading...</p>}
-        scrollableTarget="training-blog"
+        scrollableTarget="tools-blog"
       >
         {posts.map((p) => (
           <div key={p.id} className="blog-post">

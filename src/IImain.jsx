@@ -4,7 +4,7 @@ import QuadrantPage from './App.jsx';
 export default function IImain({ menuBg, onChangeMenuBg }) {
   return (
     <QuadrantPage
-      initialTab="Training"
+      initialTab="Tools"
       menuBg={menuBg}
       onChangeMenuBg={onChangeMenuBg}
     />

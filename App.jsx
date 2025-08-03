@@ -13,7 +13,7 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
-import TrainingBlog from './src/TrainingBlog.jsx';
+import ToolsBlog from './src/ToolsBlog.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -28,7 +28,7 @@ const placeholderImg =
   "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'50'%20height%3D'50'%3E%3Crect%20width%3D'50'%20height%3D'50'%20rx%3D'25'%20fill%3D'%23444'%2F%3E%3Ctext%20x%3D'25'%20y%3D'33'%20font-size%3D'26'%20text-anchor%3D'middle'%20fill%3D'%23aaa'%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E";
 
 const tabs = [
-  { label: 'Training', icon: '🧠' },
+  { label: 'Tools', icon: '🧠' },
   { label: 'Character', icon: '👤' },
   { label: 'World', icon: '🌍' },
   { label: 'Friends', icon: '🤝' },
@@ -49,7 +49,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   // Avoid naming clash with src/App.jsx by giving the blog state a unique name
-  const [showTrainingBlog, setShowTrainingBlog] = useState(false);
+  const [showToolsBlog, setShowToolsBlog] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
@@ -145,8 +145,8 @@ export default function QuadrantPage({ initialTab }) {
       <div className="content">
         <h1>{activeTab}</h1>
         {activeTab === 'Character' && <StatsQuadrant />}
-        {activeTab === 'Training' && (
-          <div className="training-layout">
+        {activeTab === 'Tools' && (
+          <div className="tools-layout">
             {showJournal ? (
               <QuestJournal onBack={() => setShowJournal(false)} />
             ) : showNofap ? (
@@ -169,8 +169,8 @@ export default function QuadrantPage({ initialTab }) {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
-            ) : showTrainingBlog ? (
-              <TrainingBlog onBack={() => setShowTrainingBlog(false)} />
+            ) : showToolsBlog ? (
+              <ToolsBlog onBack={() => setShowToolsBlog(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : (
@@ -219,7 +219,7 @@ export default function QuadrantPage({ initialTab }) {
                   <div className="star-icon">😊</div>
                   <span>Moodtracker</span>
                 </div>
-                <div className="app-card" onClick={() => setShowTrainingBlog(true)}>
+                <div className="app-card" onClick={() => setShowToolsBlog(true)}>
                   <div className="star-icon">📝</div>
                   <span>Blog</span>
                 </div>
