@@ -90,9 +90,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   );
 
   const initialAppLayers = () => {
-    const stored = localStorage.getItem('appLayers');
-    if (stored) return JSON.parse(stored);
-    return {
+    const defaults = {
       journal: 'Form',
       nofap: 'Form',
       ratings: 'Form',
@@ -115,6 +113,16 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       implementationIdeas: 'Form',
       orb: 'Form',
     };
+
+    const stored = localStorage.getItem('appLayers');
+    if (!stored) return defaults;
+
+    try {
+      const parsed = JSON.parse(stored);
+      return { ...defaults, ...parsed };
+    } catch {
+      return defaults;
+    }
   };
 
   const [appLayers, setAppLayers] = useState(initialAppLayers);
