@@ -14,6 +14,7 @@ import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './ToolsBlog.jsx';
+import MomentoMori from '../MomentoMori.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -64,6 +65,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  const [showMomentoMori, setShowMomentoMori] = useState(false);
   // Blog visibility starts hidden and becomes visible when on the Form layer.
   // Use a unique name to avoid clashes with the top-level App component.
   const [showToolsBlog, setShowToolsBlog] = useState(false);
@@ -102,6 +104,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       timeline: 'Form',
       typomancy: 'Form',
       moodtracker: 'Form',
+      momentoMori: 'Semi-Formless',
       quadrantComb: 'Form',
       anima: 'Form',
       blog: 'Form',
@@ -300,6 +303,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
+            ) : showMomentoMori ? (
+              <MomentoMori onBack={() => setShowMomentoMori(false)} />
             ) : showQuadrantComb ? (
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
@@ -452,6 +457,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">😊</div>
                     <span>Moodtracker</span>
+                  </div>
+                )}
+                {appLayers.momentoMori === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowMomentoMori(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'momentoMori')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'momentoMori')}
+                  >
+                    <div className="star-icon">☠️</div>
+                    <span>Momento Mori</span>
                   </div>
                 )}
                 {appLayers.quadrantComb === activeLayer && (
