@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './momento-mori.css';
 
 export default function MomentoMori({ onBack }) {
@@ -7,6 +7,21 @@ export default function MomentoMori({ onBack }) {
     cantDo: [],
     wishes: [],
   });
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('momentoMori') || '{}');
+    if (stored && typeof stored === 'object') {
+      setColumns({
+        canDo: stored.canDo || [],
+        cantDo: stored.cantDo || [],
+        wishes: stored.wishes || [],
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('momentoMori', JSON.stringify(columns));
+  }, [columns]);
 
   const [newCards, setNewCards] = useState({
     canDo: { text: '', type: 'Form' },
