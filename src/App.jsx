@@ -256,18 +256,6 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
             <span className="icon">{tab.icon}</span>
           </div>
         ))}
-        <div className="layer-bar">
-          {layers.map((layer) => (
-            <div
-              key={layer.label}
-              className={`layer-dot ${activeLayer === layer.label ? 'active' : ''}`}
-              style={{ backgroundColor: layer.color }}
-              onClick={() => setActiveLayer(layer.label)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDropOnLayer(e, layer.label)}
-            />
-          ))}
-        </div>
         <div className="bottom-buttons">
           <div className="settings-button" onClick={() => setShowSettings(true)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -284,8 +272,27 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
         </div>
       </aside>
       <div className="content">
+        <div className="layer-tabs">
+          {layers.map((layer) => (
+            <div
+              key={layer.label}
+              className={`layer-tab ${activeLayer === layer.label ? 'active' : ''}`}
+              style={{
+                borderBottom:
+                  activeLayer === layer.label
+                    ? `3px solid ${layer.color}`
+                    : '3px solid transparent',
+                color: activeLayer === layer.label ? layer.color : '#e6e7eb',
+              }}
+              onClick={() => setActiveLayer(layer.label)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDropOnLayer(e, layer.label)}
+            >
+              {layer.label}
+            </div>
+          ))}
+        </div>
         <h1>{activeTab}</h1>
-        <h2 className="layer-title">{activeLayer}</h2>
         {activeTab === 'Character' && <StatsQuadrant />}
         {activeTab === 'Tools' && (
           <div className="tools-layout">
