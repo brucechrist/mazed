@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import './note-modal.css';
+import LevelRating, { RARITY_LEVELS } from './LevelRating.jsx';
 
 export default function VersionModal({ onAdd, onClose }) {
   const [name, setName] = useState('');
-  const [rating, setRating] = useState('');
+  const [rating, setRating] = useState(RARITY_LEVELS[0].key);
   const [liked, setLiked] = useState(false);
   const [ii, setII] = useState('');
   const [ie, setIE] = useState('');
@@ -15,7 +16,7 @@ export default function VersionModal({ onAdd, onClose }) {
     onAdd({
       id: Date.now(),
       name: name || 'Unnamed',
-      rating: parseInt(rating, 10) || 0,
+      rating,
       liked,
       quadrants: { II: ii, IE: ie, EI: ei, EE: ee },
       notes,
@@ -32,13 +33,7 @@ export default function VersionModal({ onAdd, onClose }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <input
-          className="note-title"
-          type="number"
-          placeholder="Rating"
-          value={rating}
-          onChange={(e) => setRating(e.target.value)}
-        />
+        <LevelRating value={rating} onChange={setRating} />
         <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <input
             type="checkbox"
