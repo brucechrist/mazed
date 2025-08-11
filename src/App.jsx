@@ -13,7 +13,8 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
-import TrainingBlog from './TrainingBlog.jsx';
+import ToolsBlog from './ToolsBlog.jsx';
+import MomentoMori from '../MomentoMori.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -35,7 +36,7 @@ const placeholderImg =
   "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'50'%20height%3D'50'%3E%3Crect%20width%3D'50'%20height%3D'50'%20rx%3D'25'%20fill%3D'%23444'%2F%3E%3Ctext%20x%3D'25'%20y%3D'33'%20font-size%3D'26'%20text-anchor%3D'middle'%20fill%3D'%23aaa'%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E";
 
 const tabs = [
-  { label: 'Training', icon: '🧠' },
+  { label: 'Tools', icon: '🧠' },
   { label: 'Character', icon: '👤' },
   { label: 'World', icon: '🌍' },
   { label: 'Friends', icon: '🤝' },
@@ -64,9 +65,10 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  const [showMomentoMori, setShowMomentoMori] = useState(false);
   // Blog visibility starts hidden and becomes visible when on the Form layer.
   // Use a unique name to avoid clashes with the top-level App component.
-  const [showTrainingBlog, setShowTrainingBlog] = useState(false);
+  const [showToolsBlog, setShowToolsBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
@@ -88,9 +90,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   );
 
   const initialAppLayers = () => {
-    const stored = localStorage.getItem('appLayers');
-    if (stored) return JSON.parse(stored);
-    return {
+    const defaults = {
       journal: 'Form',
       nofap: 'Form',
       ratings: 'Form',
@@ -102,6 +102,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       timeline: 'Form',
       typomancy: 'Form',
       moodtracker: 'Form',
+      momentoMori: 'Semi-Formless',
       quadrantComb: 'Form',
       anima: 'Form',
       blog: 'Form',
@@ -112,6 +113,16 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       implementationIdeas: 'Form',
       orb: 'Form',
     };
+
+    const stored = localStorage.getItem('appLayers');
+    if (!stored) return defaults;
+
+    try {
+      const parsed = JSON.parse(stored);
+      return { ...defaults, ...parsed };
+    } catch {
+      return defaults;
+    }
   };
 
   const [appLayers, setAppLayers] = useState(initialAppLayers);
@@ -139,10 +150,10 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     localStorage.setItem('charBg', charBg);
   }, [charBg]);
 
-  // Hide the Training blog whenever we switch away from the Form layer
+  // Hide the Tools blog whenever we switch away from the Form layer
   useEffect(() => {
     if (activeLayer !== 'Form') {
-      setShowTrainingBlog(false);
+      setShowToolsBlog(false);
     }
   }, [activeLayer]);
 
@@ -260,24 +271,31 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           </div>
         </div>
       </aside>
-      <div className="layer-bar">
-        {layers.map((layer) => (
-          <div
-            key={layer.label}
-            className={`layer-dot ${activeLayer === layer.label ? 'active' : ''}`}
-            style={{ backgroundColor: layer.color }}
-            onClick={() => setActiveLayer(layer.label)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDropOnLayer(e, layer.label)}
-          />
-        ))}
-      </div>
       <div className="content">
+        <div className="layer-tabs">
+          {layers.map((layer) => (
+            <div
+              key={layer.label}
+              className={`layer-tab ${activeLayer === layer.label ? 'active' : ''}`}
+              style={{
+                borderBottom:
+                  activeLayer === layer.label
+                    ? `3px solid ${layer.color}`
+                    : '3px solid transparent',
+                color: activeLayer === layer.label ? layer.color : '#e6e7eb',
+              }}
+              onClick={() => setActiveLayer(layer.label)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDropOnLayer(e, layer.label)}
+            >
+              {layer.label}
+            </div>
+          ))}
+        </div>
         <h1>{activeTab}</h1>
-        <h2 className="layer-title">{activeLayer}</h2>
         {activeTab === 'Character' && <StatsQuadrant />}
-        {activeTab === 'Training' && (
-          <div className="training-layout">
+        {activeTab === 'Tools' && (
+          <div className="tools-layout">
             {showJournal ? (
               <QuestJournal onBack={() => setShowJournal(false)} />
             ) : showNofap ? (
@@ -300,12 +318,14 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
+            ) : showMomentoMori ? (
+              <MomentoMori onBack={() => setShowMomentoMori(false)} />
             ) : showQuadrantComb ? (
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : showBlog ? (
-              <TrainingBlog onBack={() => setShowBlog(false)} />
+              <ToolsBlog onBack={() => setShowBlog(false)} />
             ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
@@ -318,8 +338,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
-            ) : activeLayer === 'Form' && showTrainingBlog ? (
-              <TrainingBlog onBack={() => setShowTrainingBlog(false)} />
+            ) : activeLayer === 'Form' && showToolsBlog ? (
+              <ToolsBlog onBack={() => setShowToolsBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -454,6 +474,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                     <span>Moodtracker</span>
                   </div>
                 )}
+                {appLayers.momentoMori === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowMomentoMori(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'momentoMori')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'momentoMori')}
+                  >
+                    <div className="star-icon">☠️</div>
+                    <span>Momento Mori</span>
+                  </div>
+                )}
                 {appLayers.quadrantComb === activeLayer && (
                   <div
                     className="app-card"
@@ -487,7 +519,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                     onDragStart={(e) => handleDragStart(e, 'blog')}
                   >
                     <div className="star-icon">📰</div>
-                    <span>Training Blog</span>
+                    <span>Tools Blog</span>
                   </div>
                 )}
                 {appLayers.todoGoals === activeLayer && (
@@ -550,8 +582,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                     <span>Implementation Ideas</span>
                   </div>
                 )}
-                {!showTrainingBlog && activeLayer === 'Form' && (
-                  <div className="app-card" onClick={() => setShowTrainingBlog(true)}>
+                {!showToolsBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowToolsBlog(true)}>
                     <div className="star-icon">📝</div>
                     <span>Blog</span>
                   </div>

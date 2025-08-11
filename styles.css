@@ -137,7 +137,7 @@ body.character-page h1 {
   border-radius: 4px;
 }
 
-.training-layout {
+.tools-layout {
   display: flex;
   align-items: flex-start;
   gap: 20px;
