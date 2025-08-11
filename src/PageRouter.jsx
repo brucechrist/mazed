@@ -15,6 +15,10 @@ export default function PageRouter() {
   const [showExitVideo, setShowExitVideo] = useState(false);
   const [pendingResize, setPendingResize] = useState(false);
   const prevUser = useRef(null);
+  const defaultMenuBg = './assets/backgrounds/background_EI.jpg';
+  const [menuBg, setMenuBg] = useState(
+    () => localStorage.getItem('menuBg') || defaultMenuBg
+  );
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -64,6 +68,19 @@ export default function PageRouter() {
     }
   }, []);
 
+  useEffect(() => {
+    document.body.style.setProperty('--menu-bg-url', `url("${menuBg}")`);
+    localStorage.setItem('menuBg', menuBg);
+  }, [menuBg]);
+
+  useEffect(() => {
+    if (page === '5th') {
+      document.body.classList.add('menu-page');
+    } else {
+      document.body.classList.remove('menu-page');
+    }
+  }, [page]);
+
   if (!user) {
     return <Auth />;
   }
@@ -85,16 +102,16 @@ export default function PageRouter() {
   let content;
   switch (page) {
     case 'II':
-      content = <IImain />;
+      content = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'IE':
-      content = <IEmain />;
+      content = <IEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'EI':
-      content = <EImain />;
+      content = <EImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'EE':
-      content = <EEmain />;
+      content = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => setPage(label)} />;

@@ -13,6 +13,8 @@ import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
+import ToolsBlog from './ToolsBlog.jsx';
+import MomentoMori from '../MomentoMori.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -34,7 +36,7 @@ const placeholderImg =
   "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'50'%20height%3D'50'%3E%3Crect%20width%3D'50'%20height%3D'50'%20rx%3D'25'%20fill%3D'%23444'%2F%3E%3Ctext%20x%3D'25'%20y%3D'33'%20font-size%3D'26'%20text-anchor%3D'middle'%20fill%3D'%23aaa'%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E";
 
 const tabs = [
-  { label: 'Training', icon: '🧠' },
+  { label: 'Tools', icon: '🧠' },
   { label: 'Character', icon: '👤' },
   { label: 'World', icon: '🌍' },
   { label: 'Friends', icon: '🤝' },
@@ -46,7 +48,10 @@ const layers = [
   { label: 'Formless', color: 'white' },
 ];
 
-export default function QuadrantPage({ initialTab }) {
+const defaultMainBg = './assets/backgrounds/background_EI.jpg';
+const defaultCharBg = './assets/backgrounds/Viego_0.jpg';
+
+export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
   const [activeLayer, setActiveLayer] = useState(layers[0].label);
   const [showJournal, setShowJournal] = useState(false);
@@ -60,7 +65,12 @@ export default function QuadrantPage({ initialTab }) {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
+  const [showMomentoMori, setShowMomentoMori] = useState(false);
+  // Blog visibility starts hidden and becomes visible when on the Form layer.
+  // Use a unique name to avoid clashes with the top-level App component.
+  const [showToolsBlog, setShowToolsBlog] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
+  const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -72,11 +82,15 @@ export default function QuadrantPage({ initialTab }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
+  const [mainBg, setMainBg] = useState(
+    () => localStorage.getItem('mainBg') || defaultMainBg
+  );
+  const [charBg, setCharBg] = useState(
+    () => localStorage.getItem('charBg') || defaultCharBg
+  );
 
   const initialAppLayers = () => {
-    const stored = localStorage.getItem('appLayers');
-    if (stored) return JSON.parse(stored);
-    return {
+    const defaults = {
       journal: 'Form',
       nofap: 'Form',
       ratings: 'Form',
@@ -88,8 +102,10 @@ export default function QuadrantPage({ initialTab }) {
       timeline: 'Form',
       typomancy: 'Form',
       moodtracker: 'Form',
+      momentoMori: 'Semi-Formless',
       quadrantComb: 'Form',
       anima: 'Form',
+      blog: 'Form',
       todoGoals: 'Form',
       activity: 'Form',
       characterEvolve: 'Form',
@@ -97,6 +113,16 @@ export default function QuadrantPage({ initialTab }) {
       implementationIdeas: 'Form',
       orb: 'Form',
     };
+
+    const stored = localStorage.getItem('appLayers');
+    if (!stored) return defaults;
+
+    try {
+      const parsed = JSON.parse(stored);
+      return { ...defaults, ...parsed };
+    } catch {
+      return defaults;
+    }
   };
 
   const [appLayers, setAppLayers] = useState(initialAppLayers);
@@ -113,6 +139,23 @@ export default function QuadrantPage({ initialTab }) {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--main-bg-url', `url("${mainBg}")`);
+    localStorage.setItem('mainBg', mainBg);
+  }, [mainBg]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--char-bg-url', `url("${charBg}")`);
+    localStorage.setItem('charBg', charBg);
+  }, [charBg]);
+
+  // Hide the Tools blog whenever we switch away from the Form layer
+  useEffect(() => {
+    if (activeLayer !== 'Form') {
+      setShowToolsBlog(false);
+    }
+  }, [activeLayer]);
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -228,24 +271,31 @@ export default function QuadrantPage({ initialTab }) {
           </div>
         </div>
       </aside>
-      <div className="layer-bar">
-        {layers.map((layer) => (
-          <div
-            key={layer.label}
-            className={`layer-dot ${activeLayer === layer.label ? 'active' : ''}`}
-            style={{ backgroundColor: layer.color }}
-            onClick={() => setActiveLayer(layer.label)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDropOnLayer(e, layer.label)}
-          />
-        ))}
-      </div>
       <div className="content">
+        <div className="layer-tabs">
+          {layers.map((layer) => (
+            <div
+              key={layer.label}
+              className={`layer-tab ${activeLayer === layer.label ? 'active' : ''}`}
+              style={{
+                borderBottom:
+                  activeLayer === layer.label
+                    ? `3px solid ${layer.color}`
+                    : '3px solid transparent',
+                color: activeLayer === layer.label ? layer.color : '#e6e7eb',
+              }}
+              onClick={() => setActiveLayer(layer.label)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDropOnLayer(e, layer.label)}
+            >
+              {layer.label}
+            </div>
+          ))}
+        </div>
         <h1>{activeTab}</h1>
-        <h2 className="layer-title">{activeLayer}</h2>
         {activeTab === 'Character' && <StatsQuadrant />}
-        {activeTab === 'Training' && (
-          <div className="training-layout">
+        {activeTab === 'Tools' && (
+          <div className="tools-layout">
             {showJournal ? (
               <QuestJournal onBack={() => setShowJournal(false)} />
             ) : showNofap ? (
@@ -268,10 +318,14 @@ export default function QuadrantPage({ initialTab }) {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
+            ) : showMomentoMori ? (
+              <MomentoMori onBack={() => setShowMomentoMori(false)} />
             ) : showQuadrantComb ? (
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
+            ) : showBlog ? (
+              <ToolsBlog onBack={() => setShowBlog(false)} />
             ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
@@ -284,6 +338,8 @@ export default function QuadrantPage({ initialTab }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : activeLayer === 'Form' && showToolsBlog ? (
+              <ToolsBlog onBack={() => setShowToolsBlog(false)} />
             ) : (
               <div className="feature-cards">
                 {appLayers.journal === activeLayer && (
@@ -418,6 +474,18 @@ export default function QuadrantPage({ initialTab }) {
                     <span>Moodtracker</span>
                   </div>
                 )}
+                {appLayers.momentoMori === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowMomentoMori(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'momentoMori')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'momentoMori')}
+                  >
+                    <div className="star-icon">☠️</div>
+                    <span>Momento Mori</span>
+                  </div>
+                )}
                 {appLayers.quadrantComb === activeLayer && (
                   <div
                     className="app-card"
@@ -440,6 +508,18 @@ export default function QuadrantPage({ initialTab }) {
                   >
                     <div className="star-icon">💃</div>
                     <span>Anima</span>
+                  </div>
+                )}
+                {appLayers.blog === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowBlog(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'blog')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'blog')}
+                  >
+                    <div className="star-icon">📰</div>
+                    <span>Tools Blog</span>
                   </div>
                 )}
                 {appLayers.todoGoals === activeLayer && (
@@ -502,6 +582,12 @@ export default function QuadrantPage({ initialTab }) {
                     <span>Implementation Ideas</span>
                   </div>
                 )}
+                {!showToolsBlog && activeLayer === 'Form' && (
+                  <div className="app-card" onClick={() => setShowToolsBlog(true)}>
+                    <div className="star-icon">📝</div>
+                    <span>Blog</span>
+                  </div>
+                )}
                 {appLayers.orb === activeLayer && (
                   <div
                     className="app-card"
@@ -537,6 +623,12 @@ export default function QuadrantPage({ initialTab }) {
             setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
           }
           onOpenAkashicRecords={() => setShowAkashicRecords(true)}
+          mainBg={mainBg}
+          onChangeMainBg={setMainBg}
+          charBg={charBg}
+          onChangeCharBg={setCharBg}
+          menuBg={menuBg}
+          onChangeMenuBg={onChangeMenuBg}
         />
       )}
       {contextMenu && (

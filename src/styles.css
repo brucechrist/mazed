@@ -1,10 +1,26 @@
+:root {
+  --main-bg-url: url('./assets/backgrounds/background_EI.jpg');
+  --char-bg-url: url('./assets/backgrounds/Viego_0.jpg');
+  --menu-bg-url: url('./assets/backgrounds/background_EI.jpg');
+}
+
 body {
   margin: 0;
   font-family: sans-serif;
-  /* Replace solid background with custom image */
-  background: url('./assets/backgrounds/background_EI.jpg') no-repeat center center fixed;
+  background: var(--main-bg-url) no-repeat center center fixed;
   background-size: cover;
   color: #e6e7eb;
+}
+
+body.menu-page {
+  background: var(--menu-bg-url) no-repeat center center fixed;
+  background-size: cover;
+}
+
+body.character-page {
+  background: var(--char-bg-url) no-repeat center center fixed;
+  background-size: cover;
+  background-position: center;
 }
 
 
@@ -21,31 +37,6 @@ body {
   width: 70px;
   background-color: rgba(128, 128, 128, 0.6);
   padding: 20px 0;
-}
-
-.layer-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 40px;
-  padding-top: 20px;
-}
-
-.layer-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.layer-dot.active {
-  outline: 2px solid #fff;
-}
-
-.layer-title {
-  margin: 0 0 10px 0;
 }
 
 .tab {
@@ -72,6 +63,32 @@ body {
   background-color: #222;
   color: #fff;
   background-color: #e0e0e0
+}
+
+.layer-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.layer-tab {
+  padding: 8px 16px;
+  background-color: rgba(128, 128, 128, 0.6);
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+  transition: background-color 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.layer-tab.active {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.layer-tab:hover {
+  background-color: rgba(128, 128, 128, 0.8);
 }
 
 .content {
@@ -185,11 +202,13 @@ body.idea-board-page .content {
   border-radius: 4px;
 }
 
-.training-layout {
+.tools-layout {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   gap: 20px;
   flex: 1;
+  width: 100%;
 }
 
 .feature-cards {

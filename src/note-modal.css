@@ -106,3 +106,26 @@
   align-self: flex-end;
   color: inherit;
 }
+
+.bg-selection {
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.bg-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.bg-option-preview {
+  width: 80px;
+  height: 45px;
+  object-fit: cover;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
