@@ -73,6 +73,7 @@ function createWindow() {
   setInterval(poll, 10000);
 }
 
+ipcMain.removeHandler('set-window-size');
 ipcMain.handle('set-window-size', (_e, { width, height }) => {
   if (mainWindow) {
     mainWindow.setSize(Number(width), Number(height));
@@ -80,6 +81,7 @@ ipcMain.handle('set-window-size', (_e, { width, height }) => {
   }
 });
 
+ipcMain.removeHandler('toggle-window');
 ipcMain.handle('toggle-window', () => {
   if (!mainWindow) return;
   if (mainWindow.isMinimized()) {
@@ -89,21 +91,7 @@ ipcMain.handle('toggle-window', () => {
   }
 });
 
-ipcMain.handle('close-window', () => {
-  if (mainWindow) {
-    mainWindow.close();
-  }
-});
-
-ipcMain.handle('toggle-window', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
-  } else {
-    mainWindow.minimize();
-  }
-});
-
+ipcMain.removeHandler('close-window');
 ipcMain.handle('close-window', () => {
   if (mainWindow) {
     mainWindow.close();
