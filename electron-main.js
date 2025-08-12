@@ -8,12 +8,17 @@ function createWindow() {
     width: 1600,
     height: 900,
     resizable: false,
+    movable: true,
+    frame: false,
+    titleBarStyle: 'hidden',
     icon: path.join(__dirname, 'src/assets/icons/mazed_logo_hd.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
     },
   });
+
+  mainWindow.center();
 
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
   if (devServerURL) {
@@ -68,9 +73,28 @@ function createWindow() {
   setInterval(poll, 10000);
 }
 
+ipcMain.removeHandler('set-window-size');
 ipcMain.handle('set-window-size', (_e, { width, height }) => {
   if (mainWindow) {
     mainWindow.setSize(Number(width), Number(height));
+    mainWindow.center();
+  }
+});
+
+ipcMain.removeHandler('toggle-window');
+ipcMain.handle('toggle-window', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  } else {
+    mainWindow.minimize();
+  }
+});
+
+ipcMain.removeHandler('close-window');
+ipcMain.handle('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close();
   }
 });
 
