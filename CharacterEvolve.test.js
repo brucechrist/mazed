@@ -5,9 +5,11 @@ import '@testing-library/jest-dom';
 import CharacterEvolve from './src/CharacterEvolve.jsx';
 
 test('allows manual percentage entry', async () => {
+  const user = userEvent.setup();
   render(<CharacterEvolve onBack={() => {}} />);
-  window.prompt = jest.fn().mockReturnValue('42');
-  await userEvent.click(screen.getByLabelText('add Form'));
-  expect(window.prompt).toHaveBeenCalled();
+  await user.click(screen.getByLabelText('add Form'));
+  const input = screen.getByRole('spinbutton');
+  await user.clear(input);
+  await user.type(input, '42{enter}');
   expect(screen.getByText('42%')).toBeInTheDocument();
 });

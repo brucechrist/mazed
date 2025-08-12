@@ -24,21 +24,28 @@ export default function CharacterEvolve({ onBack }) {
       return {};
     }
   });
+  const [editingKey, setEditingKey] = useState(null);
+  const [tempValue, setTempValue] = useState('');
 
   useEffect(() => {
     localStorage.setItem('evolveValues', JSON.stringify(values));
   }, [values]);
 
-  const setManualValue = (key) => {
-    const input = window.prompt('Enter a value between 0 and 100:');
-    if (input === null) return;
-    const num = Number(input);
+  const startEdit = (key) => {
+    setEditingKey(key);
+    setTempValue(values[key] ?? '');
+  };
+
+  const commitValue = (key) => {
+    const num = Number(tempValue);
     if (!Number.isNaN(num)) {
       setValues((prev) => ({
         ...prev,
         [key]: Math.max(0, Math.min(num, 100)),
       }));
     }
+    setEditingKey(null);
+    setTempValue('');
   };
 
   const renderBar = ({ key, display, aria }) => (
@@ -47,7 +54,7 @@ export default function CharacterEvolve({ onBack }) {
         className="add-btn"
         aria-label={`add ${aria}`}
         type="button"
-        onClick={() => setManualValue(key)}
+        onClick={() => startEdit(key)}
       >
         +
       </button>
@@ -61,6 +68,21 @@ export default function CharacterEvolve({ onBack }) {
           {Math.min(values[key] || 0, 100)}%
         </span>
       </div>
+      {editingKey === key && (
+        <input
+          type="number"
+          className="manual-input"
+          value={tempValue}
+          min="0"
+          max="100"
+          onChange={(e) => setTempValue(e.target.value)}
+          onBlur={() => commitValue(key)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitValue(key);
+          }}
+          autoFocus
+        />
+      )}
     </div>
   );
 

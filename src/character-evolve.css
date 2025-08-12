@@ -68,3 +68,12 @@
 .add-btn:hover {
   background: #333;
 }
+
+.manual-input {
+  width: 60px;
+  padding: 4px;
+  background: #222;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  border-radius: 4px;
+}
