@@ -18,6 +18,8 @@ function createWindow() {
     },
   });
 
+  mainWindow.center();
+
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
   if (devServerURL) {
     mainWindow.loadURL(devServerURL);
@@ -74,6 +76,22 @@ function createWindow() {
 ipcMain.handle('set-window-size', (_e, { width, height }) => {
   if (mainWindow) {
     mainWindow.setSize(Number(width), Number(height));
+    mainWindow.center();
+  }
+});
+
+ipcMain.handle('toggle-window', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  } else {
+    mainWindow.minimize();
+  }
+});
+
+ipcMain.handle('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close();
   }
 });
 
