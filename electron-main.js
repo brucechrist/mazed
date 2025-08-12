@@ -95,6 +95,21 @@ ipcMain.handle('close-window', () => {
   }
 });
 
+ipcMain.handle('toggle-window', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  } else {
+    mainWindow.minimize();
+  }
+});
+
+ipcMain.handle('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close();
+  }
+});
+
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
