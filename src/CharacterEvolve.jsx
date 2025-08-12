@@ -15,6 +15,12 @@ const BARS = [
   { key: 'EE', text: 'Awe' },
 ];
 
+const SEMI_FORMLESS_BARS = [
+  { key: 'form', text: 'Form' },
+  { key: 'semi', text: 'Semi-formless' },
+  { key: 'formless', text: 'Formless' },
+];
+
 export default function CharacterEvolve({ onBack }) {
   const [values, setValues] = useState(() => {
     try {
