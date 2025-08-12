@@ -192,6 +192,8 @@ body.character-page h1 {
   align-items: center;
   padding-left: 10px;
   -webkit-app-region: drag;
+  -webkit-user-select: none;
+  user-select: none;
   z-index: 1000;
 }
 

@@ -8,6 +8,7 @@ function createWindow() {
     width: 1600,
     height: 900,
     resizable: false,
+    movable: true,
     frame: false,
     titleBarStyle: 'hidden',
     icon: path.join(__dirname, 'src/assets/icons/mazed_logo_hd.png'),
