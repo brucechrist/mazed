@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './placeholder-app.css';
 import './character-evolve.css';
 
-const SEMI_FORMLESS_BARS = [
+// Distinct constant name to avoid accidental redeclarations during builds
+const FORM_STATE_BARS = [
   { key: 'form', text: 'Form' },
   { key: 'semi', text: 'Semi-formless' },
   { key: 'formless', text: 'Formless' },
@@ -13,12 +14,6 @@ const BARS = [
   { key: 'IE', text: 'Joy' },
   { key: 'EI', text: 'Peace' },
   { key: 'EE', text: 'Awe' },
-];
-
-const SEMI_FORMLESS_BARS = [
-  { key: 'form', text: 'Form' },
-  { key: 'semi', text: 'Semi-formless' },
-  { key: 'formless', text: 'Formless' },
 ];
 
 export default function CharacterEvolve({ onBack }) {
@@ -74,7 +69,7 @@ export default function CharacterEvolve({ onBack }) {
       <button className="back-button" onClick={onBack}>
         Back
       </button>
-      {SEMI_FORMLESS_BARS.map((b) =>
+      {FORM_STATE_BARS.map((b) =>
         renderBar({ key: b.key, display: b.text, aria: b.text })
       )}
       <div className="spacer" />
