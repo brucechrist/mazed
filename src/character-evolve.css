@@ -1,6 +1,12 @@
 .character-evolve {
   width: 100%;
   padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.spacer {
+  height: 20px;
 }
 
 .evolve-line {

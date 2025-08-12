@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import './placeholder-app.css';
 import './character-evolve.css';
 
+const SEMI_FORMLESS_BARS = [
+  { key: 'form', text: 'Form' },
+  { key: 'semi', text: 'Semi-formless' },
+  { key: 'formless', text: 'Formless' },
+];
+
 const BARS = [
-  { key: 'II', text: 'Love - Help people' },
-  {
-    key: 'IE',
-    text: 'Fun - Make something deep meaningful, and fun',
-  },
-  {
-    key: 'EI',
-    text: 'Peace - Make things beautiful, be surrounded by beauty',
-  },
-  { key: 'EE', text: 'Awe - Make everything at the max degree possible' },
+  { key: 'II', text: 'Love' },
+  { key: 'IE', text: 'Joy' },
+  { key: 'EI', text: 'Peace' },
+  { key: 'EE', text: 'Awe' },
 ];
 
 const SEMI_FORMLESS_BARS = [
@@ -37,7 +37,7 @@ export default function CharacterEvolve({ onBack }) {
   const setManualValue = (key) => {
     const input = window.prompt('Enter a value between 0 and 100:');
     if (input === null) return;
-    const num = parseInt(input, 10);
+    const num = Number(input);
     if (!Number.isNaN(num)) {
       setValues((prev) => ({
         ...prev,
@@ -51,6 +51,7 @@ export default function CharacterEvolve({ onBack }) {
       <button
         className="add-btn"
         aria-label={`add ${aria}`}
+        type="button"
         onClick={() => setManualValue(key)}
       >
         +
@@ -73,11 +74,12 @@ export default function CharacterEvolve({ onBack }) {
       <button className="back-button" onClick={onBack}>
         Back
       </button>
-      {BARS.map((b) =>
-        renderBar({ key: b.key, display: `${b.key} ${b.text}`, aria: b.key })
-      )}
       {SEMI_FORMLESS_BARS.map((b) =>
         renderBar({ key: b.key, display: b.text, aria: b.text })
+      )}
+      <div className="spacer" />
+      {BARS.map((b) =>
+        renderBar({ key: b.key, display: `${b.key} ${b.text}`, aria: b.key })
       )}
     </div>
   );
