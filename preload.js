@@ -5,4 +5,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDisconnect: (callback) => ipcRenderer.on('disconnect', callback),
   onActivity: (callback) => ipcRenderer.on('activity', callback),
   setWindowSize: (width, height) => ipcRenderer.invoke('set-window-size', { width, height }),
+  toggleWindow: () => ipcRenderer.invoke('toggle-window'),
+  closeWindow: () => ipcRenderer.invoke('close-window'),
 });
