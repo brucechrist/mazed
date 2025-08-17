@@ -100,6 +100,14 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
     }
   };
 
+  const handleSignOut = async () => {
+    if (window.electronAPI?.setWindowSize) {
+      window.electronAPI.setWindowSize(1600, 900);
+    }
+    await supabaseClient.auth.signOut();
+    if (onClose) onClose();
+  };
+
   return (
     <div className="modal-overlay profile-overlay" onClick={onClose}>
       <div className="modal profile-modal" onClick={(e) => e.stopPropagation()}>
@@ -132,6 +140,9 @@ export default function ProfileModal({ onClose, onAvatarUpdated }) {
             </div>
           </>
         )}
+        <div className="disconnect-line">
+          <button className="disconnect-btn" onClick={handleSignOut}>Disconnect</button>
+        </div>
       </div>
       {showUpload && (
         <AvatarUploadModal
