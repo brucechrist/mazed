@@ -8,6 +8,7 @@ import Auth from './Auth.jsx';
 import { supabaseClient } from './supabaseClient';
 import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
+import ImageGallery from './ImageGallery.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -112,6 +113,9 @@ export default function PageRouter() {
       break;
     case 'EE':
       content = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      break;
+    case 'gallery':
+      content = <ImageGallery onBack={() => setPage('5th')} />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => setPage(label)} />;
