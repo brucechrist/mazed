@@ -2,10 +2,127 @@
 
 .image-gallery-container {
   min-height: 100vh;
-  padding: 20px;
   background: #0f0f10;
   color: #e0e0e0;
   font-family: 'Oxanium', sans-serif;
+  position: relative;
+}
+
+.gallery-manager {
+  padding: 20px;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: #1a1a1a;
+}
+
+.top-bar .brand {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.search-input {
+  flex: 1;
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  color: #e0e0e0;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.submit-edit,
+.view-all {
+  background: #2a2a2d;
+  color: #fff;
+  border: 1px solid #3a3a3d;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.view-all {
+  margin-left: auto;
+}
+
+.side-bar {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  background: #181819;
+  padding-top: 20px;
+  gap: 10px;
+}
+
+.side-bar button {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.home-main {
+  margin-left: 80px;
+  margin-top: 60px;
+  height: calc(100vh - 60px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: repeating-conic-gradient(#1b1b1e 0% 25%, #181818 0% 50%) 0/20px 20px;
+}
+
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.option-card {
+  width: 480px;
+  height: 140px;
+  border: none;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.2s;
+}
+
+.option-card:hover {
+  transform: translateX(4px);
+}
+
+.option-card.url {
+  background: linear-gradient(135deg, #1e3c56, #124a7a);
+}
+
+.option-card.upload {
+  background: linear-gradient(135deg, #5a3711, #b36a1d);
+}
+
+.option-card .icon {
+  font-size: 1.5rem;
+}
+
+.option-card .arrow {
+  font-size: 1.5rem;
 }
 
 .image-gallery-header {
