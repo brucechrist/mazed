@@ -235,7 +235,7 @@ export default function ImageGallery({ onBack }) {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setFile(e.target.files[0])}
-                required
+                required={!file}
               />
               {file ? file.name : 'Select Image'}
             </label>
