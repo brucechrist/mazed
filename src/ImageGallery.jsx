@@ -53,7 +53,15 @@ export default function ImageGallery({ onBack }) {
         <h2>Image Library</h2>
       </div>
       <form className="image-upload-form" onSubmit={handleUpload}>
-        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} required />
+        <label className="file-input-label">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files[0])}
+            required
+          />
+          {file ? file.name : 'Select Image'}
+        </label>
         <input
           type="text"
           placeholder="Title"
@@ -72,10 +80,14 @@ export default function ImageGallery({ onBack }) {
         {images.map((img) => (
           <div key={img.id} className="image-card">
             <img src={img.dataUrl} alt={img.title} />
-            <div className="image-info">
+            <div className="image-overlay">
               <h3>{img.title}</h3>
               {img.tags.length > 0 && (
-                <p className="tags">{img.tags.map((t) => `#${t}`).join(' ')}</p>
+                <div className="tags">
+                  {img.tags.map((t) => (
+                    <span key={t} className="tag">#{t}</span>
+                  ))}
+                </div>
               )}
             </div>
           </div>
