@@ -144,11 +144,13 @@ export default function ImageGallery({ onBack }) {
               accept="image/*"
               ref={filePickerRef}
               style={{ display: 'none' }}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const f = e.target.files[0];
                 if (f) {
-                  setFile(f);
                   setView('gallery');
+                  await uploadToServer(f);
+                  processFile(f);
+                  e.target.value = '';
                 }
               }}
             />
