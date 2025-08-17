@@ -1,6 +1,12 @@
 .character-evolve {
   width: 100%;
   padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.spacer {
+  height: 20px;
 }
 
 .evolve-line {
@@ -24,6 +30,7 @@
   overflow: hidden;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.6);
   border: 1px solid #888;
+  position: relative;
 }
 
 .evolve-fill {
@@ -32,6 +39,20 @@
   transition: width 0.3s ease;
   border-radius: 8px;
   box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.7);
+}
+
+.evolve-value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  pointer-events: none;
 }
 
 .add-btn {
@@ -46,4 +67,13 @@
 
 .add-btn:hover {
   background: #333;
+}
+
+.manual-input {
+  width: 60px;
+  padding: 4px;
+  background: #222;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  border-radius: 4px;
 }

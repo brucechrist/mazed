@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './momento-mori.css';
+import LevelRating, { RARITY_LEVELS } from './src/LevelRating.jsx';
 
 export default function MomentoMori({ onBack }) {
   const [columns, setColumns] = useState({
@@ -12,9 +13,18 @@ export default function MomentoMori({ onBack }) {
     const stored = JSON.parse(localStorage.getItem('momentoMori') || '{}');
     if (stored && typeof stored === 'object') {
       setColumns({
-        canDo: stored.canDo || [],
-        cantDo: stored.cantDo || [],
-        wishes: stored.wishes || [],
+        canDo: (stored.canDo || []).map((c) => ({
+          ...c,
+          level: c.level || RARITY_LEVELS[0].key,
+        })),
+        cantDo: (stored.cantDo || []).map((c) => ({
+          ...c,
+          level: c.level || RARITY_LEVELS[0].key,
+        })),
+        wishes: (stored.wishes || []).map((c) => ({
+          ...c,
+          level: c.level || RARITY_LEVELS[0].key,
+        })),
       });
     }
   }, []);
@@ -24,9 +34,9 @@ export default function MomentoMori({ onBack }) {
   }, [columns]);
 
   const [newCards, setNewCards] = useState({
-    canDo: { text: '', type: 'Form' },
-    cantDo: { text: '', type: 'Form' },
-    wishes: { text: '', type: 'Form' },
+    canDo: { text: '', type: 'Form', level: RARITY_LEVELS[0].key },
+    cantDo: { text: '', type: 'Form', level: RARITY_LEVELS[0].key },
+    wishes: { text: '', type: 'Form', level: RARITY_LEVELS[0].key },
   });
 
   const [dragInfo, setDragInfo] = useState(null);
@@ -38,6 +48,7 @@ export default function MomentoMori({ onBack }) {
       id: Date.now(),
       text: entry.text,
       type: entry.type,
+      level: entry.level,
     };
     setColumns((prev) => ({
       ...prev,
@@ -45,7 +56,7 @@ export default function MomentoMori({ onBack }) {
     }));
     setNewCards((prev) => ({
       ...prev,
-      [column]: { text: '', type: 'Form' },
+      [column]: { text: '', type: 'Form', level: RARITY_LEVELS[0].key },
     }));
   };
 
@@ -124,6 +135,7 @@ export default function MomentoMori({ onBack }) {
                 <span className={`type-tag ${card.type.replace(/\s+/g, '-').toLowerCase()}`}>
                   {card.type}
                 </span>
+                <LevelRating value={card.level} readOnly />
                 <EditableText
                   text={card.text}
                   onChange={(t) => handleEdit(col, card.id, t)}
@@ -151,6 +163,10 @@ export default function MomentoMori({ onBack }) {
                 <option>Semi Formless</option>
                 <option>Formless</option>
               </select>
+              <LevelRating
+                value={newCards[col].level}
+                onChange={(v) => updateNewCardField(col, 'level', v)}
+              />
               <button onClick={() => handleAdd(col)}>Add</button>
             </div>
           </div>

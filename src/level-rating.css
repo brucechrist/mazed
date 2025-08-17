@@ -1,0 +1,22 @@
+.level-rating {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.level-option {
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+  border: 1px solid #555;
+  user-select: none;
+}
+
+.level-option.selected {
+  outline: 2px solid #fff;
+}
+
+.level-rating.readonly .level-option {
+  cursor: default;
+}

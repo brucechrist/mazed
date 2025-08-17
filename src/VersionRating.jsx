@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import VersionModal from './VersionModal.jsx';
+import LevelRating, { RARITY_LEVELS } from './LevelRating.jsx';
 import './version-rating.css';
 
 export default function VersionRating({ onBack }) {
@@ -21,7 +22,10 @@ export default function VersionRating({ onBack }) {
     setVersions(versions.filter((v) => v.id !== id));
   };
 
-  const sorted = [...versions].sort((a, b) => b.rating - a.rating);
+  const rarityOrder = RARITY_LEVELS.map((r) => r.key);
+  const sorted = [...versions].sort(
+    (a, b) => rarityOrder.indexOf(a.rating) - rarityOrder.indexOf(b.rating)
+  );
 
   return (
     <div className="version-rating">
@@ -31,7 +35,9 @@ export default function VersionRating({ onBack }) {
           <div key={v.id} className="version-card">
             <div className="version-header">
               <div className="version-name">{v.name}</div>
-              <div className="version-score">{v.rating}</div>
+            <div className="version-score">
+              <LevelRating value={v.rating} readOnly />
+            </div>
               <div className="version-like">{v.liked ? '👍' : '👎'}</div>
               <button
                 className="delete-button"
