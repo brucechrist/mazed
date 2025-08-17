@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './image-gallery.css';
 
 export default function ImageGallery({ onBack }) {
@@ -7,6 +7,9 @@ export default function ImageGallery({ onBack }) {
   const [tags, setTags] = useState('');
   const [file, setFile] = useState(null);
   const [view, setView] = useState('home'); // 'home' or 'gallery'
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const filePickerRef = useRef(null);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -25,54 +28,97 @@ export default function ImageGallery({ onBack }) {
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
   };
 
-  const handleUpload = (e) => {
-    e.preventDefault();
-    if (!file) return;
-
+  const processFile = (fileObj, imgTitle = '', imgTags = []) => {
     const reader = new FileReader();
     reader.onload = () => {
       const newImage = {
         id: Date.now(),
-        title,
-        tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+        title: imgTitle,
+        tags: imgTags,
         dataUrl: reader.result,
       };
       const updated = [...images, newImage];
       saveImages(updated);
-      setTitle('');
-      setTags('');
-      setFile(null);
-      e.target.reset();
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(fileObj);
   };
 
-  const handleUrl = async () => {
-    const url = window.prompt('Enter image URL');
-    if (!url) return;
+  const uploadToServer = async (fileObj) => {
+    setUploading(true);
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const reader = new FileReader();
-      reader.onload = () => {
-        const newImage = {
-          id: Date.now(),
-          title: '',
-          tags: [],
-          dataUrl: reader.result,
-        };
-        const updated = [...images, newImage];
-        saveImages(updated);
-        setView('gallery');
-      };
-      reader.readAsDataURL(blob);
+      const form = new FormData();
+      form.append('file', fileObj);
+      await fetch('/upload', { method: 'POST', body: form });
     } catch (err) {
-      console.error('Failed to load image', err);
+      console.error('Upload failed', err);
+    } finally {
+      setUploading(false);
     }
   };
 
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!file) return;
+    await uploadToServer(file);
+    processFile(
+      file,
+      title,
+      tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+    );
+    setTitle('');
+    setTags('');
+    setFile(null);
+    e.target.reset();
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    let droppedFile = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!droppedFile) {
+      const url =
+        e.dataTransfer.getData('text/uri-list') ||
+        e.dataTransfer.getData('text/plain');
+      if (url) {
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          droppedFile = new File([blob], 'dropped-image', {
+            type: blob.type || 'image/png',
+          });
+        } catch (err) {
+          console.error('Failed to fetch dropped image', err);
+          return;
+        }
+      }
+    }
+    if (!droppedFile || !droppedFile.type.startsWith('image/')) return;
+    await uploadToServer(droppedFile);
+    processFile(droppedFile);
+  };
+
   return (
-    <div className="image-gallery-container">
+    <div
+      className={`image-gallery-container ${isDragging ? 'dragging' : ''}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        setIsDragging(false);
+      }}
+      onDrop={handleDrop}
+    >
+      {isDragging && <div className="drop-overlay">Upload Image</div>}
+      {uploading && <div className="upload-status">Uploading…</div>}
       {view === 'home' ? (
         <div className="gallery-home">
           <div className="top-bar">
@@ -93,8 +139,24 @@ export default function ImageGallery({ onBack }) {
             <button>Smart Select</button>
           </aside>
           <main className="home-main">
+            <input
+              type="file"
+              accept="image/*"
+              ref={filePickerRef}
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const f = e.target.files[0];
+                if (f) {
+                  setFile(f);
+                  setView('gallery');
+                }
+              }}
+            />
             <div className="option-list">
-              <button className="option-card url" onClick={handleUrl}>
+              <button
+                className="option-card computer"
+                onClick={() => filePickerRef.current?.click()}
+              >
                 <span className="icon">
                   <svg
                     viewBox="0 0 24 24"
@@ -104,11 +166,11 @@ export default function ImageGallery({ onBack }) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71" />
-                  </svg>
-                </span>
-                <span className="text">Edit from URL</span>
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </span>
+                <span className="text">Upload from Computer</span>
                 <span className="arrow">
                   <svg
                     viewBox="0 0 24 24"
