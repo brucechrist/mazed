@@ -9,6 +9,7 @@ export default function ImageGallery({ onBack }) {
   const [view, setView] = useState('home'); // 'home' or 'gallery'
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [menu, setMenu] = useState(null);
   const filePickerRef = useRef(null);
 
   // Load saved images from localStorage on mount
@@ -28,17 +29,35 @@ export default function ImageGallery({ onBack }) {
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
   };
 
+  useEffect(() => {
+    const close = () => setMenu(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, []);
+
+  const deleteImage = (id) => {
+    const updated = images.filter((img) => img.id !== id);
+    saveImages(updated);
+  };
+
   const processFile = (fileObj, imgTitle = '', imgTags = []) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const newImage = {
-        id: Date.now(),
-        title: imgTitle,
-        tags: imgTags,
-        dataUrl: reader.result,
+      const result = reader.result;
+      const imgEl = new Image();
+      imgEl.onload = () => {
+        const newImage = {
+          id: Date.now(),
+          title: imgTitle,
+          tags: imgTags,
+          dataUrl: result,
+          width: imgEl.width,
+          height: imgEl.height,
+        };
+        const updated = [...images, newImage];
+        saveImages(updated);
       };
-      const updated = [...images, newImage];
-      saveImages(updated);
+      imgEl.src = result;
     };
     reader.readAsDataURL(fileObj);
   };
@@ -257,7 +276,19 @@ export default function ImageGallery({ onBack }) {
           </form>
           <div className="image-grid">
             {images.map((img) => (
-              <div key={img.id} className="image-card">
+              <div
+                key={img.id}
+                className="image-card"
+                style={
+                  img.width && img.height
+                    ? { aspectRatio: `${img.width} / ${img.height}` }
+                    : undefined
+                }
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+                }}
+              >
                 <img src={img.dataUrl} alt={img.title} />
                 <div className="image-overlay">
                   <h3>{img.title}</h3>
@@ -272,6 +303,18 @@ export default function ImageGallery({ onBack }) {
               </div>
             ))}
           </div>
+          {menu && (
+            <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
+              <button
+                onClick={() => {
+                  deleteImage(menu.id);
+                  setMenu(null);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
