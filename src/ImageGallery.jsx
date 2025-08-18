@@ -58,6 +58,7 @@ export default function ImageGallery({ onBack }) {
   }, [lightbox]);
 
   useEffect(() => {
+
     const close = () => setMenu(null);
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
