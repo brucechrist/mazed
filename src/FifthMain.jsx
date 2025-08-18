@@ -65,6 +65,12 @@ export default function FifthMain({ onSelectQuadrant }) {
         <div className="drag-handle" onMouseDown={startRightDrag}></div>
       </div>
       <div className="bottom-menu">
+        <button className="side-button" onClick={() => onSelectQuadrant('gallery')}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 7.5C3 6.67157 3.67157 6 4.5 6H19.5C20.3284 6 21 6.67157 21 7.5V16.5C21 17.3284 20.3284 18 19.5 18H4.5C3.67157 18 3 17.3284 3 16.5V7.5Z" stroke="white" strokeWidth="2"/>
+            <path d="M8 11L10.5 13.5L13.5 10.5L17 14" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         <button className="side-button" onClick={() => setShowList(true)}>
           <svg width="27" height="27" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 1L12 17M12 1H4.2002C3.08009 1 2.51962 1 2.0918 1.21799C1.71547 1.40973 1.40973 1.71547 1.21799 2.0918C1 2.51962 1 3.08009 1 4.2002V13.8002C1 14.9203 1 15.4796 1.21799 15.9074C1.40973 16.2837 1.71547 16.5905 2.0918 16.7822C2.51921 17 3.07901 17 4.19694 17L12 17M12 1H13.8002C14.9203 1 15.4796 1 15.9074 1.21799C16.2837 1.40973 16.5905 1.71547 16.7822 2.0918C17 2.5192 17 3.079 17 4.19691L17 13.8031C17 14.921 17 15.48 16.7822 15.9074C16.5905 16.2837 16.2837 16.5905 15.9074 16.7822C15.48 17 14.921 17 13.8031 17H12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
