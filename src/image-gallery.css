@@ -234,6 +234,11 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: border 0.3s, box-shadow 0.3s;
   flex: 0 0 auto;
+  cursor: grab;
+}
+
+.image-card:active {
+  cursor: grabbing;
 }
 
 .image-card img {
