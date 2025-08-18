@@ -1,6 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './image-gallery.css';
 
+const EMPTY_DRAG_IMAGE =
+  typeof document !== 'undefined'
+    ? (() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        return canvas;
+      })()
+    : null;
+
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
   const [view, setView] = useState('home'); // 'home' or 'gallery'
@@ -9,7 +18,10 @@ export default function ImageGallery({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(0.5);
+  const [zoom, setZoom] = useState(() => {
+    const savedZoom = parseFloat(localStorage.getItem('galleryZoom'));
+    return Number.isFinite(savedZoom) ? savedZoom : 0.35;
+  });
   const maxZoom = 1;
   const filePickerRef = useRef(null);
   const gridRef = useRef(null);
@@ -47,6 +59,10 @@ export default function ImageGallery({ onBack }) {
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
   }, [view, maxZoom]);
+
+  useEffect(() => {
+    localStorage.setItem('galleryZoom', zoom);
+  }, [zoom]);
 
   useEffect(() => {
     if (lightbox) setLightboxZoom(1);
@@ -300,10 +316,9 @@ export default function ImageGallery({ onBack }) {
                       dataUrl: img.dataUrl,
                       title: img.title,
                     });
-                    const imgGhost = new Image();
-                    imgGhost.src =
-                      'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-                    e.dataTransfer.setDragImage(imgGhost, 0, 0);
+                    if (EMPTY_DRAG_IMAGE) {
+                      e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
+                    }
                   }}
                   onDrag={(e) => {
                     if (!dragItem) return;
