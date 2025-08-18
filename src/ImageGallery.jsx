@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './image-gallery.css';
 
 export default function ImageGallery({ onBack }) {
@@ -10,7 +10,7 @@ export default function ImageGallery({ onBack }) {
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [zoom, setZoom] = useState(0.5);
-  const BASE_SIZE = 180;
+  const maxZoom = 1;
   const filePickerRef = useRef(null);
   const gridRef = useRef(null);
   const [dragItem, setDragItem] = useState(null);
@@ -32,11 +32,6 @@ export default function ImageGallery({ onBack }) {
     setImages(imgs);
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
   };
-
-  const maxZoom = useMemo(() => {
-    if (images.length === 0) return 1;
-    return Math.max(...images.map((img) => img.width / BASE_SIZE));
-  }, [images]);
 
   useEffect(() => {
     if (view !== 'gallery') return;
@@ -279,8 +274,8 @@ export default function ImageGallery({ onBack }) {
           </div>
           <div className="image-grid" ref={gridRef}>
             {images.map((img) => {
-              const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
-              const displayHeight = (img.height / img.width) * displayWidth;
+              const displayWidth = img.width * zoom;
+              const displayHeight = img.height * zoom;
               const isDraggingItem = dragItem?.id === img.id;
               return (
                 <div
