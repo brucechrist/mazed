@@ -12,6 +12,9 @@ export default function ImageGallery({ onBack }) {
   const [zoom, setZoom] = useState(0.5);
   const BASE_SIZE = 180;
   const filePickerRef = useRef(null);
+  const gridRef = useRef(null);
+  const [dragItem, setDragItem] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -63,6 +66,16 @@ export default function ImageGallery({ onBack }) {
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
+    saveImages(updated);
+  };
+
+  const moveImage = (fromId, toId) => {
+    const fromIndex = images.findIndex((img) => img.id === fromId);
+    const toIndex = images.findIndex((img) => img.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+    const updated = [...images];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
     saveImages(updated);
   };
 
@@ -264,15 +277,58 @@ export default function ImageGallery({ onBack }) {
             </button>
             <h2>Image Library</h2>
           </div>
-          <div className="image-grid">
+          <div className="image-grid" ref={gridRef}>
             {images.map((img) => {
               const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
               const displayHeight = (img.height / img.width) * displayWidth;
+              const isDraggingItem = dragItem?.id === img.id;
               return (
                 <div
                   key={img.id}
                   className="image-card"
-                  style={{ width: displayWidth, height: displayHeight }}
+                  style={{
+                    width: displayWidth,
+                    height: displayHeight,
+                    opacity: isDraggingItem ? 0 : 1,
+                  }}
+                  draggable
+                  onDragStart={(e) => {
+                    const rect = gridRef.current.getBoundingClientRect();
+                    setDragItem({
+                      id: img.id,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                      offsetX: e.nativeEvent.offsetX,
+                      offsetY: e.nativeEvent.offsetY,
+                      width: displayWidth,
+                      height: displayHeight,
+                      dataUrl: img.dataUrl,
+                      title: img.title,
+                    });
+                    const crt = document.createElement('div');
+                    e.dataTransfer.setDragImage(crt, 0, 0);
+                  }}
+                  onDrag={(e) => {
+                    if (!dragItem) return;
+                    const rect = gridRef.current.getBoundingClientRect();
+                    setDragItem((d) => ({
+                      ...d,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    }));
+                  }}
+                  onDragEnd={() => {
+                    setDragItem(null);
+                    setDragOverId(null);
+                  }}
+                  onDragOver={(e) => {
+                    if (!dragItem || img.id === dragItem.id) return;
+                    e.preventDefault();
+                    if (dragOverId !== img.id) {
+                      moveImage(dragItem.id, img.id);
+                      setDragOverId(img.id);
+                    }
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenu({ id: img.id, x: e.clientX, y: e.clientY });
@@ -302,6 +358,22 @@ export default function ImageGallery({ onBack }) {
                 </div>
               );
             })}
+            {dragItem && (
+              <div
+                className="image-card dragging-card"
+                style={{
+                  width: dragItem.width,
+                  height: dragItem.height,
+                  left: dragItem.x - dragItem.offsetX,
+                  top: dragItem.y - dragItem.offsetY,
+                }}
+              >
+                <img src={dragItem.dataUrl} alt={dragItem.title} />
+                <div className="image-overlay">
+                  <h3>{dragItem.title}</h3>
+                </div>
+              </div>
+            )}
           </div>
           {menu && (
             <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
