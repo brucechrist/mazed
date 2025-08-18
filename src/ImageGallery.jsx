@@ -343,8 +343,7 @@ export default function ImageGallery({ onBack }) {
                   }}
                   onDragEnd={() => {
                     dragIndex.current = null;
-                  }}
-                >
+                  }}>
                   {/* ensure the image tag is self-closing to avoid build errors */}
                   <img
                     draggable={false}
