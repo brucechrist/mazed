@@ -300,8 +300,10 @@ export default function ImageGallery({ onBack }) {
                       dataUrl: img.dataUrl,
                       title: img.title,
                     });
-                    const crt = document.createElement('div');
-                    e.dataTransfer.setDragImage(crt, 0, 0);
+                    const imgGhost = new Image();
+                    imgGhost.src =
+                      'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+                    e.dataTransfer.setDragImage(imgGhost, 0, 0);
                   }}
                   onDrag={(e) => {
                     if (!dragItem) return;
