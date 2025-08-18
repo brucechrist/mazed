@@ -41,7 +41,7 @@ export default function ImageGallery({ onBack }) {
   useEffect(() => {
     if (view !== 'gallery') return;
     const handleWheel = (e) => {
-      if (e.ctrlKey) {
+      if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         setZoom((z) => {
           const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
@@ -373,7 +373,7 @@ export default function ImageGallery({ onBack }) {
                 className="lightbox-inner"
                 onClick={(e) => e.stopPropagation()}
                 onWheel={(e) => {
-                  if (e.ctrlKey) {
+                  if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     setLightboxZoom((z) => {
                       const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
