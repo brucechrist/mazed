@@ -1,5 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './image-gallery.css';
+
+const EMPTY_DRAG_IMAGE =
+  typeof document !== 'undefined'
+    ? (() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        return canvas;
+      })()
+    : null;
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -9,9 +18,15 @@ export default function ImageGallery({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(0.5);
-  const BASE_SIZE = 180;
+  const [zoom, setZoom] = useState(() => {
+    const savedZoom = parseFloat(localStorage.getItem('galleryZoom'));
+    return Number.isFinite(savedZoom) ? savedZoom : 0.35;
+  });
+  const maxZoom = 1;
   const filePickerRef = useRef(null);
+  const gridRef = useRef(null);
+  const [dragItem, setDragItem] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -30,11 +45,6 @@ export default function ImageGallery({ onBack }) {
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
   };
 
-  const maxZoom = useMemo(() => {
-    if (images.length === 0) return 1;
-    return Math.max(...images.map((img) => img.width / BASE_SIZE));
-  }, [images]);
-
   useEffect(() => {
     if (view !== 'gallery') return;
     const handleWheel = (e) => {
@@ -51,6 +61,10 @@ export default function ImageGallery({ onBack }) {
   }, [view, maxZoom]);
 
   useEffect(() => {
+    localStorage.setItem('galleryZoom', zoom);
+  }, [zoom]);
+
+  useEffect(() => {
     if (lightbox) setLightboxZoom(1);
   }, [lightbox]);
 
@@ -63,6 +77,16 @@ export default function ImageGallery({ onBack }) {
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
+    saveImages(updated);
+  };
+
+  const moveImage = (fromId, toId) => {
+    const fromIndex = images.findIndex((img) => img.id === fromId);
+    const toIndex = images.findIndex((img) => img.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+    const updated = [...images];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
     saveImages(updated);
   };
 
@@ -264,15 +288,59 @@ export default function ImageGallery({ onBack }) {
             </button>
             <h2>Image Library</h2>
           </div>
-          <div className="image-grid">
+          <div className="image-grid" ref={gridRef}>
             {images.map((img) => {
-              const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
-              const displayHeight = (img.height / img.width) * displayWidth;
+              const displayWidth = img.width * zoom;
+              const displayHeight = img.height * zoom;
+              const isDraggingItem = dragItem?.id === img.id;
               return (
                 <div
                   key={img.id}
                   className="image-card"
-                  style={{ width: displayWidth, height: displayHeight }}
+                  style={{
+                    width: displayWidth,
+                    height: displayHeight,
+                    opacity: isDraggingItem ? 0 : 1,
+                  }}
+                  draggable
+                  onDragStart={(e) => {
+                    const rect = gridRef.current.getBoundingClientRect();
+                    setDragItem({
+                      id: img.id,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                      offsetX: e.nativeEvent.offsetX,
+                      offsetY: e.nativeEvent.offsetY,
+                      width: displayWidth,
+                      height: displayHeight,
+                      dataUrl: img.dataUrl,
+                      title: img.title,
+                    });
+                    if (EMPTY_DRAG_IMAGE) {
+                      e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
+                    }
+                  }}
+                  onDrag={(e) => {
+                    if (!dragItem) return;
+                    const rect = gridRef.current.getBoundingClientRect();
+                    setDragItem((d) => ({
+                      ...d,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    }));
+                  }}
+                  onDragEnd={() => {
+                    setDragItem(null);
+                    setDragOverId(null);
+                  }}
+                  onDragOver={(e) => {
+                    if (!dragItem || img.id === dragItem.id) return;
+                    e.preventDefault();
+                    if (dragOverId !== img.id) {
+                      moveImage(dragItem.id, img.id);
+                      setDragOverId(img.id);
+                    }
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenu({ id: img.id, x: e.clientX, y: e.clientY });
@@ -302,6 +370,22 @@ export default function ImageGallery({ onBack }) {
                 </div>
               );
             })}
+            {dragItem && (
+              <div
+                className="image-card dragging-card"
+                style={{
+                  width: dragItem.width,
+                  height: dragItem.height,
+                  left: dragItem.x - dragItem.offsetX,
+                  top: dragItem.y - dragItem.offsetY,
+                }}
+              >
+                <img src={dragItem.dataUrl} alt={dragItem.title} />
+                <div className="image-overlay">
+                  <h3>{dragItem.title}</h3>
+                </div>
+              </div>
+            )}
           </div>
           {menu && (
             <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
