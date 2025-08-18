@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
 
 const EMPTY_DRAG_IMAGE =
@@ -374,22 +374,6 @@ export default function ImageGallery({ onBack }) {
                 </div>
               );
             })}
-            {dragItem && (
-              <div
-                className="image-card dragging-card"
-                style={{
-                  width: dragItem.width,
-                  height: dragItem.height,
-                  left: dragItem.x - dragItem.offsetX,
-                  top: dragItem.y - dragItem.offsetY,
-                }}
-              >
-                <img src={dragItem.dataUrl} alt={dragItem.title} />
-                <div className="image-overlay">
-                  <h3>{dragItem.title}</h3>
-                </div>
-              </div>
-            )}
           </div>
           {menu && (
             <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
