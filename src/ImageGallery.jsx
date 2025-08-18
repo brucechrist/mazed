@@ -11,6 +11,7 @@ export default function ImageGallery({ onBack }) {
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
   const [zoom, setZoom] = useState(0.5);
   const BASE_SIZE = 180;
   const filePickerRef = useRef(null);
@@ -38,6 +39,26 @@ export default function ImageGallery({ onBack }) {
   }, [images]);
 
   useEffect(() => {
+    if (view !== 'gallery') return;
+    const handleWheel = (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+          return Math.min(maxZoom, Math.max(0.1, next));
+        });
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [view, maxZoom]);
+
+  useEffect(() => {
+    if (lightbox) setLightboxZoom(1);
+  }, [lightbox]);
+
+  useEffect(() => {
+
     const close = () => setMenu(null);
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
@@ -257,19 +278,7 @@ export default function ImageGallery({ onBack }) {
           </main>
         </div>
       ) : (
-        <div
-          className="gallery-manager"
-          onWheel={(e) => {
-            if (e.ctrlKey) {
-              e.preventDefault();
-              setZoom((z) => {
-                const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                const clamped = Math.min(maxZoom, Math.max(0.1, next));
-                return clamped;
-              });
-            }
-          }}
-        >
+        <div className="gallery-manager">
           <div className="image-gallery-header">
             <button onClick={() => setView('home')} className="back-button">
               Back
@@ -303,21 +312,35 @@ export default function ImageGallery({ onBack }) {
           <div className="image-grid">
             {images.map((img) => {
               const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
+              const displayHeight = (img.height / img.width) * displayWidth;
               return (
                 <div
                   key={img.id}
                   className="image-card"
-                  style={{
-                    width: displayWidth,
-                    aspectRatio: `${img.width} / ${img.height}`,
-                  }}
+                  style={{ width: displayWidth, height: displayHeight }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenu({ id: img.id, x: e.clientX, y: e.clientY });
                   }}
                   onClick={() => setLightbox(img)}
                 >
-                  <img src={img.dataUrl} alt={img.title} />
+                  <img
+                    src={img.dataUrl}
+                    alt={img.title}
+                    onLoad={(e) => {
+                      const w = e.target.naturalWidth;
+                      const h = e.target.naturalHeight;
+                      if (w !== img.width || h !== img.height) {
+                        const updated = images.map((i) =>
+                          i.id === img.id ? { ...i, width: w, height: h } : i
+                        );
+                        saveImages(updated);
+                        if (lightbox && lightbox.id === img.id) {
+                          setLightbox((l) => ({ ...l, width: w, height: h }));
+                        }
+                      }
+                    }}
+                  />
                   <div className="image-overlay">
                     <h3>{img.title}</h3>
                     {img.tags.length > 0 && (
@@ -346,7 +369,28 @@ export default function ImageGallery({ onBack }) {
           )}
           {lightbox && (
             <div className="lightbox" onClick={() => setLightbox(null)}>
-              <img src={lightbox.dataUrl} alt={lightbox.title} />
+              <div
+                className="lightbox-inner"
+                onClick={(e) => e.stopPropagation()}
+                onWheel={(e) => {
+                  if (e.ctrlKey) {
+                    e.preventDefault();
+                    setLightboxZoom((z) => {
+                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                      return Math.min(5, Math.max(0.1, next));
+                    });
+                  }
+                }}
+              >
+                <img
+                  src={lightbox.dataUrl}
+                  alt={lightbox.title}
+                  style={{
+                    width: lightbox.width * lightboxZoom,
+                    height: lightbox.height * lightboxZoom,
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>

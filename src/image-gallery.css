@@ -370,14 +370,20 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.9);
+  z-index: 1003;
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1003;
 }
 
-.lightbox img {
-  max-width: 90%;
-  max-height: 90%;
+.lightbox-inner {
+  flex: 0 0 auto;
+}
+
+.lightbox-inner img {
+  display: block;
+  max-width: none;
+  max-height: none;
 }
 
