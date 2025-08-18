@@ -11,7 +11,7 @@ export default function ImageGallery({ onBack }) {
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.5);
   const BASE_SIZE = 180;
   const filePickerRef = useRef(null);
 
@@ -264,7 +264,7 @@ export default function ImageGallery({ onBack }) {
               e.preventDefault();
               setZoom((z) => {
                 const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                const clamped = Math.min(maxZoom, Math.max(0.5, next));
+                const clamped = Math.min(maxZoom, Math.max(0.1, next));
                 return clamped;
               });
             }
