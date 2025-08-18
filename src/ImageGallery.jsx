@@ -1,5 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './image-gallery.css';
+
+const EMPTY_DRAG_IMAGE =
+  typeof document !== 'undefined'
+    ? (() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        return canvas;
+      })()
+    : null;
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -45,6 +54,7 @@ export default function ImageGallery({ onBack }) {
     return Math.max(...images.map((img) => img.width / BASE_SIZE));
   }, [images]);
 
+
   useEffect(() => {
     if (view !== 'gallery') return;
     const handleWheel = (e) => {
@@ -61,6 +71,10 @@ export default function ImageGallery({ onBack }) {
   }, [view, maxZoom]);
 
   useEffect(() => {
+    localStorage.setItem('galleryZoom', zoom);
+  }, [zoom]);
+
+  useEffect(() => {
     if (lightbox) setLightboxZoom(1);
   }, [lightbox]);
 
@@ -73,6 +87,16 @@ export default function ImageGallery({ onBack }) {
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
+    saveImages(updated);
+  };
+
+  const moveImage = (fromId, toId) => {
+    const fromIndex = images.findIndex((img) => img.id === fromId);
+    const toIndex = images.findIndex((img) => img.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+    const updated = [...images];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
     saveImages(updated);
   };
 
@@ -337,13 +361,53 @@ export default function ImageGallery({ onBack }) {
                         }
                       }
                     }}
-                  />
-                  <div className="image-overlay">
-                    <h3>{img.title}</h3>
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+                    }}
+                    onClick={() => setLightbox(img)}
+                  >
+                    <img
+                      src={img.dataUrl}
+                      alt={img.title}
+                      draggable={false}
+                      onLoad={(e) => {
+                        const w = e.target.naturalWidth;
+                        const h = e.target.naturalHeight;
+                        if (w !== img.width || h !== img.height) {
+                          const updated = images.map((i) =>
+                            i.id === img.id ? { ...i, width: w, height: h } : i
+                          );
+                          saveImages(updated);
+                          if (lightbox && lightbox.id === img.id) {
+                            setLightbox((l) => ({ ...l, width: w, height: h }));
+                          }
+                        }
+                      }}
+                    />
+                    <div className="image-overlay">
+                      <h3>{img.title}</h3>
+                    </div>
                   </div>
-                </div>
+                </React.Fragment>
               );
             })}
+            {dragItem && (
+              <div
+                className="image-card dragging-card"
+                style={{
+                  width: dragItem.width,
+                  height: dragItem.height,
+                  left: dragItem.x - dragItem.offsetX,
+                  top: dragItem.y - dragItem.offsetY,
+                }}
+              >
+                <img src={dragItem.dataUrl} alt={dragItem.title} />
+                <div className="image-overlay">
+                  <h3>{dragItem.title}</h3>
+                </div>
+              </div>
+            )}
           </div>
           {menu && (
             <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
