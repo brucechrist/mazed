@@ -293,81 +293,96 @@ export default function ImageGallery({ onBack }) {
               const displayWidth = img.width * zoom;
               const displayHeight = img.height * zoom;
               const isDraggingItem = dragItem?.id === img.id;
+              const cardStyle = {
+                width: displayWidth,
+                height: displayHeight,
+                ...(isDraggingItem
+                  ? {
+                      position: 'absolute',
+                      left: dragItem.x - dragItem.offsetX,
+                      top: dragItem.y - dragItem.offsetY,
+                      zIndex: 1000,
+                      pointerEvents: 'none',
+                    }
+                  : {}),
+              };
               return (
-                <div
-                  key={img.id}
-                  className="image-card"
-                  style={{
-                    width: displayWidth,
-                    height: displayHeight,
-                    opacity: isDraggingItem ? 0 : 1,
-                  }}
-                  draggable
-                  onDragStart={(e) => {
-                    const rect = gridRef.current.getBoundingClientRect();
-                    setDragItem({
-                      id: img.id,
-                      x: e.clientX - rect.left,
-                      y: e.clientY - rect.top,
-                      offsetX: e.nativeEvent.offsetX,
-                      offsetY: e.nativeEvent.offsetY,
-                      width: displayWidth,
-                      height: displayHeight,
-                      dataUrl: img.dataUrl,
-                      title: img.title,
-                    });
-                    if (EMPTY_DRAG_IMAGE) {
-                      e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
-                    }
-                  }}
-                  onDrag={(e) => {
-                    if (!dragItem) return;
-                    const rect = gridRef.current.getBoundingClientRect();
-                    setDragItem((d) => ({
-                      ...d,
-                      x: e.clientX - rect.left,
-                      y: e.clientY - rect.top,
-                    }));
-                  }}
-                  onDragEnd={() => {
-                    setDragItem(null);
-                    setDragOverId(null);
-                  }}
-                  onDragOver={(e) => {
-                    if (!dragItem || img.id === dragItem.id) return;
-                    e.preventDefault();
-                    if (dragOverId !== img.id) {
-                      moveImage(dragItem.id, img.id);
-                      setDragOverId(img.id);
-                    }
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-                  }}
-                  onClick={() => setLightbox(img)}
-                >
-                  <img
-                    src={img.dataUrl}
-                    alt={img.title}
-                    onLoad={(e) => {
-                      const w = e.target.naturalWidth;
-                      const h = e.target.naturalHeight;
-                      if (w !== img.width || h !== img.height) {
-                        const updated = images.map((i) =>
-                          i.id === img.id ? { ...i, width: w, height: h } : i
-                        );
-                        saveImages(updated);
-                        if (lightbox && lightbox.id === img.id) {
-                          setLightbox((l) => ({ ...l, width: w, height: h }));
-                        }
+                <React.Fragment key={img.id}>
+                  {isDraggingItem && (
+                    <div
+                      className="image-card placeholder"
+                      style={{ width: displayWidth, height: displayHeight }}
+                    />
+                  )}
+                  <div
+                    className={`image-card${isDraggingItem ? ' dragging-card' : ''}`}
+                    style={cardStyle}
+                    draggable
+                    onDragStart={(e) => {
+                      const rect = gridRef.current.getBoundingClientRect();
+                      setDragItem({
+                        id: img.id,
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top,
+                        offsetX: e.nativeEvent.offsetX,
+                        offsetY: e.nativeEvent.offsetY,
+                        width: displayWidth,
+                        height: displayHeight,
+                      });
+                      if (EMPTY_DRAG_IMAGE) {
+                        e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
                       }
                     }}
-                  />
-                  <div className="image-overlay">
-                    <h3>{img.title}</h3>
+                    onDrag={(e) => {
+                      if (!dragItem) return;
+                      const rect = gridRef.current.getBoundingClientRect();
+                      setDragItem((d) => ({
+                        ...d,
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top,
+                      }));
+                    }}
+                    onDragEnd={() => {
+                      setDragItem(null);
+                      setDragOverId(null);
+                    }}
+                    onDragOver={(e) => {
+                      if (!dragItem || img.id === dragItem.id) return;
+                      e.preventDefault();
+                      if (dragOverId !== img.id) {
+                        moveImage(dragItem.id, img.id);
+                        setDragOverId(img.id);
+                      }
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+                    }}
+                    onClick={() => setLightbox(img)}
+                  >
+                    <img
+                      src={img.dataUrl}
+                      alt={img.title}
+                      draggable={false}
+                      onLoad={(e) => {
+                        const w = e.target.naturalWidth;
+                        const h = e.target.naturalHeight;
+                        if (w !== img.width || h !== img.height) {
+                          const updated = images.map((i) =>
+                            i.id === img.id ? { ...i, width: w, height: h } : i
+                          );
+                          saveImages(updated);
+                          if (lightbox && lightbox.id === img.id) {
+                            setLightbox((l) => ({ ...l, width: w, height: h }));
+                          }
+                        }
+                      }}
+                    />
+                    <div className="image-overlay">
+                      <h3>{img.title}</h3>
+                    </div>
                   </div>
-                </div>
+                </React.Fragment>
               );
             })}
             {dragItem && (
