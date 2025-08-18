@@ -9,9 +9,15 @@ export default function ImageGallery({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(0.5);
+  const [zoom, setZoom] = useState(() => Number(localStorage.getItem('galleryZoom')) || 0.5);
   const BASE_SIZE = 180;
   const filePickerRef = useRef(null);
+  const dragIndex = useRef(null);
+  const dragPreview = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    return canvas;
+  }, []);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -29,6 +35,10 @@ export default function ImageGallery({ onBack }) {
     setImages(imgs);
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
   };
+
+  useEffect(() => {
+    localStorage.setItem('galleryZoom', zoom);
+  }, [zoom]);
 
   const maxZoom = useMemo(() => {
     if (images.length === 0) return 1;
@@ -264,22 +274,55 @@ export default function ImageGallery({ onBack }) {
             </button>
             <h2>Image Library</h2>
           </div>
-          <div className="image-grid">
-            {images.map((img) => {
+          <div
+            className="image-grid"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = dragIndex.current;
+              if (from == null) return;
+              const updated = [...images];
+              const [moved] = updated.splice(from, 1);
+              updated.push(moved);
+              saveImages(updated);
+              dragIndex.current = null;
+            }}
+          >
+            {images.map((img, index) => {
               const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
               const displayHeight = (img.height / img.width) * displayWidth;
               return (
                 <div
                   key={img.id}
                   className="image-card"
+                  draggable
                   style={{ width: displayWidth, height: displayHeight }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenu({ id: img.id, x: e.clientX, y: e.clientY });
                   }}
                   onClick={() => setLightbox(img)}
-                >
+                  onDragStart={(e) => {
+                    dragIndex.current = index;
+                    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const from = dragIndex.current;
+                    if (from == null || from === index) return;
+                    const updated = [...images];
+                    const [moved] = updated.splice(from, 1);
+                    updated.splice(index, 0, moved);
+                    saveImages(updated);
+                    dragIndex.current = null;
+                  }}
+                  onDragEnd={() => {
+                    dragIndex.current = null;
+                  }}>
+                  {/* ensure the image tag is self-closing to avoid build errors */}
                   <img
+                    draggable={false}
                     src={img.dataUrl}
                     alt={img.title}
                     onLoad={(e) => {
