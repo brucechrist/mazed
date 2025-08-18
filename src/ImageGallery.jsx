@@ -3,9 +3,6 @@ import './image-gallery.css';
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
-  const [title, setTitle] = useState('');
-  const [tags, setTags] = useState('');
-  const [file, setFile] = useState(null);
   const [view, setView] = useState('home'); // 'home' or 'gallery'
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -102,24 +99,6 @@ export default function ImageGallery({ onBack }) {
     } finally {
       setUploading(false);
     }
-  };
-
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!file) return;
-    await uploadToServer(file);
-    processFile(
-      file,
-      title,
-      tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-    );
-    setTitle('');
-    setTags('');
-    setFile(null);
-    e.target.reset();
   };
 
   const handleDrop = async (e) => {
@@ -285,30 +264,6 @@ export default function ImageGallery({ onBack }) {
             </button>
             <h2>Image Library</h2>
           </div>
-          <form className="image-upload-form" onSubmit={handleUpload}>
-            <label className="file-input-label">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFile(e.target.files[0])}
-                required={!file}
-              />
-              {file ? file.name : 'Select Image'}
-            </label>
-            <input
-              type="text"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Tags (comma separated)"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-            />
-            <button type="submit">Upload</button>
-          </form>
           <div className="image-grid">
             {images.map((img) => {
               const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
@@ -343,13 +298,6 @@ export default function ImageGallery({ onBack }) {
                   />
                   <div className="image-overlay">
                     <h3>{img.title}</h3>
-                    {img.tags.length > 0 && (
-                      <div className="tags">
-                        {img.tags.map((t) => (
-                          <span key={t} className="tag">#{t}</span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               );
