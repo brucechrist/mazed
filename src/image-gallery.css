@@ -222,6 +222,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  position: relative;
 }
 
 .image-card {
@@ -252,6 +253,16 @@
 
 .image-card:hover .image-overlay {
   opacity: 1;
+}
+
+.dragging-card {
+  box-shadow: 0 0 10px #00f0ff;
+  border: 1px solid #00f0ff;
+}
+
+.image-card.placeholder {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .image-overlay {
