@@ -346,6 +346,7 @@ export default function ImageGallery({ onBack }) {
                   }}
                 >
                   <img
+                    draggable={false}
                     src={img.dataUrl}
                     alt={img.title}
                     onLoad={(e) => {
