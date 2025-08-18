@@ -288,7 +288,20 @@ export default function ImageGallery({ onBack }) {
             </button>
             <h2>Image Library</h2>
           </div>
-          <div className="image-grid" ref={gridRef}>
+          <div
+            className="image-grid"
+            ref={gridRef}
+            onDragOver={(e) => {
+              if (!dragItem) return;
+              e.preventDefault();
+              const rect = gridRef.current.getBoundingClientRect();
+              setDragItem((d) => ({
+                ...d,
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+              }));
+            }}
+          >
             {images.map((img) => {
               const displayWidth = img.width * zoom;
               const displayHeight = img.height * zoom;
@@ -332,15 +345,6 @@ export default function ImageGallery({ onBack }) {
                       if (EMPTY_DRAG_IMAGE) {
                         e.dataTransfer.setDragImage(EMPTY_DRAG_IMAGE, 0, 0);
                       }
-                    }}
-                    onDrag={(e) => {
-                      if (!dragItem) return;
-                      const rect = gridRef.current.getBoundingClientRect();
-                      setDragItem((d) => ({
-                        ...d,
-                        x: e.clientX - rect.left,
-                        y: e.clientY - rect.top,
-                      }));
                     }}
                     onDragEnd={() => {
                       setDragItem(null);
