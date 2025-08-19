@@ -25,6 +25,7 @@ import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
+import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import AkashicRecords from './AkashicRecords.jsx';
 import { supabaseClient } from './supabaseClient';
@@ -66,6 +67,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showMomentoMori, setShowMomentoMori] = useState(false);
+  const [showSemiCharacter, setShowSemiCharacter] = useState(false);
   // Blog visibility starts hidden and becomes visible when on the Form layer.
   // Use a unique name to avoid clashes with the top-level App component.
   const [showToolsBlog, setShowToolsBlog] = useState(false);
@@ -102,7 +104,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       timeline: 'Form',
       typomancy: 'Form',
       moodtracker: 'Form',
-      momentoMori: 'Semi-Formless',
+      momentoMori: 'Form',
+      semiCharacter: 'Semi-Formless',
       quadrantComb: 'Form',
       anima: 'Form',
       blog: 'Form',
@@ -332,6 +335,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <ActivityApp onBack={() => setShowActivity(false)} />
             ) : showCharacterEvolve ? (
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
+            ) : showSemiCharacter ? (
+              <SemiFormlessCharacter onBack={() => setShowSemiCharacter(false)} />
             ) : showIdeaBoard ? (
               <IdeaBoard onBack={() => setShowIdeaBoard(false)} />
             ) : showImplementationIdeas ? (
@@ -556,6 +561,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">🌱</div>
                     <span>Character Evolve</span>
+                  </div>
+                )}
+                {appLayers.semiCharacter === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowSemiCharacter(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'semiCharacter')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'semiCharacter')}
+                  >
+                    <div className="star-icon">🔮</div>
+                    <span>Semi Character</span>
                   </div>
                 )}
                 {appLayers.ideaBoard === activeLayer && (
