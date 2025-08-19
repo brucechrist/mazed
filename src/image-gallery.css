@@ -263,6 +263,9 @@
 .dragging-card {
   box-shadow: 0 0 10px #00f0ff;
   border: 1px solid #00f0ff;
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
 }
 
 .image-card.placeholder {

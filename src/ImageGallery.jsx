@@ -10,10 +10,14 @@ export default function ImageGallery({ onBack }) {
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [zoom, setZoom] = useState(
-    () => Number(localStorage.getItem('galleryZoom')) || 0.3
+    () => Number(localStorage.getItem('galleryZoom')) || 0.35
   );
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
+  const gridRef = useRef(null);
+  const dragItem = useRef(null);
+  const dragPlaceholder = useRef(null);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -82,6 +86,22 @@ export default function ImageGallery({ onBack }) {
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
     saveImages(updated);
+  };
+
+  const resetDrag = () => {
+    if (dragPlaceholder.current) {
+      dragPlaceholder.current.remove();
+      dragPlaceholder.current = null;
+    }
+    if (dragItem.current) {
+      dragItem.current.classList.remove('dragging-card');
+      dragItem.current.style.position = '';
+      dragItem.current.style.left = '';
+      dragItem.current.style.top = '';
+      dragItem.current.style.zIndex = '';
+      dragItem.current.style.pointerEvents = '';
+      dragItem.current = null;
+    }
   };
 
   const processFile = (fileObj, imgTitle = '', imgTags = []) => {
@@ -283,17 +303,22 @@ export default function ImageGallery({ onBack }) {
             <h2>Image Library</h2>
           </div>
           <div
+            ref={gridRef}
             className="image-grid"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
               const from = dragIndex.current;
-              if (from == null) return;
+              if (from == null) {
+                resetDrag();
+                return;
+              }
               const updated = [...images];
               const [moved] = updated.splice(from, 1);
               updated.push(moved);
               saveImages(updated);
               dragIndex.current = null;
+              resetDrag();
             }}
           >
             {images.map((img, index) => {
@@ -312,25 +337,55 @@ export default function ImageGallery({ onBack }) {
                   onClick={() => setLightbox(img)}
                   onDragStart={(e) => {
                     dragIndex.current = index;
-                    e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
-                    requestAnimationFrame(() => {
-                      e.currentTarget.classList.add('placeholder');
-                    });
+                    dragItem.current = e.currentTarget;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const gridRect = gridRef.current.getBoundingClientRect();
+                    dragOffset.current = {
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    };
+                    e.dataTransfer.setDragImage(new Image(), 0, 0);
+                    const ph = document.createElement('div');
+                    ph.className = 'image-card placeholder';
+                    ph.style.width = `${rect.width}px`;
+                    ph.style.height = `${rect.height}px`;
+                    dragPlaceholder.current = ph;
+                    e.currentTarget.parentNode.insertBefore(ph, e.currentTarget);
+                    e.currentTarget.classList.add('dragging-card');
+                    e.currentTarget.style.width = `${rect.width}px`;
+                    e.currentTarget.style.height = `${rect.height}px`;
+                    e.currentTarget.style.position = 'absolute';
+                    e.currentTarget.style.left = `${rect.left - gridRect.left}px`;
+                    e.currentTarget.style.top = `${rect.top - gridRect.top}px`;
+                    e.currentTarget.style.zIndex = '1000';
+                    e.currentTarget.style.pointerEvents = 'none';
+                  }}
+                  onDrag={(e) => {
+                    if (!dragItem.current) return;
+                    const gridRect = gridRef.current.getBoundingClientRect();
+                    const x = e.clientX - dragOffset.current.x - gridRect.left;
+                    const y = e.clientY - dragOffset.current.y - gridRect.top;
+                    dragItem.current.style.left = `${x}px`;
+                    dragItem.current.style.top = `${y}px`;
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
                     const from = dragIndex.current;
-                    if (from == null || from === index) return;
+                    if (from == null || from === index) {
+                      resetDrag();
+                      return;
+                    }
                     const updated = [...images];
                     const [moved] = updated.splice(from, 1);
                     updated.splice(index, 0, moved);
                     saveImages(updated);
                     dragIndex.current = null;
+                    resetDrag();
                   }}
                   onDragEnd={(e) => {
                     dragIndex.current = null;
-                    e.currentTarget.classList.remove('placeholder');
+                    resetDrag();
                   }}>
                   {/* ensure the image tag is self-closing to avoid build errors */}
                   <img
