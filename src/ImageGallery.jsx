@@ -18,6 +18,7 @@ export default function ImageGallery({ onBack }) {
   const dragItem = useRef(null);
   const dragPlaceholder = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const dragMoveListener = useRef(null);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -89,6 +90,10 @@ export default function ImageGallery({ onBack }) {
   };
 
   const resetDrag = () => {
+    if (dragMoveListener.current) {
+      window.removeEventListener('dragover', dragMoveListener.current);
+      dragMoveListener.current = null;
+    }
     if (dragPlaceholder.current) {
       dragPlaceholder.current.remove();
       dragPlaceholder.current = null;
@@ -345,6 +350,7 @@ export default function ImageGallery({ onBack }) {
                       y: e.clientY - rect.top,
                     };
                     e.dataTransfer.setDragImage(new Image(), 0, 0);
+                    e.dataTransfer.setData('text/plain', '');
                     const ph = document.createElement('div');
                     ph.className = 'image-card placeholder';
                     ph.style.width = `${rect.width}px`;
@@ -359,14 +365,18 @@ export default function ImageGallery({ onBack }) {
                     e.currentTarget.style.top = `${rect.top - gridRect.top}px`;
                     e.currentTarget.style.zIndex = '1000';
                     e.currentTarget.style.pointerEvents = 'none';
-                  }}
-                  onDrag={(e) => {
-                    if (!dragItem.current) return;
-                    const gridRect = gridRef.current.getBoundingClientRect();
-                    const x = e.clientX - dragOffset.current.x - gridRect.left;
-                    const y = e.clientY - dragOffset.current.y - gridRect.top;
-                    dragItem.current.style.left = `${x}px`;
-                    dragItem.current.style.top = `${y}px`;
+                    dragMoveListener.current = (event) => {
+                      const gridRect2 = gridRef.current.getBoundingClientRect();
+                      const x =
+                        event.clientX - dragOffset.current.x - gridRect2.left;
+                      const y =
+                        event.clientY - dragOffset.current.y - gridRect2.top;
+                      if (dragItem.current) {
+                        dragItem.current.style.left = `${x}px`;
+                        dragItem.current.style.top = `${y}px`;
+                      }
+                    };
+                    window.addEventListener('dragover', dragMoveListener.current);
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
