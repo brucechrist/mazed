@@ -91,7 +91,7 @@ export default function ImageGallery({ onBack }) {
 
   const resetDrag = () => {
     if (dragMoveListener.current) {
-      window.removeEventListener('dragover', dragMoveListener.current);
+      window.removeEventListener('drag', dragMoveListener.current);
       dragMoveListener.current = null;
     }
     if (dragPlaceholder.current) {
@@ -366,6 +366,7 @@ export default function ImageGallery({ onBack }) {
                     e.currentTarget.style.zIndex = '1000';
                     e.currentTarget.style.pointerEvents = 'none';
                     dragMoveListener.current = (event) => {
+                      event.preventDefault();
                       const gridRect2 = gridRef.current.getBoundingClientRect();
                       const x =
                         event.clientX - dragOffset.current.x - gridRect2.left;
@@ -376,7 +377,7 @@ export default function ImageGallery({ onBack }) {
                         dragItem.current.style.top = `${y}px`;
                       }
                     };
-                    window.addEventListener('dragover', dragMoveListener.current);
+                    window.addEventListener('drag', dragMoveListener.current);
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
