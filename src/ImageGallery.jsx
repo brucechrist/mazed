@@ -91,7 +91,8 @@ export default function ImageGallery({ onBack }) {
 
   const resetDrag = () => {
     if (dragMoveListener.current) {
-      window.removeEventListener('drag', dragMoveListener.current);
+      // Use dragover events so the actual element follows the pointer
+      window.removeEventListener('dragover', dragMoveListener.current);
       dragMoveListener.current = null;
     }
     if (dragPlaceholder.current) {
@@ -377,7 +378,8 @@ export default function ImageGallery({ onBack }) {
                         dragItem.current.style.top = `${y}px`;
                       }
                     };
-                    window.addEventListener('drag', dragMoveListener.current);
+                    // Listen on dragover so we get continuous mouse positions
+                    window.addEventListener('dragover', dragMoveListener.current);
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
