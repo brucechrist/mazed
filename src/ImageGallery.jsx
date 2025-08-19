@@ -1,16 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
+
+const EMPTY_DRAG_IMAGE =
+  typeof document !== 'undefined'
+    ? (() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        return canvas;
+      })()
+    : null;
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
-  const [title, setTitle] = useState('');
-  const [tags, setTags] = useState('');
-  const [file, setFile] = useState(null);
   const [view, setView] = useState('home'); // 'home' or 'gallery'
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [zoom, setZoom] = useState(() => Number(localStorage.getItem('galleryZoom')) || 0.5);
+  const BASE_SIZE = 180;
   const filePickerRef = useRef(null);
+  const dragIndex = useRef(null);
+  const dragPreview = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    return canvas;
+  }, []);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -30,6 +46,40 @@ export default function ImageGallery({ onBack }) {
   };
 
   useEffect(() => {
+    localStorage.setItem('galleryZoom', zoom);
+  }, [zoom]);
+
+  const maxZoom = useMemo(() => {
+    if (images.length === 0) return 1;
+    return Math.max(...images.map((img) => img.width / BASE_SIZE));
+  }, [images]);
+
+
+  useEffect(() => {
+    if (view !== 'gallery') return;
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+          return Math.min(maxZoom, Math.max(0.1, next));
+        });
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [view, maxZoom]);
+
+  useEffect(() => {
+    localStorage.setItem('galleryZoom', zoom);
+  }, [zoom]);
+
+  useEffect(() => {
+    if (lightbox) setLightboxZoom(1);
+  }, [lightbox]);
+
+  useEffect(() => {
+
     const close = () => setMenu(null);
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
@@ -37,6 +87,16 @@ export default function ImageGallery({ onBack }) {
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
+    saveImages(updated);
+  };
+
+  const moveImage = (fromId, toId) => {
+    const fromIndex = images.findIndex((img) => img.id === fromId);
+    const toIndex = images.findIndex((img) => img.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+    const updated = [...images];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
     saveImages(updated);
   };
 
@@ -75,26 +135,9 @@ export default function ImageGallery({ onBack }) {
     }
   };
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!file) return;
-    await uploadToServer(file);
-    processFile(
-      file,
-      title,
-      tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-    );
-    setTitle('');
-    setTags('');
-    setFile(null);
-    e.target.reset();
-  };
-
   const handleDrop = async (e) => {
     e.preventDefault();
+    if (view !== 'home') return;
     setIsDragging(false);
     let droppedFile = e.dataTransfer.files && e.dataTransfer.files[0];
     if (!droppedFile) {
@@ -123,20 +166,25 @@ export default function ImageGallery({ onBack }) {
     <div
       className={`image-gallery-container ${isDragging ? 'dragging' : ''}`}
       onDragOver={(e) => {
+        if (view !== 'home') return;
         e.preventDefault();
         setIsDragging(true);
       }}
       onDragEnter={(e) => {
+        if (view !== 'home') return;
         e.preventDefault();
         setIsDragging(true);
       }}
       onDragLeave={(e) => {
+        if (view !== 'home') return;
         e.preventDefault();
         setIsDragging(false);
       }}
-      onDrop={handleDrop}
+      onDrop={view === 'home' ? handleDrop : undefined}
     >
-      {isDragging && <div className="drop-overlay">Upload Image</div>}
+      {isDragging && view === 'home' && (
+        <div className="drop-overlay">Upload Image</div>
+      )}
       {uploading && <div className="upload-status">Uploading…</div>}
       {view === 'home' ? (
         <div className="gallery-home">
@@ -250,58 +298,82 @@ export default function ImageGallery({ onBack }) {
             </button>
             <h2>Image Library</h2>
           </div>
-          <form className="image-upload-form" onSubmit={handleUpload}>
-            <label className="file-input-label">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFile(e.target.files[0])}
-                required={!file}
-              />
-              {file ? file.name : 'Select Image'}
-            </label>
-            <input
-              type="text"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Tags (comma separated)"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-            />
-            <button type="submit">Upload</button>
-          </form>
-          <div className="image-grid">
-            {images.map((img) => (
-              <div
-                key={img.id}
-                className="image-card"
-                style={
-                  img.width && img.height
-                    ? { aspectRatio: `${img.width} / ${img.height}` }
-                    : undefined
-                }
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-                }}
-              >
-                <img src={img.dataUrl} alt={img.title} />
-                <div className="image-overlay">
-                  <h3>{img.title}</h3>
-                  {img.tags.length > 0 && (
-                    <div className="tags">
-                      {img.tags.map((t) => (
-                        <span key={t} className="tag">#{t}</span>
-                      ))}
-                    </div>
-                  )}
+          <div
+            className="image-grid"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = dragIndex.current;
+              if (from == null) return;
+              const updated = [...images];
+              const [moved] = updated.splice(from, 1);
+              updated.push(moved);
+              saveImages(updated);
+              dragIndex.current = null;
+            }}
+          >
+            {images.map((img, index) => {
+              const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
+              const displayHeight = (img.height / img.width) * displayWidth;
+              return (
+                <div
+                  key={img.id}
+                  className="image-card"
+                  draggable
+                  style={{ width: displayWidth, height: displayHeight }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+                  }}
+                  onClick={() => setLightbox(img)}
+                  onDragStart={(e) => {
+                    dragIndex.current = index;
+                    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const from = dragIndex.current;
+                    if (from == null || from === index) return;
+                    const updated = [...images];
+                    const [moved] = updated.splice(from, 1);
+                    updated.splice(index, 0, moved);
+                    saveImages(updated);
+                    dragIndex.current = null;
+                  }}
+                  onDragEnd={() => {
+                    dragIndex.current = null;
+                  }}>
+                  {/* ensure the image tag is self-closing to avoid build errors */}
+                  <img
+                    draggable={false}
+                    src={img.dataUrl}
+                    alt={img.title}
+                    onLoad={(e) => {
+                      const w = e.target.naturalWidth;
+                      const h = e.target.naturalHeight;
+                      if (w !== img.width || h !== img.height) {
+                        const updated = images.map((i) =>
+                          i.id === img.id ? { ...i, width: w, height: h } : i
+                        );
+                        saveImages(updated);
+                        if (lightbox && lightbox.id === img.id) {
+                          setLightbox((l) => ({ ...l, width: w, height: h }));
+                        }
+                      }
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+                    }}
+                    onClick={() => setLightbox(img)}
+                  />
+                  <div className="image-overlay">
+                    <h3>{img.title}</h3>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {menu && (
             <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
@@ -313,6 +385,32 @@ export default function ImageGallery({ onBack }) {
               >
                 Delete
               </button>
+            </div>
+          )}
+          {lightbox && (
+            <div className="lightbox" onClick={() => setLightbox(null)}>
+              <div
+                className="lightbox-inner"
+                onClick={(e) => e.stopPropagation()}
+                onWheel={(e) => {
+                  if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    setLightboxZoom((z) => {
+                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                      return Math.min(5, Math.max(0.1, next));
+                    });
+                  }
+                }}
+              >
+                <img
+                  src={lightbox.dataUrl}
+                  alt={lightbox.title}
+                  style={{
+                    width: lightbox.width * lightboxZoom,
+                    height: lightbox.height * lightboxZoom,
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
