@@ -12,6 +12,10 @@ export default function ImageGallery({ onBack }) {
   const [zoom, setZoom] = useState(
     () => Number(localStorage.getItem('galleryZoom')) || 0.35
   );
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [descInput, setDescInput] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
@@ -64,8 +68,14 @@ export default function ImageGallery({ onBack }) {
   }, [zoom]);
 
   useEffect(() => {
-    if (lightbox) setLightboxZoom(1);
-  }, [lightbox]);
+    if (lightbox) {
+      setLightboxZoom(1);
+      setTitleInput(lightbox.title || '');
+      setDescInput(lightbox.description || '');
+      setTagInput('');
+      setEditingTitle(false);
+    }
+  }, [lightbox?.id]);
 
   useEffect(() => {
 
@@ -87,6 +97,15 @@ export default function ImageGallery({ onBack }) {
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
     saveImages(updated);
+  };
+
+  const updateImage = (id, updates) => {
+    const updated = images.map((img) =>
+      img.id === id ? { ...img, ...updates } : img
+    );
+    saveImages(updated);
+    const next = updated.find((i) => i.id === id);
+    if (next) setLightbox(next);
   };
 
   const resetDrag = () => {
@@ -119,6 +138,7 @@ export default function ImageGallery({ onBack }) {
         const newImage = {
           id: Date.now(),
           title: imgTitle,
+          description: '',
           tags: imgTags,
           dataUrl: result,
           width: imgEl.width,
@@ -443,29 +463,94 @@ export default function ImageGallery({ onBack }) {
               </button>
             </div>
           )}
+          {!lightbox && (
+            <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
+          )}
           {lightbox && (
             <div className="lightbox" onClick={() => setLightbox(null)}>
-              <div
-                className="lightbox-inner"
-                onClick={(e) => e.stopPropagation()}
-                onWheel={(e) => {
-                  if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    setLightboxZoom((z) => {
-                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                      return Math.min(5, Math.max(0.1, next));
-                    });
-                  }
-                }}
-              >
-                <img
-                  src={lightbox.dataUrl}
-                  alt={lightbox.title}
-                  style={{
-                    width: lightbox.width * lightboxZoom,
-                    height: lightbox.height * lightboxZoom,
+              <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="lightbox-inner"
+                  onWheel={(e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                      e.preventDefault();
+                      setLightboxZoom((z) => {
+                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                        return Math.min(5, Math.max(0.1, next));
+                      });
+                    }
                   }}
-                />
+                >
+                  <img
+                    src={lightbox.dataUrl}
+                    alt={lightbox.title}
+                    style={{
+                      width: lightbox.width * lightboxZoom,
+                      height: lightbox.height * lightboxZoom,
+                    }}
+                  />
+                </div>
+                <div className="lightbox-info">
+                  {editingTitle ? (
+                    <input
+                      type="text"
+                      value={titleInput}
+                      onChange={(e) => setTitleInput(e.target.value)}
+                      onBlur={() => {
+                        updateImage(lightbox.id, { title: titleInput });
+                        setEditingTitle(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          updateImage(lightbox.id, { title: titleInput });
+                          setEditingTitle(false);
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <h1 onClick={() => setEditingTitle(true)}>
+                      {lightbox.title || 'Untitled'}
+                    </h1>
+                  )}
+                  <textarea
+                    value={descInput}
+                    placeholder="Description"
+                    onChange={(e) => setDescInput(e.target.value)}
+                    onBlur={() => updateImage(lightbox.id, { description: descInput })}
+                  />
+                  <div className="tag-list">
+                    {lightbox.tags?.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="tag"
+                        onClick={() => {
+                          const nt = lightbox.tags.filter((_, i) => i !== idx);
+                          updateImage(lightbox.id, { tags: nt });
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={tagInput}
+                      placeholder="Add tag"
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && tagInput.trim()) {
+                          const nt = [...(lightbox.tags || []), tagInput.trim()];
+                          updateImage(lightbox.id, { tags: nt });
+                          setTagInput('');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="zoom-indicator">
+                {Math.round(lightboxZoom * 100)}%
               </div>
             </div>
           )}
