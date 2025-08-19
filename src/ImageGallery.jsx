@@ -10,7 +10,7 @@ export default function ImageGallery({ onBack }) {
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [zoom, setZoom] = useState(
-    () => Number(localStorage.getItem('galleryZoom')) || 0.35
+    () => Number(localStorage.getItem('galleryZoom')) || 0.3
   );
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
@@ -313,6 +313,9 @@ export default function ImageGallery({ onBack }) {
                   onDragStart={(e) => {
                     dragIndex.current = index;
                     e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+                    requestAnimationFrame(() => {
+                      e.currentTarget.classList.add('placeholder');
+                    });
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -325,8 +328,9 @@ export default function ImageGallery({ onBack }) {
                     saveImages(updated);
                     dragIndex.current = null;
                   }}
-                  onDragEnd={() => {
+                  onDragEnd={(e) => {
                     dragIndex.current = null;
+                    e.currentTarget.classList.remove('placeholder');
                   }}>
                   {/* ensure the image tag is self-closing to avoid build errors */}
                   <img
