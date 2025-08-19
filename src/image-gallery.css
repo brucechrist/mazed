@@ -383,6 +383,69 @@
   min-height: 80px;
 }
 
+.quad-section {
+  margin-top: 8px;
+}
+
+.quad-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quad-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.add-quad-btn {
+  margin-left: auto;
+  background: #3a3a3d;
+  border: none;
+  color: #e0e0e0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.quad-list {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.quad-select {
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 2px 6px;
+}
+
+.quad-select option {
+  color: #e0e0e0;
+}
+
+.quad-II,
+.quad-select option[value='II'] {
+  color: #27ae60;
+}
+
+.quad-IE,
+.quad-select option[value='IE'] {
+  color: #2980b9;
+}
+
+.quad-EI,
+.quad-select option[value='EI'] {
+  color: #f1c40f;
+}
+
+.quad-EE,
+.quad-select option[value='EE'] {
+  color: #e74c3c;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

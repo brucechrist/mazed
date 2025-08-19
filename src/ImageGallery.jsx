@@ -140,6 +140,7 @@ export default function ImageGallery({ onBack }) {
           title: imgTitle,
           description: '',
           tags: imgTags,
+          quadrants: [],
           dataUrl: result,
           width: imgEl.width,
           height: imgEl.height,
@@ -520,6 +521,50 @@ export default function ImageGallery({ onBack }) {
                     onChange={(e) => setDescInput(e.target.value)}
                     onBlur={() => updateImage(lightbox.id, { description: descInput })}
                   />
+                  <div className="quad-section">
+                    <div className="quad-header">
+                      <h2>Quads</h2>
+                      {(lightbox.quadrants?.length || 0) < 2 && (
+                        <button
+                          className="add-quad-btn"
+                          onClick={() => {
+                            const nq = [...(lightbox.quadrants || []), ''];
+                            updateImage(lightbox.id, { quadrants: nq });
+                          }}
+                        >
+                          +
+                        </button>
+                      )}
+                    </div>
+                    <div className="quad-list">
+                      {(lightbox.quadrants && lightbox.quadrants.length > 0
+                        ? lightbox.quadrants
+                        : ['']
+                      ).map((q, idx) => (
+                        <select
+                          key={idx}
+                          value={q}
+                          className={`quad-select ${q ? 'quad-' + q : ''}`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            let nq = [...(lightbox.quadrants || [])];
+                            if (val === '') {
+                              nq.splice(idx, 1);
+                            } else {
+                              nq[idx] = val;
+                            }
+                            updateImage(lightbox.id, { quadrants: nq });
+                          }}
+                        >
+                          <option value=""></option>
+                          <option value="II">II</option>
+                          <option value="IE">IE</option>
+                          <option value="EI">EI</option>
+                          <option value="EE">EE</option>
+                        </select>
+                      ))}
+                    </div>
+                  </div>
                   <div className="tag-list">
                     {lightbox.tags?.map((tag, idx) => (
                       <span
