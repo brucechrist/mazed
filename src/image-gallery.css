@@ -331,3 +331,79 @@
   max-height: none;
 }
 
+.zoom-indicator {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #00f0ff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  z-index: 1004;
+}
+
+.lightbox-content {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.lightbox-info {
+  width: 300px;
+  background: #1b1b1e;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lightbox-info h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.lightbox-info input[type='text'] {
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  color: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.lightbox-info textarea {
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  color: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-list input {
+  flex: 1 0 100%;
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  color: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.tag {
+  background: #00f0ff;
+  color: #0f0f10;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
