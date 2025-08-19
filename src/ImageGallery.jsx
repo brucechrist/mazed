@@ -1,15 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
 
-const EMPTY_DRAG_IMAGE =
-  typeof document !== 'undefined'
-    ? (() => {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 1;
-        return canvas;
-      })()
-    : null;
-
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
   const [view, setView] = useState('home'); // 'home' or 'gallery'
@@ -18,15 +9,11 @@ export default function ImageGallery({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(() => Number(localStorage.getItem('galleryZoom')) || 0.5);
-  const BASE_SIZE = 180;
+  const [zoom, setZoom] = useState(
+    () => Number(localStorage.getItem('galleryZoom')) || 0.35
+  );
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
-  const dragPreview = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    return canvas;
-  }, []);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -49,10 +36,7 @@ export default function ImageGallery({ onBack }) {
     localStorage.setItem('galleryZoom', zoom);
   }, [zoom]);
 
-  const maxZoom = useMemo(() => {
-    if (images.length === 0) return 1;
-    return Math.max(...images.map((img) => img.width / BASE_SIZE));
-  }, [images]);
+  const maxZoom = 1; // max 100% of native size
 
 
   useEffect(() => {
@@ -313,8 +297,8 @@ export default function ImageGallery({ onBack }) {
             }}
           >
             {images.map((img, index) => {
-              const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
-              const displayHeight = (img.height / img.width) * displayWidth;
+              const displayWidth = img.width * zoom;
+              const displayHeight = img.height * zoom;
               return (
                 <div
                   key={img.id}
@@ -328,7 +312,7 @@ export default function ImageGallery({ onBack }) {
                   onClick={() => setLightbox(img)}
                   onDragStart={(e) => {
                     dragIndex.current = index;
-                    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+                    e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
