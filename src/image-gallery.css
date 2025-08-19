@@ -414,6 +414,29 @@
   margin-top: 4px;
 }
 
+.color-section {
+  margin-top: 8px;
+}
+
+.color-list {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.color-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #e0e0e0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-circle.selected {
+  box-shadow: 0 0 0 2px #00f0ff;
+}
+
 .quad-select {
   background: #2a2a2d;
   border: 1px solid #3a3a3d;

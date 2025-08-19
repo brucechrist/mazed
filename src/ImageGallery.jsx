@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
+import { COLOR_STORAGE_KEY, DEFAULT_COLORS } from './colorConfig.js';
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -16,6 +17,13 @@ export default function ImageGallery({ onBack }) {
   const [titleInput, setTitleInput] = useState('');
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [palette, setPalette] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY)) || DEFAULT_COLORS;
+    } catch {
+      return DEFAULT_COLORS;
+    }
+  });
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
@@ -76,6 +84,21 @@ export default function ImageGallery({ onBack }) {
       setEditingTitle(false);
     }
   }, [lightbox?.id]);
+
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY));
+        if (stored) setPalette(stored);
+      } catch {}
+    };
+    window.addEventListener('storage', handler);
+    window.addEventListener('palette-change', handler);
+    return () => {
+      window.removeEventListener('storage', handler);
+      window.removeEventListener('palette-change', handler);
+    };
+  }, []);
 
   useEffect(() => {
 
@@ -141,6 +164,7 @@ export default function ImageGallery({ onBack }) {
           description: '',
           tags: imgTags,
           quadrants: [],
+          color: '',
           dataUrl: result,
           width: imgEl.width,
           height: imgEl.height,
@@ -562,6 +586,25 @@ export default function ImageGallery({ onBack }) {
                           <option value="EI">EI</option>
                           <option value="EE">EE</option>
                         </select>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="color-section">
+                    <h2>Colors</h2>
+                    <div className="color-list">
+                      {palette.map((c, idx) => (
+                        <button
+                          key={idx}
+                          className={`color-circle${
+                            lightbox.color === c ? ' selected' : ''
+                          }`}
+                          style={{ background: c }}
+                          onClick={() =>
+                            updateImage(lightbox.id, {
+                              color: lightbox.color === c ? '' : c,
+                            })
+                          }
+                        />
                       ))}
                     </div>
                   </div>
