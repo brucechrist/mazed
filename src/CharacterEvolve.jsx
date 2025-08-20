@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './placeholder-app.css';
 import './character-evolve.css';
+import { COLOR_STORAGE_KEY, DEFAULT_COLORS } from './colorConfig.js';
 
 // Distinct constant name to avoid accidental redeclarations during builds
 const FORM_STATE_BARS = [
@@ -26,10 +27,22 @@ export default function CharacterEvolve({ onBack }) {
   });
   const [editingKey, setEditingKey] = useState(null);
   const [tempValue, setTempValue] = useState('');
+  const [colors, setColors] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY)) || DEFAULT_COLORS;
+    } catch {
+      return DEFAULT_COLORS;
+    }
+  });
 
   useEffect(() => {
     localStorage.setItem('evolveValues', JSON.stringify(values));
   }, [values]);
+
+  useEffect(() => {
+    localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(colors));
+    window.dispatchEvent(new Event('palette-change'));
+  }, [colors]);
 
   const startEdit = (key) => {
     setEditingKey(key);
@@ -98,6 +111,23 @@ export default function CharacterEvolve({ onBack }) {
       {BARS.map((b) =>
         renderBar({ key: b.key, display: `${b.key} ${b.text}`, aria: b.key })
       )}
+      <div className="color-settings">
+        <h2>Colors</h2>
+        <div className="color-edit-list">
+          {colors.map((c, idx) => (
+            <input
+              key={idx}
+              type="color"
+              value={c}
+              onChange={(e) => {
+                const nc = [...colors];
+                nc[idx] = e.target.value;
+                setColors(nc);
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

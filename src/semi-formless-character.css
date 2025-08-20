@@ -1,0 +1,38 @@
+.semi-formless-character {
+  padding: 20px;
+  color: #fff;
+}
+
+.semi-formless-character .diagram {
+  position: relative;
+  width: 300px;
+  height: 720px;
+  margin: 0 auto 20px;
+}
+
+.semi-formless-character .node {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  text-align: center;
+}
+
+.semi-formless-character .node.circle {
+  border-radius: 50%;
+}
+
+.semi-formless-character .node.square {
+  border-radius: 8px;
+}
+
+.semi-formless-character .color-edit-toggle {
+  margin-bottom: 10px;
+}
+
+.semi-formless-character .color-edit-list input {
+  margin-right: 5px;
+}
