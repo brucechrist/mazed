@@ -25,6 +25,7 @@ import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
+import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import AkashicRecords from './AkashicRecords.jsx';
 import { supabaseClient } from './supabaseClient';
@@ -102,7 +103,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       timeline: 'Form',
       typomancy: 'Form',
       moodtracker: 'Form',
-      momentoMori: 'Semi-Formless',
+      momentoMori: 'Form',
       quadrantComb: 'Form',
       anima: 'Form',
       blog: 'Form',
@@ -293,7 +294,13 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           ))}
         </div>
         <h1>{activeTab}</h1>
-        {activeTab === 'Character' && <StatsQuadrant />}
+        {activeTab === 'Character' && (
+          activeLayer === 'Semi-Formless' ? (
+            <SemiFormlessCharacter />
+          ) : (
+            <StatsQuadrant />
+          )
+        )}
         {activeTab === 'Tools' && (
           <div className="tools-layout">
             {showJournal ? (
