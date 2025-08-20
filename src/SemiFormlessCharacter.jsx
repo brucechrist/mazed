@@ -18,16 +18,17 @@ export default function SemiFormlessCharacter({ onBack }) {
   }, [colors]);
 
   const nodes = [
-    { id: 0, type: 'circle', top: 0, left: 50, colorIndex: 0, label: '1' },
-    { id: 1, type: 'circle', top: 15, left: 20, colorIndex: 1, label: '2' },
-    { id: 2, type: 'circle', top: 15, left: 80, colorIndex: 2, label: '3' },
-    { id: 3, type: 'square', top: 30, left: 50, colorIndex: 3, label: '4' },
-    { id: 4, type: 'circle', top: 45, left: 20, colorIndex: 4, label: '5' },
-    { id: 5, type: 'circle', top: 45, left: 80, colorIndex: 5, label: '6' },
+    { id: 0, type: 'circle', top: 0, left: 50, colorIndex: 6, label: '1' },
+    { id: 1, type: 'circle', top: 15, left: 20, colorIndex: 5, label: '2' },
+    { id: 2, type: 'circle', top: 15, left: 80, colorIndex: 4, label: '3' },
+    { id: 3, type: 'square', top: 30, left: 50, colorIndex: 6, label: '4' },
+    { id: 4, type: 'circle', top: 45, left: 20, colorIndex: 2, label: '5' },
+    { id: 5, type: 'circle', top: 45, left: 80, colorIndex: 3, label: '6' },
     { id: 6, type: 'square', top: 60, left: 50, colorIndex: 6, label: '7' },
     { id: 7, type: 'circle', top: 75, left: 20, colorIndex: 0, label: '8' },
     { id: 8, type: 'circle', top: 75, left: 80, colorIndex: 1, label: '9' },
-    { id: 9, type: 'circle', top: 90, left: 50, colorIndex: 2, label: '10' },
+    { id: 9, type: 'circle', top: 90, left: 50, colorIndex: 6, label: '10' },
+    { id: 10, type: 'circle', top: 'calc(100% - 60px)', left: 50, colorIndex: 6, label: '11' },
   ];
 
   return (
@@ -43,8 +44,8 @@ export default function SemiFormlessCharacter({ onBack }) {
             key={n.id}
             className={`node ${n.type}`}
             style={{
-              top: `${n.top}%`,
-              left: `${n.left}%`,
+              top: typeof n.top === 'number' ? `${n.top}%` : n.top,
+              left: typeof n.left === 'number' ? `${n.left}%` : n.left,
               backgroundColor: colors[n.colorIndex % colors.length],
             }}
           >
