@@ -32,9 +32,11 @@ export default function SemiFormlessCharacter({ onBack }) {
 
   return (
     <div className="semi-formless-character">
-      <button className="back-button" onClick={onBack}>
-        Back
-      </button>
+      {onBack && (
+        <button className="back-button" onClick={onBack}>
+          Back
+        </button>
+      )}
       <div className="diagram">
         {nodes.map((n) => (
           <div

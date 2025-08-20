@@ -105,7 +105,6 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       typomancy: 'Form',
       moodtracker: 'Form',
       momentoMori: 'Form',
-      semiCharacter: 'Semi-Formless',
       quadrantComb: 'Form',
       anima: 'Form',
       blog: 'Form',
@@ -296,7 +295,13 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           ))}
         </div>
         <h1>{activeTab}</h1>
-        {activeTab === 'Character' && <StatsQuadrant />}
+        {activeTab === 'Character' && (
+          activeLayer === 'Semi-Formless' ? (
+            <SemiFormlessCharacter />
+          ) : (
+            <StatsQuadrant />
+          )
+        )}
         {activeTab === 'Tools' && (
           <div className="tools-layout">
             {showJournal ? (
