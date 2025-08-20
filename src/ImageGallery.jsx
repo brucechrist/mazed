@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
-
-const EMPTY_DRAG_IMAGE =
-  typeof document !== 'undefined'
-    ? (() => {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 1;
-        return canvas;
-      })()
-    : null;
+import { COLOR_STORAGE_KEY, DEFAULT_COLORS } from './colorConfig.js';
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -18,15 +10,27 @@ export default function ImageGallery({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(() => Number(localStorage.getItem('galleryZoom')) || 0.5);
-  const BASE_SIZE = 180;
+  const [zoom, setZoom] = useState(
+    () => Number(localStorage.getItem('galleryZoom')) || 0.35
+  );
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [descInput, setDescInput] = useState('');
+  const [tagInput, setTagInput] = useState('');
+  const [palette, setPalette] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY)) || DEFAULT_COLORS;
+    } catch {
+      return DEFAULT_COLORS;
+    }
+  });
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
-  const dragPreview = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    return canvas;
-  }, []);
+  const gridRef = useRef(null);
+  const dragItem = useRef(null);
+  const dragPlaceholder = useRef(null);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const dragMoveListener = useRef(null);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -49,10 +53,7 @@ export default function ImageGallery({ onBack }) {
     localStorage.setItem('galleryZoom', zoom);
   }, [zoom]);
 
-  const maxZoom = useMemo(() => {
-    if (images.length === 0) return 1;
-    return Math.max(...images.map((img) => img.width / BASE_SIZE));
-  }, [images]);
+  const maxZoom = 1; // max 100% of native size
 
 
   useEffect(() => {
@@ -75,8 +76,29 @@ export default function ImageGallery({ onBack }) {
   }, [zoom]);
 
   useEffect(() => {
-    if (lightbox) setLightboxZoom(1);
-  }, [lightbox]);
+    if (lightbox) {
+      setLightboxZoom(1);
+      setTitleInput(lightbox.title || '');
+      setDescInput(lightbox.description || '');
+      setTagInput('');
+      setEditingTitle(false);
+    }
+  }, [lightbox?.id]);
+
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY));
+        if (stored) setPalette(stored);
+      } catch {}
+    };
+    window.addEventListener('storage', handler);
+    window.addEventListener('palette-change', handler);
+    return () => {
+      window.removeEventListener('storage', handler);
+      window.removeEventListener('palette-change', handler);
+    };
+  }, []);
 
   useEffect(() => {
 
@@ -100,6 +122,36 @@ export default function ImageGallery({ onBack }) {
     saveImages(updated);
   };
 
+  const updateImage = (id, updates) => {
+    const updated = images.map((img) =>
+      img.id === id ? { ...img, ...updates } : img
+    );
+    saveImages(updated);
+    const next = updated.find((i) => i.id === id);
+    if (next) setLightbox(next);
+  };
+
+  const resetDrag = () => {
+    if (dragMoveListener.current) {
+      // Use dragover events so the actual element follows the pointer
+      window.removeEventListener('dragover', dragMoveListener.current);
+      dragMoveListener.current = null;
+    }
+    if (dragPlaceholder.current) {
+      dragPlaceholder.current.remove();
+      dragPlaceholder.current = null;
+    }
+    if (dragItem.current) {
+      dragItem.current.classList.remove('dragging-card');
+      dragItem.current.style.position = '';
+      dragItem.current.style.left = '';
+      dragItem.current.style.top = '';
+      dragItem.current.style.zIndex = '';
+      dragItem.current.style.pointerEvents = '';
+      dragItem.current = null;
+    }
+  };
+
   const processFile = (fileObj, imgTitle = '', imgTags = []) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -109,7 +161,10 @@ export default function ImageGallery({ onBack }) {
         const newImage = {
           id: Date.now(),
           title: imgTitle,
+          description: '',
           tags: imgTags,
+          quadrants: [],
+          color: '',
           dataUrl: result,
           width: imgEl.width,
           height: imgEl.height,
@@ -299,22 +354,27 @@ export default function ImageGallery({ onBack }) {
             <h2>Image Library</h2>
           </div>
           <div
+            ref={gridRef}
             className="image-grid"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
               const from = dragIndex.current;
-              if (from == null) return;
+              if (from == null) {
+                resetDrag();
+                return;
+              }
               const updated = [...images];
               const [moved] = updated.splice(from, 1);
               updated.push(moved);
               saveImages(updated);
               dragIndex.current = null;
+              resetDrag();
             }}
           >
             {images.map((img, index) => {
-              const displayWidth = Math.min(img.width, BASE_SIZE * zoom);
-              const displayHeight = (img.height / img.width) * displayWidth;
+              const displayWidth = img.width * zoom;
+              const displayHeight = img.height * zoom;
               return (
                 <div
                   key={img.id}
@@ -328,21 +388,62 @@ export default function ImageGallery({ onBack }) {
                   onClick={() => setLightbox(img)}
                   onDragStart={(e) => {
                     dragIndex.current = index;
-                    e.dataTransfer.setDragImage(dragPreview, 0, 0);
+                    dragItem.current = e.currentTarget;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const gridRect = gridRef.current.getBoundingClientRect();
+                    dragOffset.current = {
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    };
+                    e.dataTransfer.setDragImage(new Image(), 0, 0);
+                    e.dataTransfer.setData('text/plain', '');
+                    const ph = document.createElement('div');
+                    ph.className = 'image-card placeholder';
+                    ph.style.width = `${rect.width}px`;
+                    ph.style.height = `${rect.height}px`;
+                    dragPlaceholder.current = ph;
+                    e.currentTarget.parentNode.insertBefore(ph, e.currentTarget);
+                    e.currentTarget.classList.add('dragging-card');
+                    e.currentTarget.style.width = `${rect.width}px`;
+                    e.currentTarget.style.height = `${rect.height}px`;
+                    e.currentTarget.style.position = 'absolute';
+                    e.currentTarget.style.left = `${rect.left - gridRect.left}px`;
+                    e.currentTarget.style.top = `${rect.top - gridRect.top}px`;
+                    e.currentTarget.style.zIndex = '1000';
+                    e.currentTarget.style.pointerEvents = 'none';
+                    dragMoveListener.current = (event) => {
+                      event.preventDefault();
+                      const gridRect2 = gridRef.current.getBoundingClientRect();
+                      const x =
+                        event.clientX - dragOffset.current.x - gridRect2.left;
+                      const y =
+                        event.clientY - dragOffset.current.y - gridRect2.top;
+                      if (dragItem.current) {
+                        dragItem.current.style.left = `${x}px`;
+                        dragItem.current.style.top = `${y}px`;
+                      }
+                    };
+                    // Listen on dragover so we get continuous mouse positions
+                    window.addEventListener('dragover', dragMoveListener.current);
                   }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
                     const from = dragIndex.current;
-                    if (from == null || from === index) return;
+                    if (from == null || from === index) {
+                      resetDrag();
+                      return;
+                    }
                     const updated = [...images];
                     const [moved] = updated.splice(from, 1);
                     updated.splice(index, 0, moved);
                     saveImages(updated);
                     dragIndex.current = null;
+                    resetDrag();
                   }}
-                  onDragEnd={() => {
+                  onDragEnd={(e) => {
                     dragIndex.current = null;
+                    resetDrag();
                   }}>
                   {/* ensure the image tag is self-closing to avoid build errors */}
                   <img
@@ -387,29 +488,157 @@ export default function ImageGallery({ onBack }) {
               </button>
             </div>
           )}
+          {!lightbox && (
+            <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
+          )}
           {lightbox && (
             <div className="lightbox" onClick={() => setLightbox(null)}>
-              <div
-                className="lightbox-inner"
-                onClick={(e) => e.stopPropagation()}
-                onWheel={(e) => {
-                  if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    setLightboxZoom((z) => {
-                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                      return Math.min(5, Math.max(0.1, next));
-                    });
-                  }
-                }}
-              >
-                <img
-                  src={lightbox.dataUrl}
-                  alt={lightbox.title}
-                  style={{
-                    width: lightbox.width * lightboxZoom,
-                    height: lightbox.height * lightboxZoom,
+              <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="lightbox-inner"
+                  onWheel={(e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                      e.preventDefault();
+                      setLightboxZoom((z) => {
+                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                        return Math.min(5, Math.max(0.1, next));
+                      });
+                    }
                   }}
-                />
+                >
+                  <img
+                    src={lightbox.dataUrl}
+                    alt={lightbox.title}
+                    style={{
+                      width: lightbox.width * lightboxZoom,
+                      height: lightbox.height * lightboxZoom,
+                    }}
+                  />
+                </div>
+                <div className="lightbox-info">
+                  {editingTitle ? (
+                    <input
+                      type="text"
+                      value={titleInput}
+                      onChange={(e) => setTitleInput(e.target.value)}
+                      onBlur={() => {
+                        updateImage(lightbox.id, { title: titleInput });
+                        setEditingTitle(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          updateImage(lightbox.id, { title: titleInput });
+                          setEditingTitle(false);
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <h1 onClick={() => setEditingTitle(true)}>
+                      {lightbox.title || 'Untitled'}
+                    </h1>
+                  )}
+                  <textarea
+                    value={descInput}
+                    placeholder="Description"
+                    onChange={(e) => setDescInput(e.target.value)}
+                    onBlur={() => updateImage(lightbox.id, { description: descInput })}
+                  />
+                  <div className="quad-section">
+                    <div className="quad-header">
+                      <h2>Quads</h2>
+                      {(lightbox.quadrants?.length || 0) < 2 && (
+                        <button
+                          className="add-quad-btn"
+                          onClick={() => {
+                            const nq = [...(lightbox.quadrants || []), ''];
+                            updateImage(lightbox.id, { quadrants: nq });
+                          }}
+                        >
+                          +
+                        </button>
+                      )}
+                    </div>
+                    <div className="quad-list">
+                      {(lightbox.quadrants && lightbox.quadrants.length > 0
+                        ? lightbox.quadrants
+                        : ['']
+                      ).map((q, idx) => (
+                        <select
+                          key={idx}
+                          value={q}
+                          className={`quad-select ${q ? 'quad-' + q : ''}`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            let nq = [...(lightbox.quadrants || [])];
+                            if (val === '') {
+                              nq.splice(idx, 1);
+                            } else {
+                              nq[idx] = val;
+                            }
+                            updateImage(lightbox.id, { quadrants: nq });
+                          }}
+                        >
+                          <option value=""></option>
+                          <option value="II">II</option>
+                          <option value="IE">IE</option>
+                          <option value="EI">EI</option>
+                          <option value="EE">EE</option>
+                        </select>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="color-section">
+                    <h2>Colors</h2>
+                    <div className="color-list">
+                      {palette.map((c, idx) => (
+                        <button
+                          key={idx}
+                          className={`color-circle${
+                            lightbox.color === c ? ' selected' : ''
+                          }`}
+                          style={{ background: c }}
+                          onClick={() =>
+                            updateImage(lightbox.id, {
+                              color: lightbox.color === c ? '' : c,
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="tag-list">
+                    {lightbox.tags?.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="tag"
+                        onClick={() => {
+                          const nt = lightbox.tags.filter((_, i) => i !== idx);
+                          updateImage(lightbox.id, { tags: nt });
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={tagInput}
+                      placeholder="Add tag"
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && tagInput.trim()) {
+                          const nt = [...(lightbox.tags || []), tagInput.trim()];
+                          updateImage(lightbox.id, { tags: nt });
+                          setTagInput('');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="zoom-indicator">
+                {Math.round(lightboxZoom * 100)}%
               </div>
             </div>
           )}
