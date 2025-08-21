@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
+import { extractDominantColor } from './dominantColor.js';
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -170,7 +171,7 @@ export default function ImageGallery({ onBack }) {
     return [h, s, l];
   };
 
-  const computeAverageColor = (dataUrl) =>
+  const computeDominantColor = (dataUrl) =>
     new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
@@ -181,20 +182,7 @@ export default function ImageGallery({ onBack }) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
         const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let r = 0,
-          g = 0,
-          b = 0;
-        const total = data.length / 4;
-        for (let i = 0; i < data.length; i += 4) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-        }
-        resolve([
-          Math.round(r / total),
-          Math.round(g / total),
-          Math.round(b / total),
-        ]);
+        resolve(extractDominantColor(data));
       };
       img.src = dataUrl;
     });
@@ -203,9 +191,9 @@ export default function ImageGallery({ onBack }) {
     const paletteRgb = palette.map(hexToRgb);
     const updated = await Promise.all(
       images.map(async (img) => {
-        const avg = await computeAverageColor(img.dataUrl);
-        const [, s, l] = rgbToHsl(avg);
-        let target = avg;
+        const dom = await computeDominantColor(img.dataUrl);
+        const [, s, l] = rgbToHsl(dom);
+        let target = dom;
         if (s < 0.2) {
           target = l < 0.2 ? [0, 0, 0] : l > 0.8 ? [255, 255, 255] : [128, 128, 128];
         }
