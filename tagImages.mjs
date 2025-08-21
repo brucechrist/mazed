@@ -3,17 +3,17 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Load the DEFAULT_COLORS array from src/colorConfig.js
+// Load palette from shared JSON file
 async function loadPalette() {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const configPath = path.join(__dirname, 'src', 'colorConfig.js');
-  const text = await fs.readFile(configPath, 'utf8');
-  const match = text.match(/DEFAULT_COLORS\s*=\s*(\[[^\]]+\])/);
-  if (!match) throw new Error('DEFAULT_COLORS not found in colorConfig.js');
-  // Convert single quotes to double quotes and parse JSON
-  const arr = JSON.parse(match[1].replace(/'/g, '"'));
-  return arr;
+  const palettePath = path.join(__dirname, 'palette.json');
+  try {
+    const text = await fs.readFile(palettePath, 'utf8');
+    return JSON.parse(text);
+  } catch {
+    return ['#ffffff', '#f1c40f', '#e74c3c', '#27ae60', '#2980b9', '#8e44ad', '#000000'];
+  }
 }
 
 function hexToRgb(hex) {
@@ -98,7 +98,7 @@ export async function tagImages(imagePaths) {
 }
 
 // CLI usage: node tagImages.mjs img1.jpg img2.png
-if (import.meta.url === fileURLToPath(process.argv[1])) {
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
   const paths = process.argv.slice(2);
   tagImages(paths)
     .then((map) => console.log(map))

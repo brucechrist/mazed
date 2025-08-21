@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import './semi-formless-character.css';
-import { COLOR_STORAGE_KEY, DEFAULT_COLORS } from './colorConfig.js';
+import { DEFAULT_COLORS, loadPalette, savePalette } from './colorConfig.js';
 
 export default function SemiFormlessCharacter({ onBack }) {
-  const [colors, setColors] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY)) || DEFAULT_COLORS;
-    } catch {
-      return DEFAULT_COLORS;
-    }
-  });
+  const [colors, setColors] = useState(DEFAULT_COLORS);
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(colors));
-    window.dispatchEvent(new Event('palette-change'));
+    loadPalette().then(setColors);
+  }, []);
+
+  useEffect(() => {
+    savePalette(colors);
   }, [colors]);
 
   const nodes = [
