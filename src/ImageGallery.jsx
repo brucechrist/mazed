@@ -148,6 +148,36 @@ export default function ImageGallery({ onBack }) {
       (a[2] - b[2]) ** 2
     );
 
+  const rgbToHsl = ([r, g, b]) => {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h,
+      s,
+      l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+    return [h, s, l];
+  };
+
   const computeAverageColor = (dataUrl) =>
     new Promise((resolve) => {
       const img = new Image();
@@ -182,10 +212,15 @@ export default function ImageGallery({ onBack }) {
     const updated = await Promise.all(
       images.map(async (img) => {
         const avg = await computeAverageColor(img.dataUrl);
+        const [, s, l] = rgbToHsl(avg);
+        let target = avg;
+        if (s < 0.2) {
+          target = l < 0.2 ? [0, 0, 0] : l > 0.8 ? [255, 255, 255] : [128, 128, 128];
+        }
         let bestIndex = 0;
         let min = Infinity;
         paletteRgb.forEach((p, i) => {
-          const d = distance(avg, p);
+          const d = distance(target, p);
           if (d < min) {
             min = d;
             bestIndex = i;
