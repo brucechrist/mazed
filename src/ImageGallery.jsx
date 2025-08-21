@@ -24,6 +24,7 @@ export default function ImageGallery({ onBack }) {
       return DEFAULT_COLORS;
     }
   });
+  const [sortedByColor, setSortedByColor] = useState(false);
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
@@ -131,6 +132,75 @@ export default function ImageGallery({ onBack }) {
     if (next) setLightbox(next);
   };
 
+  const hexToRgb = (hex) => {
+    const bigint = parseInt(hex.slice(1), 16);
+    return [
+      (bigint >> 16) & 255,
+      (bigint >> 8) & 255,
+      bigint & 255,
+    ];
+  };
+
+  const distance = (a, b) =>
+    Math.sqrt(
+      (a[0] - b[0]) ** 2 +
+      (a[1] - b[1]) ** 2 +
+      (a[2] - b[2]) ** 2
+    );
+
+  const computeAverageColor = (dataUrl) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let r = 0,
+          g = 0,
+          b = 0;
+        const total = data.length / 4;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+        }
+        resolve([
+          Math.round(r / total),
+          Math.round(g / total),
+          Math.round(b / total),
+        ]);
+      };
+      img.src = dataUrl;
+    });
+
+  const autoSortByColor = async () => {
+    const paletteRgb = palette.map(hexToRgb);
+    const updated = await Promise.all(
+      images.map(async (img) => {
+        const avg = await computeAverageColor(img.dataUrl);
+        let bestIndex = 0;
+        let min = Infinity;
+        paletteRgb.forEach((p, i) => {
+          const d = distance(avg, p);
+          if (d < min) {
+            min = d;
+            bestIndex = i;
+          }
+        });
+        return { ...img, color: palette[bestIndex] };
+      })
+    );
+    const sorted = [...updated].sort(
+      (a, b) => palette.indexOf(a.color) - palette.indexOf(b.color)
+    );
+    saveImages(sorted);
+    setSortedByColor(true);
+  };
+
   const resetDrag = () => {
     if (dragMoveListener.current) {
       // Use dragover events so the actual element follows the pointer
@@ -215,6 +285,122 @@ export default function ImageGallery({ onBack }) {
     if (!droppedFile || !droppedFile.type.startsWith('image/')) return;
     await uploadToServer(droppedFile);
     processFile(droppedFile);
+  };
+
+  const renderImageCard = (img, index) => {
+    const displayWidth = img.width * zoom;
+    const displayHeight = img.height * zoom;
+    return (
+      <div
+        key={img.id}
+        className="image-card"
+        style={{ width: displayWidth, height: displayHeight }}
+        draggable={!sortedByColor}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+        }}
+        onClick={() => setLightbox(img)}
+        onDragStart=
+          {!sortedByColor
+            ? (e) => {
+                dragIndex.current = index;
+                dragItem.current = e.currentTarget;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const gridRect = gridRef.current.getBoundingClientRect();
+                dragOffset.current = {
+                  x: e.clientX - rect.left,
+                  y: e.clientY - rect.top,
+                };
+                e.dataTransfer.setDragImage(new Image(), 0, 0);
+                e.dataTransfer.setData('text/plain', '');
+                const ph = document.createElement('div');
+                ph.className = 'image-card placeholder';
+                ph.style.width = `${rect.width}px`;
+                ph.style.height = `${rect.height}px`;
+                dragPlaceholder.current = ph;
+                e.currentTarget.parentNode.insertBefore(
+                  ph,
+                  e.currentTarget
+                );
+                e.currentTarget.classList.add('dragging-card');
+                e.currentTarget.style.width = `${rect.width}px`;
+                e.currentTarget.style.height = `${rect.height}px`;
+                e.currentTarget.style.position = 'absolute';
+                e.currentTarget.style.left = `${rect.left - gridRect.left}px`;
+                e.currentTarget.style.top = `${rect.top - gridRect.top}px`;
+                e.currentTarget.style.zIndex = '1000';
+                e.currentTarget.style.pointerEvents = 'none';
+                dragMoveListener.current = (event) => {
+                  event.preventDefault();
+                  const gridRect2 = gridRef.current.getBoundingClientRect();
+                  const x =
+                    event.clientX - dragOffset.current.x - gridRect2.left;
+                  const y =
+                    event.clientY - dragOffset.current.y - gridRect2.top;
+                  if (dragItem.current) {
+                    dragItem.current.style.left = `${x}px`;
+                    dragItem.current.style.top = `${y}px`;
+                  }
+                };
+                window.addEventListener('dragover', dragMoveListener.current);
+              }
+            : undefined}
+        onDragOver={!sortedByColor ? (e) => e.preventDefault() : undefined}
+        onDrop=
+          {!sortedByColor
+            ? (e) => {
+                e.preventDefault();
+                const from = dragIndex.current;
+                if (from == null || from === index) {
+                  resetDrag();
+                  return;
+                }
+                const updated = [...images];
+                const [moved] = updated.splice(from, 1);
+                updated.splice(index, 0, moved);
+                saveImages(updated);
+                dragIndex.current = null;
+                resetDrag();
+              }
+            : undefined}
+        onDragEnd=
+          {!sortedByColor
+            ? () => {
+                dragIndex.current = null;
+                resetDrag();
+              }
+            : undefined}
+      >
+        <img
+          draggable={false}
+          src={img.dataUrl}
+          alt={img.title}
+          onLoad={(e) => {
+            const w = e.target.naturalWidth;
+            const h = e.target.naturalHeight;
+            if (w !== img.width || h !== img.height) {
+              const updated = images.map((i) =>
+                i.id === img.id ? { ...i, width: w, height: h } : i
+              );
+              saveImages(updated);
+              if (lightbox && lightbox.id === img.id) {
+                setLightbox((l) => ({ ...l, width: w, height: h }));
+              }
+            }
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+          }}
+          onClick={() => setLightbox(img)}
+        />
+        <div className="image-overlay">
+          <h3>{img.title}</h3>
+          {img.color && <p className="color-name">{img.color}</p>}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -352,130 +538,50 @@ export default function ImageGallery({ onBack }) {
               Back
             </button>
             <h2>Image Library</h2>
+            <button onClick={autoSortByColor} className="color-sort-button">
+              Sort by Color
+            </button>
           </div>
-          <div
-            ref={gridRef}
-            className="image-grid"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const from = dragIndex.current;
-              if (from == null) {
-                resetDrag();
-                return;
-              }
-              const updated = [...images];
-              const [moved] = updated.splice(from, 1);
-              updated.push(moved);
-              saveImages(updated);
-              dragIndex.current = null;
-              resetDrag();
-            }}
-          >
-            {images.map((img, index) => {
-              const displayWidth = img.width * zoom;
-              const displayHeight = img.height * zoom;
-              return (
-                <div
-                  key={img.id}
-                  className="image-card"
-                  draggable
-                  style={{ width: displayWidth, height: displayHeight }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-                  }}
-                  onClick={() => setLightbox(img)}
-                  onDragStart={(e) => {
-                    dragIndex.current = index;
-                    dragItem.current = e.currentTarget;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const gridRect = gridRef.current.getBoundingClientRect();
-                    dragOffset.current = {
-                      x: e.clientX - rect.left,
-                      y: e.clientY - rect.top,
-                    };
-                    e.dataTransfer.setDragImage(new Image(), 0, 0);
-                    e.dataTransfer.setData('text/plain', '');
-                    const ph = document.createElement('div');
-                    ph.className = 'image-card placeholder';
-                    ph.style.width = `${rect.width}px`;
-                    ph.style.height = `${rect.height}px`;
-                    dragPlaceholder.current = ph;
-                    e.currentTarget.parentNode.insertBefore(ph, e.currentTarget);
-                    e.currentTarget.classList.add('dragging-card');
-                    e.currentTarget.style.width = `${rect.width}px`;
-                    e.currentTarget.style.height = `${rect.height}px`;
-                    e.currentTarget.style.position = 'absolute';
-                    e.currentTarget.style.left = `${rect.left - gridRect.left}px`;
-                    e.currentTarget.style.top = `${rect.top - gridRect.top}px`;
-                    e.currentTarget.style.zIndex = '1000';
-                    e.currentTarget.style.pointerEvents = 'none';
-                    dragMoveListener.current = (event) => {
-                      event.preventDefault();
-                      const gridRect2 = gridRef.current.getBoundingClientRect();
-                      const x =
-                        event.clientX - dragOffset.current.x - gridRect2.left;
-                      const y =
-                        event.clientY - dragOffset.current.y - gridRect2.top;
-                      if (dragItem.current) {
-                        dragItem.current.style.left = `${x}px`;
-                        dragItem.current.style.top = `${y}px`;
-                      }
-                    };
-                    // Listen on dragover so we get continuous mouse positions
-                    window.addEventListener('dragover', dragMoveListener.current);
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const from = dragIndex.current;
-                    if (from == null || from === index) {
-                      resetDrag();
-                      return;
-                    }
-                    const updated = [...images];
-                    const [moved] = updated.splice(from, 1);
-                    updated.splice(index, 0, moved);
-                    saveImages(updated);
-                    dragIndex.current = null;
-                    resetDrag();
-                  }}
-                  onDragEnd={(e) => {
-                    dragIndex.current = null;
-                    resetDrag();
-                  }}>
-                  {/* ensure the image tag is self-closing to avoid build errors */}
-                  <img
-                    draggable={false}
-                    src={img.dataUrl}
-                    alt={img.title}
-                    onLoad={(e) => {
-                      const w = e.target.naturalWidth;
-                      const h = e.target.naturalHeight;
-                      if (w !== img.width || h !== img.height) {
-                        const updated = images.map((i) =>
-                          i.id === img.id ? { ...i, width: w, height: h } : i
-                        );
-                        saveImages(updated);
-                        if (lightbox && lightbox.id === img.id) {
-                          setLightbox((l) => ({ ...l, width: w, height: h }));
-                        }
-                      }
-                    }}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-                    }}
-                    onClick={() => setLightbox(img)}
-                  />
-                  <div className="image-overlay">
-                    <h3>{img.title}</h3>
+          {sortedByColor ? (
+            <div className="color-groups">
+              {palette.map((c, idx) => {
+                const group = images.filter((img) => img.color === c);
+                if (!group.length) return null;
+                return (
+                  <div key={c} className="color-group">
+                    <h3 className="color-title" style={{ color: c }}>
+                      {`Color ${idx + 1}`}
+                    </h3>
+                    <div className="image-grid">
+                      {group.map((img) => renderImageCard(img))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              ref={gridRef}
+              className="image-grid"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const from = dragIndex.current;
+                if (from == null) {
+                  resetDrag();
+                  return;
+                }
+                const updated = [...images];
+                const [moved] = updated.splice(from, 1);
+                updated.push(moved);
+                saveImages(updated);
+                dragIndex.current = null;
+                resetDrag();
+              }}
+            >
+              {images.map((img, index) => renderImageCard(img, index))}
+            </div>
+          )}
           {menu && (
             <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
               <button

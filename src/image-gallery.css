@@ -225,6 +225,27 @@
   position: relative;
 }
 
+.color-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.color-title {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+}
+
+.color-sort-button {
+  margin-left: auto;
+  background: #2a2a2d;
+  color: #fff;
+  border: 1px solid #3a3a3d;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .image-card {
   position: relative;
   background: #1b1b1e;
@@ -288,6 +309,11 @@
 .image-overlay h3 {
   margin: 0 0 6px;
   font-size: 1rem;
+}
+
+.image-overlay .color-name {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
 }
 
   .context-menu {
