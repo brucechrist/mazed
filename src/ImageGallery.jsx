@@ -190,7 +190,7 @@ export default function ImageGallery({ onBack }) {
         const [, s, l] = rgbToHsl(dom);
         let target = dom;
         if (s < 0.2) {
-          target = l < 0.2 ? [0, 0, 0] : l > 0.8 ? [255, 255, 255] : [128, 128, 128];
+          target = l < 0.5 ? [0, 0, 0] : [255, 255, 255];
         }
         let bestIndex = 0;
         let min = Infinity;
