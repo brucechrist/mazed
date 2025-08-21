@@ -2,6 +2,7 @@ import Jimp from 'jimp';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { extractDominantColor } from './src/dominantColor.js';
 
 // Load palette from shared JSON file
 async function loadPalette() {
@@ -59,17 +60,9 @@ function rgbToHsl([r, g, b]) {
   return [h, s, l];
 }
 
-async function averageColor(imgPath) {
+async function dominantColor(imgPath) {
   const image = await Jimp.read(imgPath);
-  let r = 0, g = 0, b = 0;
-  const { data, width, height } = image.bitmap;
-  const total = width * height;
-  for (let i = 0; i < data.length; i += 4) {
-    r += data[i];
-    g += data[i + 1];
-    b += data[i + 2];
-  }
-  return [ Math.round(r / total), Math.round(g / total), Math.round(b / total) ];
+  return extractDominantColor(image.bitmap.data);
 }
 
 export async function tagImages(imagePaths) {
@@ -77,9 +70,9 @@ export async function tagImages(imagePaths) {
   const paletteRgb = palette.map(hexToRgb);
   const result = {};
   for (const imgPath of imagePaths) {
-    const avg = await averageColor(imgPath);
-    const [, s, l] = rgbToHsl(avg);
-    let target = avg;
+    const dom = await dominantColor(imgPath);
+    const [, s, l] = rgbToHsl(dom);
+    let target = dom;
     if (s < 0.2) {
       target = l < 0.2 ? [0, 0, 0] : l > 0.8 ? [255, 255, 255] : [128, 128, 128];
     }
