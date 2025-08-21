@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
-import { COLOR_STORAGE_KEY, DEFAULT_COLORS } from './colorConfig.js';
+import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -17,13 +17,7 @@ export default function ImageGallery({ onBack }) {
   const [titleInput, setTitleInput] = useState('');
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
-  const [palette, setPalette] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY)) || DEFAULT_COLORS;
-    } catch {
-      return DEFAULT_COLORS;
-    }
-  });
+  const [palette, setPalette] = useState(DEFAULT_COLORS);
   const [sortedByColor, setSortedByColor] = useState(false);
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
@@ -87,11 +81,9 @@ export default function ImageGallery({ onBack }) {
   }, [lightbox?.id]);
 
   useEffect(() => {
+    loadPalette().then(setPalette);
     const handler = () => {
-      try {
-        const stored = JSON.parse(localStorage.getItem(COLOR_STORAGE_KEY));
-        if (stored) setPalette(stored);
-      } catch {}
+      loadPalette().then(setPalette);
     };
     window.addEventListener('storage', handler);
     window.addEventListener('palette-change', handler);
