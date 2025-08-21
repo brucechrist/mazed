@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { extractDominantColor } from './src/dominantColor.js';
+import { colorDiff } from './src/colorUtils.js';
 
 // Load palette from shared JSON file
 async function loadPalette() {
@@ -22,13 +23,6 @@ function hexToRgb(hex) {
   return [ (bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255 ];
 }
 
-function distance(a, b) {
-  return Math.sqrt(
-    (a[0] - b[0]) ** 2 +
-    (a[1] - b[1]) ** 2 +
-    (a[2] - b[2]) ** 2
-  );
-}
 
 function rgbToHsl([r, g, b]) {
   r /= 255;
@@ -79,7 +73,7 @@ export async function tagImages(imagePaths) {
     let bestIndex = 0;
     let min = Infinity;
     for (let i = 0; i < paletteRgb.length; i++) {
-      const d = distance(target, paletteRgb[i]);
+      const d = colorDiff(target, paletteRgb[i]);
       if (d < min) {
         min = d;
         bestIndex = i;

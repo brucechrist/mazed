@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './image-gallery.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
+import { colorDiff } from './colorUtils.js';
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -134,12 +135,6 @@ export default function ImageGallery({ onBack }) {
     ];
   };
 
-  const distance = (a, b) =>
-    Math.sqrt(
-      (a[0] - b[0]) ** 2 +
-      (a[1] - b[1]) ** 2 +
-      (a[2] - b[2]) ** 2
-    );
 
   const rgbToHsl = ([r, g, b]) => {
     r /= 255;
@@ -200,7 +195,7 @@ export default function ImageGallery({ onBack }) {
         let bestIndex = 0;
         let min = Infinity;
         paletteRgb.forEach((p, i) => {
-          const d = distance(target, p);
+          const d = colorDiff(target, p);
           if (d < min) {
             min = d;
             bestIndex = i;
