@@ -1,8 +1,21 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './image-gallery.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
 import { colorDiff } from './colorUtils.js';
+
+const COLOR_NAMES = {
+  '#ffffff': 'white',
+  '#f1c40f': 'yellow',
+  '#e74c3c': 'red',
+  '#27ae60': 'green',
+  '#2980b9': 'blue',
+  '#8e44ad': 'purple',
+  '#808080': 'gray',
+  '#000000': 'black',
+};
+
+const hexToName = (hex) => COLOR_NAMES[hex?.toLowerCase()] || hex;
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
@@ -20,7 +33,9 @@ export default function ImageGallery({ onBack }) {
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [palette, setPalette] = useState(DEFAULT_COLORS);
-  const [sortedByColor, setSortedByColor] = useState(false);
+  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date'
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [originalImages, setOriginalImages] = useState([]);
   const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
@@ -97,7 +112,10 @@ export default function ImageGallery({ onBack }) {
 
   useEffect(() => {
 
-    const close = () => setMenu(null);
+    const close = () => {
+      setMenu(null);
+      setSortMenuOpen(false);
+    };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, []);
@@ -182,33 +200,66 @@ export default function ImageGallery({ onBack }) {
       img.src = dataUrl;
     });
 
-  const autoSortByColor = async () => {
+  const detectPaletteColor = async (dataUrl) => {
+    const dom = await computeDominantColor(dataUrl);
+    const [, s, l] = rgbToHsl(dom);
     const paletteRgb = palette.map(hexToRgb);
+    let target = dom;
+    if (s < 0.2) {
+      target = l < 0.5 ? [0, 0, 0] : [255, 255, 255];
+    }
+    let bestIndex = 0;
+    let min = Infinity;
+    paletteRgb.forEach((p, i) => {
+      const d = colorDiff(target, p);
+      if (d < min) {
+        min = d;
+        bestIndex = i;
+      }
+    });
+    const hex = palette[bestIndex];
+    return { hex, name: hexToName(hex) };
+  };
+
+  const sortImages = (sorted, mode) => {
+    if (sortMode === 'none') {
+      setOriginalImages(images);
+    }
+    saveImages(sorted);
+    setSortMode(mode);
+  };
+
+  const sortByTitle = () => {
+    const sorted = [...images].sort((a, b) =>
+      (a.title || '').localeCompare(b.title || '')
+    );
+    sortImages(sorted, 'title');
+  };
+
+  const sortByDate = () => {
+    const sorted = [...images].sort((a, b) => a.id - b.id);
+    sortImages(sorted, 'date');
+  };
+
+  const resetSort = () => {
+    if (sortMode !== 'none' && originalImages.length) {
+      saveImages(originalImages);
+    }
+    setSortMode('none');
+    setOriginalImages([]);
+  };
+
+  const autoSortByColor = async () => {
     const updated = await Promise.all(
       images.map(async (img) => {
-        const dom = await computeDominantColor(img.dataUrl);
-        const [, s, l] = rgbToHsl(dom);
-        let target = dom;
-        if (s < 0.2) {
-          target = l < 0.5 ? [0, 0, 0] : [255, 255, 255];
-        }
-        let bestIndex = 0;
-        let min = Infinity;
-        paletteRgb.forEach((p, i) => {
-          const d = colorDiff(target, p);
-          if (d < min) {
-            min = d;
-            bestIndex = i;
-          }
-        });
-        return { ...img, color: palette[bestIndex] };
+        const { hex, name } = await detectPaletteColor(img.dataUrl);
+        return { ...img, color: hex, title: name };
       })
     );
     const sorted = [...updated].sort(
       (a, b) => palette.indexOf(a.color) - palette.indexOf(b.color)
     );
-    saveImages(sorted);
-    setSortedByColor(true);
+    sortImages(sorted, 'color');
   };
 
   const resetDrag = () => {
@@ -234,17 +285,18 @@ export default function ImageGallery({ onBack }) {
 
   const processFile = (fileObj, imgTitle = '', imgTags = []) => {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const result = reader.result;
       const imgEl = new Image();
-      imgEl.onload = () => {
+      imgEl.onload = async () => {
+        const { hex, name } = await detectPaletteColor(result);
         const newImage = {
           id: Date.now(),
-          title: imgTitle,
+          title: imgTitle || name,
           description: '',
           tags: imgTags,
           quadrants: [],
-          color: '',
+          color: hex,
           dataUrl: result,
           width: imgEl.width,
           height: imgEl.height,
@@ -305,14 +357,14 @@ export default function ImageGallery({ onBack }) {
         key={img.id}
         className="image-card"
         style={{ width: displayWidth, height: displayHeight }}
-        draggable={!sortedByColor}
+        draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={() => setLightbox(img)}
         onDragStart=
-          {!sortedByColor
+          {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
                 dragIndex.current = index;
                 dragItem.current = e.currentTarget;
@@ -356,9 +408,13 @@ export default function ImageGallery({ onBack }) {
                 window.addEventListener('dragover', dragMoveListener.current);
               }
             : undefined}
-        onDragOver={!sortedByColor ? (e) => e.preventDefault() : undefined}
+        onDragOver={
+          sortMode !== 'title' && sortMode !== 'date'
+            ? (e) => e.preventDefault()
+            : undefined
+        }
         onDrop=
-          {!sortedByColor
+          {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
                 e.preventDefault();
                 const from = dragIndex.current;
@@ -366,8 +422,13 @@ export default function ImageGallery({ onBack }) {
                   resetDrag();
                   return;
                 }
+                const targetColor = images[index].color;
                 const updated = [...images];
                 const [moved] = updated.splice(from, 1);
+                if (sortMode === 'color') {
+                  moved.color = targetColor;
+                  moved.title = hexToName(targetColor);
+                }
                 updated.splice(index, 0, moved);
                 saveImages(updated);
                 dragIndex.current = null;
@@ -375,7 +436,7 @@ export default function ImageGallery({ onBack }) {
               }
             : undefined}
         onDragEnd=
-          {!sortedByColor
+          {sortMode !== 'title' && sortMode !== 'date'
             ? () => {
                 dragIndex.current = null;
                 resetDrag();
@@ -406,8 +467,13 @@ export default function ImageGallery({ onBack }) {
           onClick={() => setLightbox(img)}
         />
         <div className="image-overlay">
-          <h3>{img.title}</h3>
-          {img.color && <p className="color-name">{img.color}</p>}
+          <h3>
+            <span
+              className="color-dot"
+              style={{ background: img.color }}
+            ></span>
+            {img.title}
+          </h3>
         </div>
       </div>
     );
@@ -548,22 +614,93 @@ export default function ImageGallery({ onBack }) {
               Back
             </button>
             <h2>Image Library</h2>
-            <button onClick={autoSortByColor} className="color-sort-button">
-              Sort by Color
-            </button>
+            <div className="sort-dropdown">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortMenuOpen((o) => !o);
+                }}
+                className="sort-button"
+              >
+                Order
+              </button>
+              {sortMenuOpen && (
+                <div
+                  className="sort-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      resetSort();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Original
+                  </button>
+                  <button
+                    onClick={() => {
+                      sortByTitle();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Title
+                  </button>
+                  <button
+                    onClick={() => {
+                      sortByDate();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Date Added
+                  </button>
+                  <button
+                    onClick={() => {
+                      autoSortByColor();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Color
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          {sortedByColor ? (
+          {sortMode === 'color' ? (
             <div className="color-groups">
-              {palette.map((c, idx) => {
+              {palette.map((c) => {
                 const group = images.filter((img) => img.color === c);
                 if (!group.length) return null;
                 return (
                   <div key={c} className="color-group">
                     <h3 className="color-title" style={{ color: c }}>
-                      {`Color ${idx + 1}`}
+                      {hexToName(c)}
                     </h3>
-                    <div className="image-grid">
-                      {group.map((img) => renderImageCard(img))}
+                    <div
+                      className="image-grid"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const from = dragIndex.current;
+                        if (from == null) {
+                          resetDrag();
+                          return;
+                        }
+                        const updated = [...images];
+                        const [moved] = updated.splice(from, 1);
+                        moved.color = c;
+                        moved.title = hexToName(c);
+                        updated.push(moved);
+                        saveImages(updated);
+                        dragIndex.current = null;
+                        resetDrag();
+                      }}
+                    >
+                      {group.map((img) =>
+                        renderImageCard(
+                          img,
+                          images.findIndex((i) => i.id === img.id)
+                        )
+                      )}
                     </div>
                   </div>
                 );
@@ -573,21 +710,29 @@ export default function ImageGallery({ onBack }) {
             <div
               ref={gridRef}
               className="image-grid"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const from = dragIndex.current;
-                if (from == null) {
-                  resetDrag();
-                  return;
-                }
-                const updated = [...images];
-                const [moved] = updated.splice(from, 1);
-                updated.push(moved);
-                saveImages(updated);
-                dragIndex.current = null;
-                resetDrag();
-              }}
+              onDragOver={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => e.preventDefault()
+                  : undefined
+              }
+              onDrop={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => {
+                      e.preventDefault();
+                      const from = dragIndex.current;
+                      if (from == null) {
+                        resetDrag();
+                        return;
+                      }
+                      const updated = [...images];
+                      const [moved] = updated.splice(from, 1);
+                      updated.push(moved);
+                      saveImages(updated);
+                      dragIndex.current = null;
+                      resetDrag();
+                    }
+                  : undefined
+              }
             >
               {images.map((img, index) => renderImageCard(img, index))}
             </div>

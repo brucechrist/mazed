@@ -236,14 +236,43 @@
   font-size: 1.2rem;
 }
 
-.color-sort-button {
+.sort-dropdown {
   margin-left: auto;
+  position: relative;
+}
+
+.sort-button {
   background: #2a2a2d;
   color: #fff;
   border: 1px solid #3a3a3d;
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.sort-menu button {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-menu button:hover {
+  background: #3a3a3d;
 }
 
 .image-card {
@@ -309,11 +338,16 @@
 .image-overlay h3 {
   margin: 0 0 6px;
   font-size: 1rem;
+  display: flex;
+  align-items: center;
 }
 
-.image-overlay .color-name {
-  margin: 4px 0 0;
-  font-size: 0.8rem;
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
 }
 
   .context-menu {
