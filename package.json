@@ -16,6 +16,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2",
     "active-win": "^8.2.1",
+    "color-namer": "^1.4.0",
     "compromise": "^14.14.4",
     "jimp": "^0.22.12",
     "konva": "^9.3.22",
