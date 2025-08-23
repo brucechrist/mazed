@@ -338,11 +338,16 @@
 .image-overlay h3 {
   margin: 0 0 6px;
   font-size: 1rem;
+  display: flex;
+  align-items: center;
 }
 
-.image-overlay .color-name {
-  margin: 4px 0 0;
-  font-size: 0.8rem;
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
 }
 
   .context-menu {
@@ -477,6 +482,19 @@
   display: flex;
   gap: 6px;
   margin-top: 4px;
+}
+
+.color-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.color-label {
+  margin-top: 2px;
+  font-size: 10px;
+  text-transform: capitalize;
+  color: #e0e0e0;
 }
 
 .color-circle {
