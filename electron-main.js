@@ -112,8 +112,13 @@ ipcMain.handle('read-palette', async () => {
 
 ipcMain.removeHandler('write-palette');
 ipcMain.handle('write-palette', async (_e, colors) => {
+  if (!Array.isArray(colors)) return false;
   try {
-    await fs.promises.writeFile(palettePath, JSON.stringify(colors));
+    await fs.promises.writeFile(
+      palettePath,
+      JSON.stringify(colors, null, 2) + '\n',
+      'utf8'
+    );
     return true;
   } catch {
     return false;
