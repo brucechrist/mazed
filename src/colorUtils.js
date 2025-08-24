@@ -77,7 +77,9 @@ function ciede2000(lab1, lab2) {
     0.32 * Math.cos(3 * hp + Math.PI / 30) -
     0.20 * Math.cos(4 * hp - (63 * Math.PI) / 180);
 
-  const dTheta = (30 * Math.PI / 180) * Math.exp(-((hp * 180 / Math.PI - 275) / 25) ** 2);
+  const dTheta =
+    (30 * Math.PI / 180) *
+    Math.exp(-(((hp * 180 / Math.PI - 275) / 25) ** 2));
   const R_C = 2 * Math.sqrt(Math.pow(Cp, 7) / (Math.pow(Cp, 7) + Math.pow(25, 7)));
   const S_L = 1 + (0.015 * (Lp - 50) * (Lp - 50)) / Math.sqrt(20 + (Lp - 50) * (Lp - 50));
   const S_C = 1 + 0.045 * Cp;
