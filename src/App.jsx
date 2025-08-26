@@ -174,6 +174,35 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   }, [autoLog]);
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'a') {
+        setActiveLayer((prev) => {
+          const idx = layers.findIndex((l) => l.label === prev);
+          return layers[Math.max(0, idx - 1)].label;
+        });
+      } else if (key === 'd') {
+        setActiveLayer((prev) => {
+          const idx = layers.findIndex((l) => l.label === prev);
+          return layers[Math.min(layers.length - 1, idx + 1)].label;
+        });
+      } else if (key === 'w') {
+        setActiveTab((prev) => {
+          const idx = tabs.findIndex((t) => t.label === prev);
+          return tabs[Math.max(0, idx - 1)].label;
+        });
+      } else if (key === 's') {
+        setActiveTab((prev) => {
+          const idx = tabs.findIndex((t) => t.label === prev);
+          return tabs[Math.min(tabs.length - 1, idx + 1)].label;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     const loadAvatar = async () => {
       const {
         data: { user },
