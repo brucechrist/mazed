@@ -86,7 +86,7 @@ export default function PageRouter() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         goBack();
       }
     };

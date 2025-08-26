@@ -67,16 +67,56 @@ export default function QuadrantPage({ initialTab }) {
   const [showMomentoMori, setShowMomentoMori] = useState(false);
   // Avoid naming clash with src/App.jsx by giving the blog state a unique name
   const [showToolsBlog, setShowToolsBlog] = useState(false);
-  const [showAkashicRecords, setShowAkashicRecords] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
-  const [showSettings, setShowSettings] = useState(false);
-  const [autoLog, setAutoLog] = useState(
-    () => localStorage.getItem('autoLog') === 'true'
-  );
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem('theme') || 'dark'
-  );
+const [showAkashicRecords, setShowAkashicRecords] = useState(false);
+const [showProfile, setShowProfile] = useState(false);
+const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
+const [showSettings, setShowSettings] = useState(false);
+const [autoLog, setAutoLog] = useState(
+  () => localStorage.getItem('autoLog') === 'true'
+);
+const [theme, setTheme] = useState(
+  () => localStorage.getItem('theme') || 'dark'
+);
+const [selectedAppIndex, setSelectedAppIndex] = useState(-1);
+
+const anyAppOpen =
+  showJournal ||
+  showNofap ||
+  showRatings ||
+  showWhoAmI ||
+  showMusic ||
+  showSinging ||
+  showShadowWork ||
+  showCalendarApp ||
+  showTimeline ||
+  showTypomancy ||
+  showMoodtracker ||
+  showAnima ||
+  showMomentoMori ||
+  showToolsBlog ||
+  showAkashicRecords ||
+  showProfile ||
+  showSettings;
+
+const closeOpenApp = () => {
+  setShowJournal(false);
+  setShowNofap(false);
+  setShowRatings(false);
+  setShowWhoAmI(false);
+  setShowMusic(false);
+  setShowSinging(false);
+  setShowShadowWork(false);
+  setShowCalendarApp(false);
+  setShowTimeline(false);
+  setShowTypomancy(false);
+  setShowMoodtracker(false);
+  setShowAnima(false);
+  setShowMomentoMori(false);
+  setShowToolsBlog(false);
+  setShowAkashicRecords(false);
+  setShowProfile(false);
+  setShowSettings(false);
+};
 
   useEffect(() => {
     localStorage.setItem('autoLog', autoLog ? 'true' : 'false');
@@ -85,21 +125,62 @@ export default function QuadrantPage({ initialTab }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
-      if (key === 'w') {
-        setActiveTab((prev) => {
-          const idx = tabs.findIndex((t) => t.label === prev);
-          return tabs[Math.max(0, idx - 1)].label;
-        });
-      } else if (key === 's') {
-        setActiveTab((prev) => {
-          const idx = tabs.findIndex((t) => t.label === prev);
-          return tabs[Math.min(tabs.length - 1, idx + 1)].label;
-        });
+      if (anyAppOpen) {
+        if (key === 'escape') {
+          e.preventDefault();
+          closeOpenApp();
+        }
+        return;
+      }
+
+      if (selectedAppIndex === -1) {
+        if (key === 'w') {
+          setActiveTab((prev) => {
+            const idx = tabs.findIndex((t) => t.label === prev);
+            return tabs[Math.max(0, idx - 1)].label;
+          });
+        } else if (key === 's') {
+          setActiveTab((prev) => {
+            const idx = tabs.findIndex((t) => t.label === prev);
+            return tabs[Math.min(tabs.length - 1, idx + 1)].label;
+          });
+        } else if (key === 'enter' && activeTab === 'Tools') {
+          const cards = document.querySelectorAll('.feature-cards .app-card');
+          if (cards.length > 0) {
+            setSelectedAppIndex(0);
+          }
+        }
+      } else {
+        const cards = document.querySelectorAll('.feature-cards .app-card');
+        if (key === 'a' || key === 'w') {
+          setSelectedAppIndex((prev) => Math.max(0, prev - 1));
+        } else if (key === 'd' || key === 's') {
+          setSelectedAppIndex((prev) => Math.min(cards.length - 1, prev + 1));
+        } else if (key === 'enter') {
+          cards[selectedAppIndex]?.click();
+          setSelectedAppIndex(-1);
+        } else if (key === 'escape') {
+          e.preventDefault();
+          setSelectedAppIndex(-1);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [activeTab, anyAppOpen, selectedAppIndex, closeOpenApp]);
+
+  useEffect(() => {
+    if (activeTab !== 'Tools' || anyAppOpen) {
+      setSelectedAppIndex(-1);
+    }
+  }, [activeTab, anyAppOpen]);
+
+  useEffect(() => {
+    const cards = document.querySelectorAll('.feature-cards .app-card');
+    cards.forEach((card, idx) => {
+      card.classList.toggle('selected', idx === selectedAppIndex);
+    });
+  }, [selectedAppIndex, activeTab]);
 
   useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');

@@ -202,6 +202,11 @@ body.idea-board-page .content {
   background: #17181d;
 }
 
+.app-card.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.05);
+}
+
 .calendar-preview {
   width: 80px;
   height: 60px;

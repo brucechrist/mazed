@@ -137,6 +137,65 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     () => localStorage.getItem('theme') || 'dark'
   );
 
+  const [selectedAppIndex, setSelectedAppIndex] = useState(-1);
+
+  const anyAppOpen =
+    showJournal ||
+    showNofap ||
+    showRatings ||
+    showWhoAmI ||
+    showMusic ||
+    showSinging ||
+    showShadowWork ||
+    showCalendarApp ||
+    showTimeline ||
+    showTypomancy ||
+    showMoodtracker ||
+    showMomentoMori ||
+    showQuadrantComb ||
+    showAnima ||
+    showBlog ||
+    showTodoGoals ||
+    showActivity ||
+    showCharacterEvolve ||
+    showSemiCharacter ||
+    showIdeaBoard ||
+    showImplementationIdeas ||
+    showOrb ||
+    showToolsBlog ||
+    showAkashicRecords ||
+    showProfile ||
+    showSettings;
+
+  const closeOpenApp = () => {
+    setShowJournal(false);
+    setShowNofap(false);
+    setShowRatings(false);
+    setShowWhoAmI(false);
+    setShowMusic(false);
+    setShowSinging(false);
+    setShowShadowWork(false);
+    setShowCalendarApp(false);
+    setShowTimeline(false);
+    setShowTypomancy(false);
+    setShowMoodtracker(false);
+    setShowMomentoMori(false);
+    setShowQuadrantComb(false);
+    setShowAnima(false);
+    setShowBlog(false);
+    setShowTodoGoals(false);
+    setShowActivity(false);
+    setShowCharacterEvolve(false);
+    setShowSemiCharacter(false);
+    setShowIdeaBoard(false);
+    setShowImplementationIdeas(false);
+    setShowOrb(false);
+    setShowToolsBlog(false);
+    setShowAkashicRecords(false);
+    setShowProfile(false);
+    setShowSettings(false);
+  };
+
   useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
@@ -176,31 +235,72 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
-      if (key === 'a') {
-        setActiveLayer((prev) => {
-          const idx = layers.findIndex((l) => l.label === prev);
-          return layers[Math.max(0, idx - 1)].label;
-        });
-      } else if (key === 'd') {
-        setActiveLayer((prev) => {
-          const idx = layers.findIndex((l) => l.label === prev);
-          return layers[Math.min(layers.length - 1, idx + 1)].label;
-        });
-      } else if (key === 'w') {
-        setActiveTab((prev) => {
-          const idx = tabs.findIndex((t) => t.label === prev);
-          return tabs[Math.max(0, idx - 1)].label;
-        });
-      } else if (key === 's') {
-        setActiveTab((prev) => {
-          const idx = tabs.findIndex((t) => t.label === prev);
-          return tabs[Math.min(tabs.length - 1, idx + 1)].label;
-        });
+      if (anyAppOpen) {
+        if (key === 'escape') {
+          e.preventDefault();
+          closeOpenApp();
+        }
+        return;
+      }
+
+      if (selectedAppIndex === -1) {
+        if (key === 'a') {
+          setActiveLayer((prev) => {
+            const idx = layers.findIndex((l) => l.label === prev);
+            return layers[Math.max(0, idx - 1)].label;
+          });
+        } else if (key === 'd') {
+          setActiveLayer((prev) => {
+            const idx = layers.findIndex((l) => l.label === prev);
+            return layers[Math.min(layers.length - 1, idx + 1)].label;
+          });
+        } else if (key === 'w') {
+          setActiveTab((prev) => {
+            const idx = tabs.findIndex((t) => t.label === prev);
+            return tabs[Math.max(0, idx - 1)].label;
+          });
+        } else if (key === 's') {
+          setActiveTab((prev) => {
+            const idx = tabs.findIndex((t) => t.label === prev);
+            return tabs[Math.min(tabs.length - 1, idx + 1)].label;
+          });
+        } else if (key === 'enter' && activeTab === 'Tools') {
+          const cards = document.querySelectorAll('.feature-cards .app-card');
+          if (cards.length > 0) {
+            setSelectedAppIndex(0);
+          }
+        }
+      } else {
+        const cards = document.querySelectorAll('.feature-cards .app-card');
+        if (key === 'a' || key === 'w') {
+          setSelectedAppIndex((prev) => Math.max(0, prev - 1));
+        } else if (key === 'd' || key === 's') {
+          setSelectedAppIndex((prev) => Math.min(cards.length - 1, prev + 1));
+        } else if (key === 'enter') {
+          cards[selectedAppIndex]?.click();
+          setSelectedAppIndex(-1);
+        } else if (key === 'escape') {
+          e.preventDefault();
+          setSelectedAppIndex(-1);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [activeTab, anyAppOpen, selectedAppIndex, closeOpenApp]);
+
+  useEffect(() => {
+    if (activeTab !== 'Tools' || anyAppOpen) {
+      setSelectedAppIndex(-1);
+    }
+  }, [activeTab, anyAppOpen]);
+
+  useEffect(() => {
+    const cards = document.querySelectorAll('.feature-cards .app-card');
+    cards.forEach((card, idx) => {
+      card.classList.toggle('selected', idx === selectedAppIndex);
+    });
+  }, [selectedAppIndex, activeTab, activeLayer]);
 
   useEffect(() => {
     const loadAvatar = async () => {
