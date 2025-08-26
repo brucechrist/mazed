@@ -7,6 +7,15 @@ body {
   color: #e6e7eb;
 }
 
+@keyframes pulse {
+  from {
+    box-shadow: 0 0 4px gold;
+  }
+  to {
+    box-shadow: 0 0 12px gold;
+  }
+}
+
 
 .app-container {
   display: flex;
@@ -43,6 +52,7 @@ body {
 
 .tab.active {
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  animation: pulse 1s infinite alternate;
 }
 
 .tab:hover {
@@ -126,6 +136,11 @@ body.character-page h1 {
 
 .app-card:hover {
   background: #17181d;
+}
+
+.app-card.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.05);
 }
 
 .calendar-preview {

@@ -17,6 +17,15 @@ body.menu-page {
   background-size: cover;
 }
 
+@keyframes pulse {
+  from {
+    box-shadow: 0 0 4px gold;
+  }
+  to {
+    box-shadow: 0 0 12px gold;
+  }
+}
+
 body.character-page {
   background: var(--char-bg-url) no-repeat center center fixed;
   background-size: cover;
@@ -57,6 +66,7 @@ body.character-page {
 
 .tab.active {
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  animation: pulse 1s infinite alternate;
 }
 
 .tab:hover {
@@ -85,6 +95,7 @@ body.character-page {
 
 .layer-tab.active {
   background-color: rgba(0, 0, 0, 0.4);
+  animation: pulse 1s infinite alternate;
 }
 
 .layer-tab:hover {
@@ -189,6 +200,11 @@ body.idea-board-page .content {
 
 .app-card:hover {
   background: #17181d;
+}
+
+.app-card.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.05);
 }
 
 .calendar-preview {

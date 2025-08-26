@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
@@ -54,6 +54,22 @@ export default function FifthMain({ onSelectQuadrant }) {
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   };
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        if (showModal) {
+          e.preventDefault();
+          setShowModal(false);
+        } else if (showList) {
+          e.preventDefault();
+          setShowList(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showModal, showList]);
 
   return (
     <div className="main-page">
