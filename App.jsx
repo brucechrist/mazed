@@ -125,7 +125,6 @@ const closeOpenApp = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
-
       if (anyAppOpen) {
         if (key === 'escape') {
           e.preventDefault();
