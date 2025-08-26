@@ -83,6 +83,25 @@ export default function QuadrantPage({ initialTab }) {
   }, [autoLog]);
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'w') {
+        setActiveTab((prev) => {
+          const idx = tabs.findIndex((t) => t.label === prev);
+          return tabs[Math.max(0, idx - 1)].label;
+        });
+      } else if (key === 's') {
+        setActiveTab((prev) => {
+          const idx = tabs.findIndex((t) => t.label === prev);
+          return tabs[Math.min(tabs.length - 1, idx + 1)].label;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
   }, [theme]);
