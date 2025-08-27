@@ -1,9 +1,0 @@
-.version-label {
-  position: fixed;
-  top: 5px;
-  right: 8px;
-  font-size: 0.8em;
-  color: #888;
-  pointer-events: none;
-  z-index: 1000;
-}
