@@ -20,6 +20,12 @@ export default function TodoGoals({ onBack }) {
     return stored ? JSON.parse(stored) : [];
   });
   const [input, setInput] = useState('');
+  const [bigGoals, setBigGoals] = useState(() => {
+    const stored = localStorage.getItem('todoBigGoals');
+    return stored
+      ? JSON.parse(stored)
+      : { transcendent: '', jackpot: '', rainbow: '', mirror: '' };
+  });
 
   useEffect(() => {
     localStorage.setItem('todoDoneLog', JSON.stringify(doneLog));
@@ -28,6 +34,10 @@ export default function TodoGoals({ onBack }) {
   useEffect(() => {
     localStorage.setItem('todoGoals', JSON.stringify(tasks));
   }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('todoBigGoals', JSON.stringify(bigGoals));
+  }, [bigGoals]);
 
   const handleAdd = () => {
     if (!input.trim()) return;
@@ -40,6 +50,10 @@ export default function TodoGoals({ onBack }) {
       return next;
     });
     setInput('');
+  };
+
+  const handleBigGoalChange = (key, value) => {
+    setBigGoals((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleDragStart = (e, task, timeframe) => {
@@ -137,6 +151,40 @@ export default function TodoGoals({ onBack }) {
 
   return (
     <div className="todo-goals">
+      <div className="big-goals">
+        <div className="big-goal-wrapper">
+          <label>Transcendent Goal</label>
+          <input
+            value={bigGoals.transcendent}
+            onChange={(e) => handleBigGoalChange('transcendent', e.target.value)}
+            placeholder="Set transcendent goal"
+          />
+        </div>
+        <div className="big-goal-wrapper">
+          <label>Jackpot Goal</label>
+          <input
+            value={bigGoals.jackpot}
+            onChange={(e) => handleBigGoalChange('jackpot', e.target.value)}
+            placeholder="Set jackpot goal"
+          />
+        </div>
+        <div className="big-goal-wrapper">
+          <label>Rainbow Goal</label>
+          <input
+            value={bigGoals.rainbow}
+            onChange={(e) => handleBigGoalChange('rainbow', e.target.value)}
+            placeholder="Set rainbow goal"
+          />
+        </div>
+        <div className="big-goal-wrapper">
+          <label>Mirror Goal</label>
+          <input
+            value={bigGoals.mirror}
+            onChange={(e) => handleBigGoalChange('mirror', e.target.value)}
+            placeholder="Set mirror goal"
+          />
+        </div>
+      </div>
       <div className="main-panel">
         {onBack && (
           <button className="back-button" onClick={onBack}>Back</button>

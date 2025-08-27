@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
+const fs = require('fs');
 let mainWindow;
 
 function createWindow() {
@@ -95,6 +96,32 @@ ipcMain.removeHandler('close-window');
 ipcMain.handle('close-window', () => {
   if (mainWindow) {
     mainWindow.close();
+  }
+});
+
+const palettePath = path.join(__dirname, 'palette.json');
+ipcMain.removeHandler('read-palette');
+ipcMain.handle('read-palette', async () => {
+  try {
+    const text = await fs.promises.readFile(palettePath, 'utf8');
+    return JSON.parse(text);
+  } catch {
+    return [];
+  }
+});
+
+ipcMain.removeHandler('write-palette');
+ipcMain.handle('write-palette', async (_e, colors) => {
+  if (!Array.isArray(colors)) return false;
+  try {
+    await fs.promises.writeFile(
+      palettePath,
+      JSON.stringify(colors, null, 2) + '\n',
+      'utf8'
+    );
+    return true;
+  } catch {
+    return false;
   }
 });
 
