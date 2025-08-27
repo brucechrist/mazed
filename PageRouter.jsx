@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import FifthMain from './FifthMain.jsx';
 import IImain from './IImain.jsx';
 import IEmain from './IEmain.jsx';
@@ -11,6 +11,7 @@ import ExitVideo from './ExitVideo.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
+  const history = useRef(['5th']);
   const [user, setUser] = useState(null);
   const [showExitVideo, setShowExitVideo] = useState(false);
   const [pendingResize, setPendingResize] = useState(false);
@@ -50,9 +51,28 @@ export default function PageRouter() {
     prevUser.current = user;
   }, [user]);
 
+  const navigate = useCallback((newPage) => {
+    if (newPage === '5th') {
+      history.current = ['5th'];
+    } else {
+      const current = history.current[history.current.length - 1];
+      if (current !== newPage) {
+        history.current = [...history.current, newPage];
+      }
+    }
+    setPage(newPage);
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (history.current.length > 1) {
+      history.current = history.current.slice(0, -1);
+      setPage(history.current[history.current.length - 1]);
+    }
+  }, []);
+
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onGoHome) {
-      window.electronAPI.onGoHome(() => setPage('5th'));
+      window.electronAPI.onGoHome(() => navigate('5th'));
     }
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
@@ -62,7 +82,17 @@ export default function PageRouter() {
         await supabaseClient.auth.signOut();
       });
     }
-  }, []);
+  }, [navigate]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        goBack();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goBack]);
 
   if (!user) {
     return <Auth />;
@@ -97,7 +127,7 @@ export default function PageRouter() {
       content = <EEmain />;
       break;
     default:
-      content = <FifthMain onSelectQuadrant={(label) => setPage(label)} />;
+      content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
   }
 
   return (

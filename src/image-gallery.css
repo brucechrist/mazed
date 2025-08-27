@@ -225,6 +225,56 @@
   position: relative;
 }
 
+.color-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.color-title {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+}
+
+.sort-dropdown {
+  margin-left: auto;
+  position: relative;
+}
+
+.sort-button {
+  background: #2a2a2d;
+  color: #fff;
+  border: 1px solid #3a3a3d;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.sort-menu button {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-menu button:hover {
+  background: #3a3a3d;
+}
+
 .image-card {
   position: relative;
   background: #1b1b1e;
@@ -288,6 +338,16 @@
 .image-overlay h3 {
   margin: 0 0 6px;
   font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
 }
 
   .context-menu {
@@ -422,6 +482,19 @@
   display: flex;
   gap: 6px;
   margin-top: 4px;
+}
+
+.color-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.color-label {
+  margin-top: 2px;
+  font-size: 10px;
+  text-transform: capitalize;
+  color: #e0e0e0;
 }
 
 .color-circle {

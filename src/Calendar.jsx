@@ -28,7 +28,7 @@ function CalendarEvent({ event, onDelete }) {
   );
 }
 
-export default function Calendar({ onBack }) {
+export default function Calendar({ onBack, backLabel = 'Back' }) {
   const roundSlot = (date) => {
     const d = new Date(date);
     d.setMinutes(Math.floor(d.getMinutes() / 30) * 30, 0, 0);
@@ -277,7 +277,7 @@ export default function Calendar({ onBack }) {
   return (
     <div className="calendar-app">
       <button className="back-button" onClick={onBack}>
-        Back
+        {backLabel}
       </button>
       <div className="calendar-container" ref={containerRef}>
         <DnDCalendar

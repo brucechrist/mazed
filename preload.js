@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setWindowSize: (width, height) => ipcRenderer.invoke('set-window-size', { width, height }),
   toggleWindow: () => ipcRenderer.invoke('toggle-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
+  readPalette: () => ipcRenderer.invoke('read-palette'),
+  writePalette: (colors) => ipcRenderer.invoke('write-palette', colors),
 });
