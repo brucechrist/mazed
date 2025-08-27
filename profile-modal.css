@@ -1,0 +1,128 @@
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  object-fit: cover;
+  margin: 0 auto;
+}
+
+.profile-name {
+  font-size: 1.4em;
+  font-weight: bold;
+  text-align: center;
+}
+
+.profile-username {
+  font-size: 1em;
+  color: #ccc;
+  text-align: center;
+}
+
+.get-username-line {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.get-username-btn {
+  background: #5865f2;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+.get-username-btn:hover {
+  background: #4752d3;
+}
+
+.disconnect-line {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.disconnect-btn {
+  background: #5865f2;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+.disconnect-btn:hover {
+  background: #4752d3;
+}
+
+.profile-overlay {
+  background: transparent;
+}
+
+.avatar-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.avatar-container:hover .avatar-edit {
+  opacity: 1;
+}
+
+.avatar-edit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 60px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.avatar-menu {
+  position: absolute;
+  left: 130px;
+  top: 10px;
+  background: #333;
+  color: #fff;
+  padding: 8px 13px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: profile-slide 0.2s ease-out;
+  white-space: nowrap;
+  font-size: 1.35em;
+}
+
+.avatar-menu-item {
+  cursor: pointer;
+}
+.avatar-menu-item:hover {
+  text-decoration: underline;
+}
+
+.profile-modal {
+  position: fixed;
+  left: 80px;
+  bottom: 110px;
+  width: 250px;
+  transform-origin: bottom left;
+  animation: profile-slide 0.2s ease-out;
+  background: #1e1e1e;
+  color: #fff;
+}
+
+@keyframes profile-slide {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
