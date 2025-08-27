@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Anima from './src/Anima.jsx';
+import Anima from './Anima.jsx';
 
 test('shows note buttons', () => {
   render(<Anima onBack={() => {}} />);

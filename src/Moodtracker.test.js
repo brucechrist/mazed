@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Moodtracker from './src/Moodtracker.jsx';
+import Moodtracker from './Moodtracker.jsx';
 
 test('adds mood entry to log', () => {
   render(<Moodtracker onBack={() => {}} />);

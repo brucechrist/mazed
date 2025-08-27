@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Timeline from './src/Timeline.jsx';
+import Timeline from './Timeline.jsx';
 
 test('renders timeline nodes', () => {
   render(<Timeline onBack={() => {}} />);

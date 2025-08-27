@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import MusicCard from './src/MusicCard.jsx';
+import MusicCard from './MusicCard.jsx';
 
 describe('MusicCard', () => {
   const track = {

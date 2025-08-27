@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Auth from './src/Auth.jsx';
+import Auth from './Auth.jsx';
 
-jest.mock('./src/supabaseClient');
-import { signInWithPassword } from './src/supabaseClient';
+jest.mock('./supabaseClient');
+import { signInWithPassword } from './supabaseClient';
 
 describe('Auth - username not found', () => {
   test('shows username not found message without retrying', async () => {
