@@ -79,6 +79,10 @@ export default function FifthMain({ onSelectQuadrant }) {
         setMenuIndex((prev) => Math.max(0, prev - 1));
       } else if (key === 'd') {
         setMenuIndex((prev) => Math.min(6, prev + 1));
+      } else if (key === 'w') {
+        if (menuIndex >= 5) setMenuIndex((prev) => prev - 2);
+      } else if (key === 's') {
+        if (menuIndex >= 3 && menuIndex <= 4) setMenuIndex((prev) => prev + 2);
       } else if (key === 'enter') {
         if (menuIndex === 0) {
           onSelectQuadrant('gallery');
