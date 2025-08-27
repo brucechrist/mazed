@@ -116,14 +116,18 @@ export default function PageRouter() {
   }, [page]);
 
   useEffect(() => {
-    setIsLoading(true);
-    const img = new Image();
-    img.src = menuBg;
-    img.onload = () => setIsLoading(false);
-    return () => {
-      img.onload = null;
-    };
-  }, [menuBg]);
+    if (page === '5th') {
+      setIsLoading(true);
+      const img = new Image();
+      img.src = menuBg;
+      img.onload = () => setIsLoading(false);
+      return () => {
+        img.onload = null;
+      };
+    } else {
+      setIsLoading(false);
+    }
+  }, [menuBg, page]);
 
   if (!user) {
     return <Auth />;
