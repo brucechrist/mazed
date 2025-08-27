@@ -1,7 +1,7 @@
 :root {
-  --main-bg-url: url('./assets/backgrounds/background_EI.jpg');
-  --char-bg-url: url('./assets/backgrounds/Viego_0.jpg');
-  --menu-bg-url: url('./assets/backgrounds/background_EI.jpg');
+  --main-bg-url: none;
+  --char-bg-url: none;
+  --menu-bg-url: none;
 }
 
 body {
@@ -9,6 +9,7 @@ body {
   font-family: sans-serif;
   background: var(--main-bg-url) no-repeat center center fixed;
   background-size: cover;
+  background-color: black;
   color: #e6e7eb;
 }
 
