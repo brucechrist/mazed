@@ -1,9 +1,7 @@
 body {
   margin: 0;
   font-family: sans-serif;
-  /* Replace solid background with custom image */
-  background: url('./assets/backgrounds/background_EI.jpg') no-repeat center center fixed;
-  background-size: cover;
+  background: black;
   color: #e6e7eb;
 }
 

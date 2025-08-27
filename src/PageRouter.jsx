@@ -9,6 +9,7 @@ import { supabaseClient } from './supabaseClient';
 import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
 import ImageGallery from './ImageGallery.jsx';
+import LoadingScreen from './LoadingScreen.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -21,6 +22,7 @@ export default function PageRouter() {
   const [menuBg, setMenuBg] = useState(
     () => localStorage.getItem('menuBg') || defaultMenuBg
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -112,6 +114,16 @@ export default function PageRouter() {
     }
   }, [page]);
 
+  useEffect(() => {
+    setIsLoading(true);
+    const img = new Image();
+    img.src = menuBg;
+    img.onload = () => setIsLoading(false);
+    return () => {
+      img.onload = null;
+    };
+  }, [menuBg]);
+
   if (!user) {
     return <Auth />;
   }
@@ -153,6 +165,7 @@ export default function PageRouter() {
 
   return (
     <>
+      {isLoading && <LoadingScreen />}
       <ActivityTimer />
       {content}
     </>
