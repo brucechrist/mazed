@@ -238,7 +238,6 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
-
       if (anyAppOpen) {
         if (key === 'escape') {
           e.preventDefault();
