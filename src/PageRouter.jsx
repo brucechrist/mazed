@@ -59,6 +59,7 @@ export default function PageRouter() {
   }, [user]);
 
   const navigate = useCallback((newPage) => {
+    setIsLoading(true);
     if (newPage === '5th') {
       history.current = ['5th'];
     } else {
