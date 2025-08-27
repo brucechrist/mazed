@@ -3,6 +3,7 @@ import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
+import DayPlanner from './DayPlanner.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;
@@ -13,6 +14,7 @@ export default function FifthMain({ onSelectQuadrant }) {
   const [showModal, setShowModal] = useState(false);
   const [showList, setShowList] = useState(false);
   const [menuIndex, setMenuIndex] = useState(0);
+  const [showPlanner, setShowPlanner] = useState(false);
 
   const startLeftDrag = (e) => {
     e.preventDefault();
@@ -65,12 +67,39 @@ export default function FifthMain({ onSelectQuadrant }) {
         } else if (showList) {
           e.preventDefault();
           setShowList(false);
+        } else if (showPlanner) {
+          e.preventDefault();
+          setShowPlanner(false);
         }
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [showModal, showList]);
+  }, [showModal, showList, showPlanner]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const last = localStorage.getItem('plannerDate');
+    if (last !== today) {
+      setShowPlanner(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === 'OPEN_DAY_PLANNER') {
+        setShowPlanner(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handlePlannerComplete = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('plannerDate', today);
+    setShowPlanner(false);
+  };
 
   useEffect(() => {
     const handleNav = (e) => {
@@ -139,6 +168,7 @@ export default function FifthMain({ onSelectQuadrant }) {
       </div>
       {showModal && <NoteModal onClose={() => setShowModal(false)} />}
       {showList && <NotesListModal onClose={() => setShowList(false)} />}
+      {showPlanner && <DayPlanner onComplete={handlePlannerComplete} />}
     </div>
   );
 }
