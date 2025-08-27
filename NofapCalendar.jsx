@@ -45,11 +45,37 @@ export default function NofapCalendar({ onBack }) {
         .select('*')
         .eq('user_id', user.id);
       if (data) {
-        const active = data.find((r) => r.end === null);
+        const activeRuns = data
+          .filter((r) => r.end === null)
+          .sort((a, b) => b.start - a.start);
+        const active = activeRuns[0];
         const completed = data.filter((r) => r.end !== null);
-        if (active) {
+        if (run) {
+          if (active) {
+            if (active.start > run.start) {
+              saveRun({ id: active.id, start: active.start });
+            } else if (!run.id && active.start === run.start) {
+              saveRun({ ...run, id: active.id });
+            } else if (run.start > active.start && !run.id) {
+              const { data: inserted } = await supabaseClient
+                .from('runs')
+                .insert({ user_id: user.id, start: run.start })
+                .select()
+                .single();
+              if (inserted) saveRun({ ...run, id: inserted.id });
+            }
+          } else if (!run.id) {
+            const { data: inserted } = await supabaseClient
+              .from('runs')
+              .insert({ user_id: user.id, start: run.start })
+              .select()
+              .single();
+            if (inserted) saveRun({ ...run, id: inserted.id });
+          }
+        } else if (active) {
           saveRun({ id: active.id, start: active.start });
         }
+
         if (completed.length) {
           const mapped = completed.map((r) => ({
             id: r.id,
@@ -132,15 +158,15 @@ export default function NofapCalendar({ onBack }) {
 
   const startRun = async () => {
     const newRun = { start: Date.now() };
+    saveRun(newRun);
     if (userId && navigator.onLine) {
       const { data } = await supabaseClient
         .from('runs')
         .insert({ user_id: userId, start: newRun.start })
         .select()
         .single();
-      if (data) newRun.id = data.id;
+      if (data) saveRun({ ...newRun, id: data.id });
     }
-    saveRun(newRun);
   };
 
   const requestFinish = (type) => {

@@ -3,6 +3,7 @@ import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
+import DayPlanner from './src/DayPlanner.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;
@@ -13,6 +14,7 @@ export default function FifthMain({ onSelectQuadrant }) {
   const [showModal, setShowModal] = useState(false);
   const [showList, setShowList] = useState(false);
   const [menuIndex, setMenuIndex] = useState(0);
+  const [showPlanner, setShowPlanner] = useState(false);
 
   const startLeftDrag = (e) => {
     e.preventDefault();
@@ -57,6 +59,30 @@ export default function FifthMain({ onSelectQuadrant }) {
   };
 
   useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const last = localStorage.getItem('plannerDate');
+    if (last !== today) {
+      setShowPlanner(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === 'OPEN_DAY_PLANNER') {
+        setShowPlanner(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handlePlannerComplete = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('plannerDate', today);
+    setShowPlanner(false);
+  };
+
+  useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') {
         if (showModal) {
@@ -78,21 +104,19 @@ export default function FifthMain({ onSelectQuadrant }) {
       if (key === 'a') {
         setMenuIndex((prev) => Math.max(0, prev - 1));
       } else if (key === 'd') {
-        setMenuIndex((prev) => Math.min(6, prev + 1));
+        setMenuIndex((prev) => Math.min(5, prev + 1));
       } else if (key === 'w') {
-        if (menuIndex >= 5) setMenuIndex((prev) => prev - 2);
+        if (menuIndex >= 4) setMenuIndex((prev) => prev - 2);
       } else if (key === 's') {
-        if (menuIndex >= 3 && menuIndex <= 4) setMenuIndex((prev) => prev + 2);
+        if (menuIndex >= 2 && menuIndex <= 3) setMenuIndex((prev) => prev + 2);
       } else if (key === 'enter') {
         if (menuIndex === 0) {
-          onSelectQuadrant('gallery');
-        } else if (menuIndex === 1) {
           setShowList(true);
-        } else if (menuIndex === 2) {
+        } else if (menuIndex === 1) {
           setShowModal(true);
         } else {
           const quadrants = ['II', 'IE', 'EI', 'EE'];
-          onSelectQuadrant(quadrants[menuIndex - 3]);
+          onSelectQuadrant(quadrants[menuIndex - 2]);
         }
       }
     };
@@ -112,15 +136,6 @@ export default function FifthMain({ onSelectQuadrant }) {
       <div className="bottom-menu">
         <button
           className={`side-button ${menuIndex === 0 ? 'selected' : ''}`}
-          onClick={() => onSelectQuadrant('gallery')}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 7.5C3 6.67157 3.67157 6 4.5 6H19.5C20.3284 6 21 6.67157 21 7.5V16.5C21 17.3284 20.3284 18 19.5 18H4.5C3.67157 18 3 17.3284 3 16.5V7.5Z" stroke="white" strokeWidth="2"/>
-            <path d="M8 11L10.5 13.5L13.5 10.5L17 14" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <button
-          className={`side-button ${menuIndex === 1 ? 'selected' : ''}`}
           onClick={() => setShowList(true)}
         >
           <svg width="27" height="27" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -128,7 +143,7 @@ export default function FifthMain({ onSelectQuadrant }) {
           </svg>
         </button>
         <button
-          className={`side-button ${menuIndex === 2 ? 'selected' : ''}`}
+          className={`side-button ${menuIndex === 1 ? 'selected' : ''}`}
           onClick={() => setShowModal(true)}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -136,13 +151,11 @@ export default function FifthMain({ onSelectQuadrant }) {
             <path d="M6.5 10H17.5C17.9647 10 18.197 9.99986 18.3902 9.96143C19.1836 9.80361 19.8036 9.18356 19.9614 8.39018C19.9999 8.19698 19.9999 7.96465 19.9999 7.5C19.9999 7.03535 19.9999 6.80306 19.9614 6.60986C19.8036 5.81648 19.1836 5.19624 18.3902 5.03843C18.197 5 17.9647 5 17.5 5H6.5C6.03534 5 5.80306 5 5.60986 5.03843C4.81648 5.19624 4.19624 5.81648 4.03843 6.60986C4 6.80306 4 7.03539 4 7.50004C4 7.9647 4 8.19694 4.03843 8.39014C4.19624 9.18352 4.81648 9.80361 5.60986 9.96143C5.80306 9.99986 6.03535 10 6.5 10Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <QuadrantMenu
-          onSelect={onSelectQuadrant}
-          selected={menuIndex - 3}
-        />
+        <QuadrantMenu onSelect={onSelectQuadrant} selected={menuIndex - 2} />
       </div>
       {showModal && <NoteModal onClose={() => setShowModal(false)} />}
       {showList && <NotesListModal onClose={() => setShowList(false)} />}
+      {showPlanner && <DayPlanner onComplete={handlePlannerComplete} />}
     </div>
   );
 }

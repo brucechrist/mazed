@@ -8,7 +8,6 @@ import Auth from './Auth.jsx';
 import { supabaseClient } from './supabaseClient';
 import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
-import ImageGallery from './ImageGallery.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -17,10 +16,6 @@ export default function PageRouter() {
   const [showExitVideo, setShowExitVideo] = useState(false);
   const [pendingResize, setPendingResize] = useState(false);
   const prevUser = useRef(null);
-  const defaultMenuBg = './assets/backgrounds/background_EI.jpg';
-  const [menuBg, setMenuBg] = useState(
-    () => localStorage.getItem('menuBg') || defaultMenuBg
-  );
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -99,19 +94,6 @@ export default function PageRouter() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goBack]);
 
-  useEffect(() => {
-    document.body.style.setProperty('--menu-bg-url', `url("${menuBg}")`);
-    localStorage.setItem('menuBg', menuBg);
-  }, [menuBg]);
-
-  useEffect(() => {
-    if (page === '5th') {
-      document.body.classList.add('menu-page');
-    } else {
-      document.body.classList.remove('menu-page');
-    }
-  }, [page]);
-
   if (!user) {
     return <Auth />;
   }
@@ -133,19 +115,16 @@ export default function PageRouter() {
   let content;
   switch (page) {
     case 'II':
-      content = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = <IImain />;
       break;
     case 'IE':
-      content = <IEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = <IEmain />;
       break;
     case 'EI':
-      content = <EImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = <EImain />;
       break;
     case 'EE':
-      content = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
-      break;
-    case 'gallery':
-      content = <ImageGallery onBack={() => navigate('5th')} />;
+      content = <EEmain />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;

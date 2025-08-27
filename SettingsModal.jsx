@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import './note-modal.css';
-import BackgroundUploadModal from './BackgroundUploadModal.jsx';
 
 export default function SettingsModal({
   onClose,
@@ -9,12 +8,6 @@ export default function SettingsModal({
   onOpenAkashicRecords,
   theme,
   onToggleTheme,
-  mainBg,
-  onChangeMainBg,
-  charBg,
-  onChangeCharBg,
-  menuBg,
-  onChangeMenuBg,
 }) {
   const resolutions = ['800x600', '1024x768', '1280x720', '1600x900', '1920x1080'];
   const [resolution, setResolution] = useState(() => {
@@ -36,14 +29,6 @@ export default function SettingsModal({
     }
   };
 
-  const [bgType, setBgType] = useState(null); // 'main', 'character', or 'menu'
-  const [showBgChoice, setShowBgChoice] = useState(false);
-
-  const openBgModal = (type) => {
-    setBgType(type);
-    setShowBgChoice(false);
-  };
-
   const openAdminConsole = () => {
     const w = window.open('', '_blank');
     if (!w) return;
@@ -53,19 +38,19 @@ export default function SettingsModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="checkbox"
             checked={autoLog}
-            onChange={e => onToggleAutoLog(e.target.checked)}
+            onChange={(e) => onToggleAutoLog(e.target.checked)}
           />
           Auto log calendar
         </label>
         <label className="note-label">
           Resolution
           <select value={resolution} onChange={changeRes}>
-            {resolutions.map(r => (
+            {resolutions.map((r) => (
               <option key={r} value={r}>{r}</option>
             ))}
           </select>
@@ -77,29 +62,6 @@ export default function SettingsModal({
         <button className="save-button" onClick={openAdminConsole}>
           Admin Console
         </button>
-        <button
-          className="save-button"
-          onClick={() => setShowBgChoice((s) => !s)}
-        >
-          Change Background
-        </button>
-        {showBgChoice && (
-          <div className="bg-selection">
-            <div className="bg-option" onClick={() => openBgModal('character')}>
-              <img src={charBg} className="bg-option-preview" />
-              Character
-            </div>
-            <div className="bg-option" onClick={() => openBgModal('main')}>
-              <img src={mainBg} className="bg-option-preview" />
-              App
-            </div>
-            <div className="bg-option" onClick={() => openBgModal('menu')}>
-              <img src={menuBg} className="bg-option-preview" />
-              Main Menu
-            </div>
-
-          </div>
-        )}
         <button
           className="akashic-button"
           onClick={() => {
@@ -134,24 +96,6 @@ export default function SettingsModal({
           </svg>
         </button>
       </div>
-      {bgType && (
-        <BackgroundUploadModal
-          type={bgType}
-          current={
-            bgType === 'main'
-              ? mainBg
-              : bgType === 'character'
-              ? charBg
-              : menuBg
-          }
-          onApply={(url) => {
-            if (bgType === 'main') onChangeMainBg(url);
-            else if (bgType === 'character') onChangeCharBg(url);
-            else onChangeMenuBg(url);
-          }}
-          onClose={() => setBgType(null)}
-        />
-      )}
     </div>
   );
 }

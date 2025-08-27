@@ -62,7 +62,7 @@
 
 .save-button {
   padding: 6px 16px;
-  background: #555;
+  background: #007bff;
   color: white;
   border: none;
   border-radius: 6px;
@@ -70,7 +70,7 @@
 }
 
 .save-button:hover {
-  background: #444;
+  background: #0056b3;
 }
 
 .notes-list {
@@ -105,27 +105,4 @@
   cursor: pointer;
   align-self: flex-end;
   color: inherit;
-}
-
-.bg-selection {
-  display: flex;
-  justify-content: space-around;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.bg-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-}
-
-.bg-option-preview {
-  width: 80px;
-  height: 45px;
-  object-fit: cover;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-bottom: 4px;
 }
