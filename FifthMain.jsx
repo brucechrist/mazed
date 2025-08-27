@@ -3,7 +3,7 @@ import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
-import DayPlanner from './DayPlanner.jsx';
+import DayPlanner from './src/DayPlanner.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;

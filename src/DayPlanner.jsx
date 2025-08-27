@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Calendar from './src/Calendar.jsx';
+import Calendar from './Calendar.jsx';
 import './day-planner.css';
 
-export default function DayPlanner({ onComplete }) {
+export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
   const [goals, setGoals] = useState({
     transcendent: '',
     jackpot: '',
@@ -26,7 +26,7 @@ export default function DayPlanner({ onComplete }) {
     <div className="day-planner-overlay">
       <div className="day-planner">
         <div className="planner-calendar">
-          <Calendar onBack={onComplete} backLabel="Start Day" />
+          <Calendar onBack={onComplete} backLabel={backLabel} />
         </div>
         <div className="planner-goals">
           <h2>Big Goals</h2>
