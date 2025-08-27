@@ -116,9 +116,14 @@ export default function PageRouter() {
   }, [page]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timeout);
-  }, [page, menuBg]);
+    setIsLoading(true);
+    const img = new Image();
+    img.src = menuBg;
+    img.onload = () => setIsLoading(false);
+    return () => {
+      img.onload = null;
+    };
+  }, [menuBg]);
 
   if (!user) {
     return <Auth />;
