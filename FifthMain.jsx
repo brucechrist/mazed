@@ -66,6 +66,16 @@ export default function FifthMain({ onSelectQuadrant }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === 'OPEN_DAY_PLANNER') {
+        setShowPlanner(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handlePlannerComplete = () => {
     const today = new Date().toISOString().slice(0, 10);
     localStorage.setItem('plannerDate', today);
