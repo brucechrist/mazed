@@ -1,0 +1,34 @@
+.shadow-categories {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.shadow-category {
+  flex: 1;
+  background: #222;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.shadow-category h3 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.shadow-category ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.shadow-note {
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: move;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,175 @@
+@font-face {
+  font-family: 'ExodusD-Regular';
+  src: url('./assets/fonts/ExodusD-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+
+.stats-quadrant {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin-left: 60px;
+}
+
+.stats-quadrant::before,
+.stats-quadrant::after {
+  content: '';
+  position: absolute;
+  background: white;
+  pointer-events: none;
+}
+
+.stats-quadrant::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.stats-quadrant::after {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.quadrant {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.2em;
+  font-family:'ExodusD-Regular', sans-serif ;
+  cursor: pointer;
+  text-shadow: 2px 2px 4px #000
+}
+
+.quadrant input {
+  width: 80%;
+  background: transparent;
+  border: none;
+  color: white;
+  text-align: center;
+  font-size: inherit;
+  font-family: 'ExodusD-Regular', sans-serif;
+  text-shadow: 2px 2px 4px #000
+}
+
+.quadrant input:focus {
+  outline: 1px solid #fff;
+}
+
+.top-left {
+  top: 0;
+  left: 0;
+}
+
+.top-right {
+  top: 0;
+  right: 0;
+}
+
+.bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+.bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
+.total-display {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  text-align: center;
+}
+
+.power-label {
+  color: white;
+  font-size: 45px;
+  margin-bottom: 5px;
+  text-shadow: 2px 2px 4x #000;
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 5px;
+  filter: drop-shadow(2px 2px 4px #000)
+}
+
+.total-number {
+  font-size: 150px;
+  color: #FCFCFC;
+    text-shadow: 2px 2px 4px #000;
+}
+
+.extra-buttons {
+  position: absolute;
+  bottom: 20px;
+  left: 55%;
+  display: flex;
+  gap: 20px;
+}
+
+.extra-buttons .square,
+.extra-buttons .round {
+  width: 55px;
+  height: 55px;
+  background: white;
+  border: none;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.extra-buttons .square {
+  border-radius: 10px;
+}
+
+.extra-buttons .round {
+  border-radius: 30px;
+}
+
+.character-scroll {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.header-section,
+.stats-section,
+.identity-section {
+  width: 100%;
+  max-width: 1600px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.character-title {
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 2px 2px 4px #000;
+}

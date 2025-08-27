@@ -1,0 +1,46 @@
+.version-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.rating-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.version-card {
+  background: #333;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: white;
+}
+
+.version-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.delete-button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #ff6666;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.quadrant-notes {
+  font-size: 0.85em;
+  margin-top: 4px;
+}
+
+.extra-notes {
+  font-size: 0.85em;
+  margin-top: 4px;
+}

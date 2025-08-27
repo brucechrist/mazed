@@ -1,0 +1,468 @@
+:root {
+  --main-bg-url: url('./assets/backgrounds/background_EI.jpg');
+  --char-bg-url: url('./assets/backgrounds/Viego_0.jpg');
+  --menu-bg-url: url('./assets/backgrounds/background_EI.jpg');
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: var(--main-bg-url) no-repeat center center fixed;
+  background-size: cover;
+  color: #e6e7eb;
+}
+
+body.menu-page {
+  background: var(--menu-bg-url) no-repeat center center fixed;
+  background-size: cover;
+}
+
+@keyframes pulse {
+  from {
+    box-shadow: 0 0 4px gold;
+  }
+  to {
+    box-shadow: 0 0 12px gold;
+  }
+}
+
+body.character-page {
+  background: var(--char-bg-url) no-repeat center center fixed;
+  background-size: cover;
+  background-position: center;
+}
+
+
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 70px;
+  background-color: rgba(128, 128, 128, 0.6);
+  padding: 20px 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  color: black;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 10px;
+  user-select: none;
+  transition: background-color 0.2s;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.tab.active {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  animation: pulse 1s infinite alternate;
+}
+
+.tab:hover {
+  background-color: #222;
+  color: #fff;
+  background-color: #e0e0e0
+}
+
+.layer-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.layer-tab {
+  padding: 8px 16px;
+  background-color: rgba(128, 128, 128, 0.6);
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+  transition: background-color 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.layer-tab.active {
+  background-color: rgba(0, 0, 0, 0.4);
+  animation: pulse 1s infinite alternate;
+}
+
+.layer-tab:hover {
+  background-color: rgba(128, 128, 128, 0.8);
+}
+
+.content {
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.icon {
+  font-size: 1.2em;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.home-button,
+.profile-button,
+.settings-button {
+  width: 50px;
+  height: 50px;
+  background: white;
+  color: black;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.settings-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+body.character-page .content {
+  padding: 0;
+  height: 100vh;
+}
+
+body.character-page h1 {
+  display: none;
+}
+
+body.world-page {
+  overflow: hidden;
+}
+
+body.world-page .content {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body.idea-board-page {
+  overflow: hidden;
+}
+
+body.idea-board-page h1 {
+  display: none;
+}
+
+body.idea-board-page .content {
+  height: 100vh;
+  padding: 0;
+  align-items: stretch;
+}
+
+.sidebar-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  object-fit: cover;
+}
+
+.bottom-buttons {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  background: #17181d;
+  border-radius: 12px;
+  cursor: pointer;
+  gap: 10px;
+  transition: background-color 0.2s;
+}
+
+.app-card:hover {
+  background: #17181d;
+}
+
+.app-card.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.05);
+}
+
+.sidebar .tab.selected,
+.sidebar .bottom-buttons > div.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.1);
+}
+
+.calendar-preview {
+  width: 80px;
+  height: 60px;
+  background-image:
+    linear-gradient(#444 2px, transparent 2px),
+    linear-gradient(90deg, #444 2px, transparent 2px);
+  background-size: 14px 14px;
+  background-position: -1px -1px;
+  border-radius: 4px;
+}
+
+.tools-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  flex: 1;
+  width: 100%;
+}
+
+.feature-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.star-icon {
+  font-size: 1.5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.question-icon {
+  font-size: 1.5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.journal-icon {
+  font-size: 2em;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.back-button {
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+.quest-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.journal-tabs button {
+  background: #17181d;
+  color: #e6e7eb;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.journal-tabs button.active {
+  background: #0d0e11;
+}
+
+.activity-toggle {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1000;
+}
+
+.activity-toggle .switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.activity-toggle .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.activity-toggle .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 20px;
+}
+
+.activity-toggle .slider:before {
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.activity-toggle input:checked + .slider {
+  background-color: #2196f3;
+}
+
+.activity-toggle input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.activity-toggle span {
+  user-select: none;
+}
+
+.layer-menu {
+  position: absolute;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: #17181d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.layer-menu li {
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.layer-menu li:hover {
+  background: #333;
+}
+
+body.light-theme {
+  /* Keep the same background image but switch text color */
+  color: #000;
+}
+
+body.light-theme .sidebar {
+  background-color: rgba(200, 200, 200, 0.6);
+}
+
+body.light-theme .tab {
+  background-color: #fff;
+  color: #000;
+}
+
+body.light-theme .tab:hover {
+  background-color: #ccc;
+  color: #000;
+}
+
+body.light-theme .home-button,
+body.light-theme .profile-button,
+body.light-theme .settings-button {
+  background: #f0f0f0;
+  color: #000;
+}
+
+body.light-theme .app-card,
+body.light-theme .back-button,
+body.light-theme .journal-tabs button,
+body.light-theme .journal-tabs button.active {
+  background: #fff;
+  color: #000;
+}
+
+.activity-toggle {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1000;
+}
+
+.activity-toggle .switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.activity-toggle .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.activity-toggle .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 20px;
+}
+
+.activity-toggle .slider:before {
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.activity-toggle input:checked + .slider {
+  background-color: #2196f3;
+}
+
+.activity-toggle input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.activity-toggle span {
+  user-select: none;
+}
