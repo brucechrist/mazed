@@ -143,6 +143,12 @@ body.character-page h1 {
   transform: scale(1.05);
 }
 
+.sidebar .tab.selected,
+.sidebar .bottom-buttons > div.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.1);
+}
+
 .calendar-preview {
   width: 80px;
   height: 60px;

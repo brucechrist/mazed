@@ -1,29 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import styled, { keyframes } from 'styled-components';
 
-export default function QuadrantMenu({ onSelect }) {
-  const [selected, setSelected] = useState(0);
-  const quadrants = ['II', 'IE', 'EI', 'EE'];
-
-  useEffect(() => {
-    const handleKey = (e) => {
-      const key = e.key.toLowerCase();
-      if (key === 'w') {
-        setSelected((prev) => (prev >= 2 ? prev - 2 : prev));
-      } else if (key === 's') {
-        setSelected((prev) => (prev <= 1 ? prev + 2 : prev));
-      } else if (key === 'a') {
-        setSelected((prev) => (prev % 2 === 1 ? prev - 1 : prev));
-      } else if (key === 'd') {
-        setSelected((prev) => (prev % 2 === 0 ? prev + 1 : prev));
-      } else if (key === 'enter') {
-        onSelect(quadrants[selected]);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onSelect, selected]);
-
+export default function QuadrantMenu({ onSelect, selected }) {
   return (
     <StyledWrapper>
       <div className="main">

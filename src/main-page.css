@@ -63,6 +63,11 @@ body {
   padding: 0;
 }
 
+.side-button.selected {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.1);
+}
+
 .side-button svg {
   width: 27px;
   height: 27px;

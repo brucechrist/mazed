@@ -78,6 +78,9 @@ const [theme, setTheme] = useState(
   () => localStorage.getItem('theme') || 'dark'
 );
 const [selectedAppIndex, setSelectedAppIndex] = useState(-1);
+const [sidebarIndex, setSidebarIndex] = useState(() =>
+  tabs.findIndex((t) => t.label === (initialTab || tabs[0].label))
+);
 
 const anyAppOpen =
   showJournal ||
@@ -133,30 +136,70 @@ const closeOpenApp = () => {
         return;
       }
 
+      const totalSidebarItems = tabs.length + 3;
       if (selectedAppIndex === -1) {
         if (key === 'w') {
-          setActiveTab((prev) => {
-            const idx = tabs.findIndex((t) => t.label === prev);
-            return tabs[Math.max(0, idx - 1)].label;
-          });
+          setSidebarIndex((prev) => Math.max(0, prev - 1));
         } else if (key === 's') {
-          setActiveTab((prev) => {
-            const idx = tabs.findIndex((t) => t.label === prev);
-            return tabs[Math.min(tabs.length - 1, idx + 1)].label;
-          });
-        } else if (key === 'enter' && activeTab === 'Tools') {
-          const cards = document.querySelectorAll('.feature-cards .app-card');
-          if (cards.length > 0) {
-            setSelectedAppIndex(0);
+          setSidebarIndex((prev) => Math.min(totalSidebarItems - 1, prev + 1));
+        } else if (key === 'enter') {
+          if (sidebarIndex < tabs.length) {
+            if (tabs[sidebarIndex].label === 'Tools') {
+              const cards = document.querySelectorAll('.feature-cards .app-card');
+              if (cards.length > 0) {
+                setSelectedAppIndex(0);
+              }
+            }
+          } else {
+            const actionIdx = sidebarIndex - tabs.length;
+            if (actionIdx === 0) {
+              setShowSettings(true);
+            } else if (actionIdx === 1) {
+              setShowProfile(true);
+            } else if (actionIdx === 2) {
+              window.location.reload();
+            }
           }
         }
       } else {
-        const cards = document.querySelectorAll('.feature-cards .app-card');
-        if (key === 'a' || key === 'w') {
-          setSelectedAppIndex((prev) => Math.max(0, prev - 1));
-        } else if (key === 'd' || key === 's') {
-          setSelectedAppIndex((prev) => Math.min(cards.length - 1, prev + 1));
-        } else if (key === 'enter') {
+        const cards = Array.from(
+          document.querySelectorAll('.feature-cards .app-card')
+        );
+        const currentRect = cards[selectedAppIndex].getBoundingClientRect();
+        const cx = currentRect.left + currentRect.width / 2;
+        const cy = currentRect.top + currentRect.height / 2;
+
+        const moveSelection = (dir) => {
+          let best = selectedAppIndex;
+          let bestDist = Infinity;
+          cards.forEach((card, idx) => {
+            if (idx === selectedAppIndex) return;
+            const rect = card.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            let valid = false;
+            if (dir === 'left') valid = x < cx - 5;
+            if (dir === 'right') valid = x > cx + 5;
+            if (dir === 'up') valid = y < cy - 5;
+            if (dir === 'down') valid = y > cy + 5;
+            if (valid) {
+              const dx = cx - x;
+              const dy = cy - y;
+              const dist = dx * dx + dy * dy;
+              if (dist < bestDist) {
+                bestDist = dist;
+                best = idx;
+              }
+            }
+          });
+          setSelectedAppIndex(best);
+        };
+
+        if (key === 'a') moveSelection('left');
+        else if (key === 'd') moveSelection('right');
+        else if (key === 'w') moveSelection('up');
+        else if (key === 's') moveSelection('down');
+        else if (key === 'enter') {
           cards[selectedAppIndex]?.click();
           setSelectedAppIndex(-1);
         } else if (key === 'escape') {
@@ -167,7 +210,13 @@ const closeOpenApp = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, anyAppOpen, selectedAppIndex, closeOpenApp]);
+  }, [activeTab, anyAppOpen, selectedAppIndex, closeOpenApp, sidebarIndex]);
+
+useEffect(() => {
+  if (sidebarIndex < tabs.length) {
+    setActiveTab(tabs[sidebarIndex].label);
+  }
+}, [sidebarIndex]);
 
   useEffect(() => {
     if (activeTab !== 'Tools' || anyAppOpen) {
@@ -237,26 +286,47 @@ const closeOpenApp = () => {
       <WindowControls />
       <div className="app-container">
       <aside className="sidebar">
-        {tabs.map((tab) => (
+        {tabs.map((tab, idx) => (
           <div
             key={tab.label}
-            className={`tab ${activeTab === tab.label ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.label)}
+            className={`tab ${activeTab === tab.label ? 'active' : ''} ${sidebarIndex === idx ? 'selected' : ''}`}
+            onClick={() => {
+              setActiveTab(tab.label);
+              setSidebarIndex(idx);
+            }}
           >
             <span className="icon">{tab.icon}</span>
           </div>
         ))}
         <div className="bottom-buttons">
-          <div className="settings-button" onClick={() => setShowSettings(true)}>
+          <div
+            className={`settings-button ${sidebarIndex === tabs.length ? 'selected' : ''}`}
+            onClick={() => {
+              setShowSettings(true);
+              setSidebarIndex(tabs.length);
+            }}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M13.6006 21.0761L19.0608 17.9236C19.6437 17.5871 19.9346 17.4188 20.1465 17.1834C20.3341 16.9751 20.4759 16.7297 20.5625 16.4632C20.6602 16.1626 20.6602 15.8267 20.6602 15.1568V8.84268C20.6602 8.17277 20.6602 7.83694 20.5625 7.53638C20.4759 7.26982 20.3341 7.02428 20.1465 6.816C19.9355 6.58161 19.6453 6.41405 19.0674 6.08043L13.5996 2.92359C13.0167 2.58706 12.7259 2.41913 12.416 2.35328C12.1419 2.295 11.8584 2.295 11.5843 2.35328C11.2744 2.41914 10.9826 2.58706 10.3997 2.92359L4.93843 6.07666C4.35623 6.41279 4.06535 6.58073 3.85352 6.816C3.66597 7.02428 3.52434 7.26982 3.43773 7.53638C3.33984 7.83765 3.33984 8.17436 3.33984 8.84742V15.1524C3.33984 15.8254 3.33984 16.1619 3.43773 16.4632C3.52434 16.7297 3.66597 16.9751 3.85352 17.1834C4.06548 17.4188 4.35657 17.5871 4.93945 17.9236L10.3997 21.0761C10.9826 21.4126 11.2744 21.5806 11.5843 21.6465C11.8584 21.7047 12.1419 21.7047 12.416 21.6465C12.7259 21.5806 13.0177 21.4126 13.6006 21.0761Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M9 11.9998C9 13.6566 10.3431 14.9998 12 14.9998C13.6569 14.9998 15 13.6566 15 11.9998C15 10.3429 13.6569 8.99976 12 8.99976C10.3431 8.99976 9 10.3429 9 11.9998Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <div className="profile-button" onClick={() => setShowProfile(true)}>
+          <div
+            className={`profile-button ${sidebarIndex === tabs.length + 1 ? 'selected' : ''}`}
+            onClick={() => {
+              setShowProfile(true);
+              setSidebarIndex(tabs.length + 1);
+            }}
+          >
             <img className="sidebar-avatar" src={avatarUrl} alt="Profile" />
           </div>
-          <div className="home-button" onClick={() => window.location.reload()}>
+          <div
+            className={`home-button ${sidebarIndex === tabs.length + 2 ? 'selected' : ''}`}
+            onClick={() => {
+              window.location.reload();
+              setSidebarIndex(tabs.length + 2);
+            }}
+          >
             🏠
           </div>
         </div>
