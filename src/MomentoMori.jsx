@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './momento-mori.css';
-import LevelRating, { RARITY_LEVELS } from './src/LevelRating.jsx';
+import LevelRating, { RARITY_LEVELS } from './LevelRating.jsx';
 
 export default function MomentoMori({ onBack }) {
   const [columns, setColumns] = useState({

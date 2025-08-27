@@ -2,13 +2,13 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-jest.mock('./src/Calendar.jsx', () => ({ onBack, backLabel }) => (
+jest.mock('./Calendar.jsx', () => ({ onBack, backLabel }) => (
   <div data-testid="calendar-mock">
     <button onClick={onBack}>{backLabel}</button>
   </div>
 ));
 
-import DayPlanner from './src/DayPlanner.jsx';
+import DayPlanner from './DayPlanner.jsx';
 
 describe('DayPlanner', () => {
   beforeEach(() => {

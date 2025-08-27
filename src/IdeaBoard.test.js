@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import IdeaBoard from './src/IdeaBoard.jsx';
+import IdeaBoard from './IdeaBoard.jsx';
 
 jest.mock('react-konva', () => {
   const React = require('react');
