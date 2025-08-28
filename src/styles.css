@@ -53,6 +53,7 @@ body.character-page {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  margin-top: 25px;
 }
 
 .layer-button {
@@ -97,7 +98,7 @@ body.character-page {
 .bottom-nav {
   position: fixed;
   bottom: 20px;
-  left: 20px;
+  left: 35px;
   display: flex;
   gap: 15px;
 }
