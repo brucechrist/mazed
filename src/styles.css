@@ -51,7 +51,7 @@ body.character-page {
 
 .layer-buttons {
   position: fixed;
-  top: calc(50% - 80px);
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -100,9 +100,9 @@ body.character-page {
 
 .bottom-nav {
   position: fixed;
-  top: 50%;
+  bottom: 20px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   display: flex;
   gap: 15px;
 }
