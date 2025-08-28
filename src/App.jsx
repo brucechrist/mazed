@@ -44,9 +44,9 @@ const tabs = [
 ];
 
 const layers = [
-  { label: 'Form', color: 'orange' },
-  { label: 'Semi-Formless', color: 'purple' },
-  { label: 'Formless', color: 'white' },
+  { label: 'Form', color: 'red' },
+  { label: 'Semi-Formless', color: 'blue' },
+  { label: 'Formless', color: 'green' },
 ];
 
 const defaultMainBg = './assets/backgrounds/background_EI.jpg';
@@ -427,20 +427,21 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     <QuestProvider>
       <ActivityLogger enabled={autoLog} />
       <div className="app-container">
-      <aside className="sidebar">
-        {tabs.map((tab, idx) => (
-          <div
-            key={tab.label}
-            className={`tab ${activeTab === tab.label ? 'active' : ''} ${sidebarIndex === idx ? 'selected' : ''}`}
-            onClick={() => {
-              setActiveTab(tab.label);
-              setSidebarIndex(idx);
-            }}
-          >
-            <span className="icon">{tab.icon}</span>
+        <aside className="sidebar">
+          <div className="layer-buttons">
+            {layers.map((layer) => (
+              <div
+                key={layer.label}
+                title={layer.label}
+                className={`layer-button ${activeLayer === layer.label ? 'active' : ''}`}
+                style={{ backgroundColor: layer.color }}
+                onClick={() => setActiveLayer(layer.label)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDropOnLayer(e, layer.label)}
+              />
+            ))}
           </div>
-        ))}
-        <div className="bottom-buttons">
+          <div className="bottom-buttons">
           <div
             className={`settings-button ${sidebarIndex === tabs.length ? 'selected' : ''}`}
             onClick={() => {
@@ -472,29 +473,9 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
             🏠
           </div>
         </div>
-      </aside>
-      <div className="content">
-        <div className="layer-tabs">
-          {layers.map((layer) => (
-            <div
-              key={layer.label}
-              className={`layer-tab ${activeLayer === layer.label ? 'active' : ''}`}
-              style={{
-                borderBottom:
-                  activeLayer === layer.label
-                    ? `3px solid ${layer.color}`
-                    : '3px solid transparent',
-                color: activeLayer === layer.label ? layer.color : '#e6e7eb',
-              }}
-              onClick={() => setActiveLayer(layer.label)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDropOnLayer(e, layer.label)}
-            >
-              {layer.label}
-            </div>
-          ))}
-        </div>
-        <h1>{activeTab}</h1>
+        </aside>
+        <div className="content">
+          <h1>{activeTab}</h1>
         {activeTab === 'Character' && (
           activeLayer === 'Semi-Formless' ? (
             <SemiFormlessCharacter />
@@ -828,6 +809,20 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
         )}
         {activeTab === 'World' && <World />}
         {activeTab === 'Friends' && <FriendsList />}
+      </div>
+      <div className="bottom-nav">
+        {tabs.map((tab, idx) => (
+          <div
+            key={tab.label}
+            className={`tab ${activeTab === tab.label ? 'active' : ''} ${sidebarIndex === idx ? 'selected' : ''}`}
+            onClick={() => {
+              setActiveTab(tab.label);
+              setSidebarIndex(idx);
+            }}
+          >
+            <span className="icon">{tab.icon}</span>
+          </div>
+        ))}
       </div>
       {showProfile && (
         <ProfileModal
