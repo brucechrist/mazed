@@ -98,7 +98,7 @@ body.character-page {
 .bottom-nav {
   position: fixed;
   bottom: 20px;
-  left: 65px;
+  left: 95px;
   display: flex;
   gap: 15px;
 }
