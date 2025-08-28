@@ -49,6 +49,27 @@ body.character-page {
   padding: 20px 0;
 }
 
+.layer-buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.layer-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.layer-button.active {
+  animation: pulse 1s infinite alternate;
+  transform: scale(1.1);
+}
+
 .tab {
   display: flex;
   align-items: center;
@@ -74,6 +95,14 @@ body.character-page {
   background-color: #222;
   color: #fff;
   background-color: #e0e0e0
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 20px;
+  right: 95px;
+  display: flex;
+  gap: 15px;
 }
 
 .layer-tabs {
