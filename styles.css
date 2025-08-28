@@ -33,6 +33,10 @@ body {
 }
 
 .layer-buttons {
+  position: fixed;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -80,7 +84,7 @@ body {
 .bottom-nav {
   position: fixed;
   bottom: 20px;
-  left: 20px;
+  left: 65px;
   display: flex;
   gap: 15px;
 }
