@@ -44,6 +44,13 @@ export default function SettingsModal({
     setShowBgChoice(false);
   };
 
+  const openAdminConsole = () => {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>Admin Console</title></head><body style="background:white;color:black;font-family:sans-serif;padding:20px;"><h1>Admin Console</h1><button id="reopen">Reopen Day Planner</button><script>document.getElementById('reopen').onclick=function(){try{window.opener?.localStorage.removeItem('plannerDate');window.opener?.postMessage({type:'OPEN_DAY_PLANNER'},'*');}catch(e){console.error(e);}};</script></body></html>`);
+    w.document.close();
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -66,6 +73,9 @@ export default function SettingsModal({
         </label>
         <button className="save-button" onClick={onToggleTheme}>
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </button>
+        <button className="save-button" onClick={openAdminConsole}>
+          Admin Console
         </button>
         <button
           className="save-button"
