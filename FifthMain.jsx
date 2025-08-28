@@ -3,7 +3,7 @@ import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
-import DayPlanner from './DayPlanner.jsx';
+import DayPlanner from './src/DayPlanner.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;
@@ -64,6 +64,16 @@ export default function FifthMain({ onSelectQuadrant }) {
     if (last !== today) {
       setShowPlanner(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === 'OPEN_DAY_PLANNER') {
+        setShowPlanner(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const handlePlannerComplete = () => {
