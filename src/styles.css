@@ -50,10 +50,12 @@ body.character-page {
 }
 
 .layer-buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  margin-top: 20px;
 }
 
 .layer-button {
