@@ -51,9 +51,8 @@ body.character-page {
 
 .layer-buttons {
   position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 85px;
+  left: 160px;
   display: flex;
   flex-direction: row;
   gap: 15px;
