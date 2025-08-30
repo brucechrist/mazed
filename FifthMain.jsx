@@ -58,8 +58,10 @@ export default function FifthMain({ onSelectQuadrant }) {
     document.addEventListener('mouseup', onMouseUp);
   };
 
+  const todayKey = () => new Date().toLocaleDateString('en-CA');
+
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKey();
     const last = localStorage.getItem('plannerDate');
     if (last !== today) {
       setShowPlanner(true);
@@ -77,7 +79,7 @@ export default function FifthMain({ onSelectQuadrant }) {
   }, []);
 
   const handlePlannerComplete = () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKey();
     localStorage.setItem('plannerDate', today);
     setShowPlanner(false);
   };
