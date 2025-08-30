@@ -26,7 +26,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
     <div className="day-planner-overlay">
       <div className="day-planner">
         <div className="planner-calendar">
-          <Calendar onBack={onComplete} backLabel={backLabel} />
+          <Calendar onBack={onComplete} backLabel={backLabel} defaultView="day" />
         </div>
         <div className="planner-goals">
           <h2>Big Goals</h2>
