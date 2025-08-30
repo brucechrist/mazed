@@ -28,7 +28,7 @@ function CalendarEvent({ event, onDelete }) {
   );
 }
 
-export default function Calendar({ onBack, backLabel = 'Back' }) {
+export default function Calendar({ onBack, backLabel = 'Back', defaultView = 'month' }) {
   const roundSlot = (date) => {
     const d = new Date(date);
     d.setMinutes(Math.floor(d.getMinutes() / 30) * 30, 0, 0);
@@ -287,7 +287,7 @@ export default function Calendar({ onBack, backLabel = 'Back' }) {
           events={[...events, ...blocks]}
           startAccessor="start"
           endAccessor="end"
-          defaultView="month"
+          defaultView={defaultView}
           views={["month", "week", "day"]}
           style={{ height: "100%" }}
           onSelectSlot={handleSelectSlot}
