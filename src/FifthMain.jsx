@@ -3,6 +3,7 @@ import NoteModal from './NoteModal.jsx';
 import NotesListModal from './NotesListModal.jsx';
 import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
+import DayPlanner from './DayPlanner.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {
   const MIN_WIDTH = 253;
@@ -13,6 +14,7 @@ export default function FifthMain({ onSelectQuadrant }) {
   const [showModal, setShowModal] = useState(false);
   const [showList, setShowList] = useState(false);
   const [menuIndex, setMenuIndex] = useState(0);
+  const [showPlanner, setShowPlanner] = useState(false);
 
   const startLeftDrag = (e) => {
     e.preventDefault();
@@ -54,6 +56,32 @@ export default function FifthMain({ onSelectQuadrant }) {
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+  };
+
+  const todayKey = () => new Date().toLocaleDateString('en-CA');
+
+  useEffect(() => {
+    const today = todayKey();
+    const last = localStorage.getItem('plannerDate');
+    if (last !== today) {
+      setShowPlanner(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === 'OPEN_DAY_PLANNER') {
+        setShowPlanner(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handlePlannerComplete = () => {
+    const today = todayKey();
+    localStorage.setItem('plannerDate', today);
+    setShowPlanner(false);
   };
 
   useEffect(() => {
@@ -143,6 +171,7 @@ export default function FifthMain({ onSelectQuadrant }) {
       </div>
       {showModal && <NoteModal onClose={() => setShowModal(false)} />}
       {showList && <NotesListModal onClose={() => setShowList(false)} />}
+      {showPlanner && <DayPlanner onComplete={handlePlannerComplete} />}
     </div>
   );
 }
