@@ -1,13 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import './placeholder-app.css';
 import './activity-app.css';
+import AddActivityModal from './AddActivityModal.jsx';
 
-const ACTIVITIES = [
-  { title: 'Meditation - Vipassana', icon: '🧘', base: 30, description: 'Focus on breath' },
-  { title: 'Meditation - Ramana', icon: '🧘', base: 30, description: 'Self inquiry' },
-  { title: 'Yoga', icon: '🧘‍♂️', base: 45, description: 'Stretch and breathe' },
-  { title: 'Workout', icon: '🏋️', base: 45, description: 'Strength training' },
-  { title: 'Reading', icon: '📚', base: 20, description: 'Read a book' },
+const DEFAULT_ACTIVITIES = [
+  {
+    title: 'Meditation - Vipassana',
+    icon: '🧘',
+    base: 30,
+    description: 'Focus on breath',
+    dimension: 'Formless',
+    aspect: 'II',
+    timesPerDay: 1,
+  },
+  {
+    title: 'Meditation - Ramana',
+    icon: '🧘',
+    base: 30,
+    description: 'Self inquiry',
+    dimension: 'Formless',
+    aspect: 'II',
+    timesPerDay: 1,
+  },
+  {
+    title: 'Yoga',
+    icon: '🧘‍♂️',
+    base: 45,
+    description: 'Stretch and breathe',
+    dimension: 'Form',
+    aspect: 'IE',
+    timesPerDay: 1,
+  },
+  {
+    title: 'Workout',
+    icon: '🏋️',
+    base: 45,
+    description: 'Strength training',
+    dimension: 'Form',
+    aspect: 'EE',
+    timesPerDay: 1,
+  },
+  {
+    title: 'Reading',
+    icon: '📚',
+    base: 20,
+    description: 'Read a book',
+    dimension: 'Form',
+    aspect: 'II',
+    timesPerDay: 1,
+  },
 ];
 
 const computeReward = (mins) => {
@@ -58,6 +99,20 @@ function ActivityModal({ activity, onStart, onClose }) {
 }
 
 export default function ActivityApp({ onBack }) {
+  const [activities, setActivities] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('activities')) || DEFAULT_ACTIVITIES;
+    } catch {
+      return DEFAULT_ACTIVITIES;
+    }
+  });
+  const [counts, setCounts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('activityCounts')) || {};
+    } catch {
+      return {};
+    }
+  });
   const [xp, setXp] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('activityXP')) || {};
@@ -77,6 +132,18 @@ export default function ActivityApp({ onBack }) {
     return Math.max(0, Math.floor((new Date(active.end) - Date.now()) / 1000));
   });
   const [modalAct, setModalAct] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const saveActivities = (next) => {
+    setActivities(next);
+    localStorage.setItem('activities', JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent('activities-updated', { detail: next }));
+  };
+
+  const saveCounts = (next) => {
+    setCounts(next);
+    localStorage.setItem('activityCounts', JSON.stringify(next));
+  };
 
   const saveXp = (next) => {
     setXp(next);
@@ -137,9 +204,25 @@ export default function ActivityApp({ onBack }) {
 
     const nextXp = { ...xp, [activity.title]: (xp[activity.title] || 0) + mins };
     saveXp(nextXp);
+    const today = new Date().toISOString().slice(0, 10);
+    const nextCounts = { ...counts };
+    if (!nextCounts[activity.title]) nextCounts[activity.title] = {};
+    nextCounts[activity.title][today] = (nextCounts[activity.title][today] || 0) + 1;
+    saveCounts(nextCounts);
     setModalAct(null);
     setActive({ title: activity.title, end: end.toISOString() });
     setTimeLeft(mins * 60);
+  };
+
+  const addActivity = (activity) => {
+    const next = [...activities, activity];
+    saveActivities(next);
+    setShowAdd(false);
+  };
+
+  const removeActivity = (title) => {
+    const next = activities.filter((a) => a.title !== title);
+    saveActivities(next);
   };
 
   return (
@@ -153,21 +236,44 @@ export default function ActivityApp({ onBack }) {
         </div>
       )}
       <h2>Activities</h2>
+      <button className="add-button" onClick={() => setShowAdd(true)}>
+        Add Activity
+      </button>
       <ul className="activity-grid">
-        {ACTIVITIES.map((act) => {
+        {activities.map((act) => {
           const spent = xp[act.title] || 0;
           const pct = Math.min(spent / 180, 1);
+          const today = new Date().toISOString().slice(0, 10);
+          const done = counts[act.title]?.[today] || 0;
           return (
             <li
               key={act.title}
               className="activity-box"
               onClick={() => setModalAct(act)}
             >
+              <button
+                className="delete-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeActivity(act.title);
+                }}
+              >
+                ×
+              </button>
               <div className="box-header">
                 <span className="activity-icon">{act.icon}</span>
                 <span>{act.title}</span>
               </div>
               <div className="activity-desc">{act.description}</div>
+              <div className="activity-tags">
+                <span>{act.dimension}</span>
+                <span>{act.aspect}</span>
+              </div>
+              <div className="daily-progress">
+                {[...Array(act.timesPerDay || 0)].map((_, i) => (
+                  <span key={i} className={i < done ? 'dot done' : 'dot'} />
+                ))}
+              </div>
               <div className="xp-bar">
                 <div
                   className="xp-fill"
@@ -183,6 +289,12 @@ export default function ActivityApp({ onBack }) {
           activity={modalAct}
           onStart={(mins) => startActivity(modalAct, mins)}
           onClose={() => setModalAct(null)}
+        />
+      )}
+      {showAdd && (
+        <AddActivityModal
+          onSave={addActivity}
+          onClose={() => setShowAdd(false)}
         />
       )}
     </div>
