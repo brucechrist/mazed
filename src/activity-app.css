@@ -90,6 +90,7 @@
   align-items: center;
   gap: 6px;
   text-align: center;
+  position: relative;
 }
 
 .activity-box:hover {
@@ -106,4 +107,45 @@
 .activity-desc {
   font-size: 0.85em;
   color: #bbb;
+}
+
+.add-button {
+  margin-bottom: 10px;
+}
+
+.delete-button {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  color: #fff;
+}
+
+.activity-tags {
+  font-size: 0.75em;
+  color: #888;
+  display: flex;
+  gap: 4px;
+}
+
+.daily-progress {
+  display: flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.dot.done {
+  background: #4caf50;
 }
