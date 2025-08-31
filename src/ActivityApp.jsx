@@ -73,8 +73,13 @@ const getColor = (val) => {
   return '#4caf50';
 };
 
-function ActivityModal({ activity, onStart, onClose }) {
+function ActivityModal({ activity, onStart, onClose, onPlannerChange }) {
   const [duration, setDuration] = useState(activity.base);
+  const [planner, setPlanner] = useState(activity.planner);
+  useEffect(() => {
+    setPlanner(activity.planner);
+    setDuration(activity.base);
+  }, [activity]);
   const reward = computeReward(duration);
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -90,6 +95,17 @@ function ActivityModal({ activity, onStart, onClose }) {
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
           />
+        </label>
+        <label className="note-label">
+          <input
+            type="checkbox"
+            checked={planner}
+            onChange={(e) => {
+              setPlanner(e.target.checked);
+              onPlannerChange(e.target.checked);
+            }}
+          />
+          Add to Daily Planner
         </label>
         <div className="reward-label">Reward: {reward} R</div>
         <div className="actions">
@@ -230,11 +246,19 @@ export default function ActivityApp({ onBack }) {
     saveActivities(next);
   };
 
-  const togglePlanner = (title) => {
+  const setPlanner = (title, planner) => {
     const next = activities.map((a) =>
-      a.title === title ? { ...a, planner: !a.planner } : a
+      a.title === title ? { ...a, planner } : a
     );
     saveActivities(next);
+    if (modalAct && modalAct.title === title) {
+      setModalAct({ ...modalAct, planner });
+    }
+  };
+
+  const togglePlanner = (title) => {
+    const act = activities.find((a) => a.title === title);
+    setPlanner(title, !act?.planner);
   };
 
   return (
@@ -311,6 +335,7 @@ export default function ActivityApp({ onBack }) {
           activity={modalAct}
           onStart={(mins) => startActivity(modalAct, mins)}
           onClose={() => setModalAct(null)}
+          onPlannerChange={(val) => setPlanner(modalAct.title, val)}
         />
       )}
       {showAdd && (
