@@ -149,3 +149,17 @@
 .dot.done {
   background: #4caf50;
 }
+
+.planner-button {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+}
+
+.planner-button.active {
+  color: #4caf50;
+}

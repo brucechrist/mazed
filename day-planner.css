@@ -46,3 +46,27 @@
 .planner-goals li {
   margin-bottom: 0.5rem;
 }
+
+.planner-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.planner-activity {
+  background: #333;
+  padding: 0.5rem;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: grab;
+}
+
+.planner-count {
+  background: #555;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.8em;
+}

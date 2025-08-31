@@ -12,6 +12,7 @@ const DEFAULT_ACTIVITIES = [
     dimension: 'Formless',
     aspect: 'II',
     timesPerDay: 1,
+    planner: false,
   },
   {
     title: 'Meditation - Ramana',
@@ -21,6 +22,7 @@ const DEFAULT_ACTIVITIES = [
     dimension: 'Formless',
     aspect: 'II',
     timesPerDay: 1,
+    planner: false,
   },
   {
     title: 'Yoga',
@@ -30,6 +32,7 @@ const DEFAULT_ACTIVITIES = [
     dimension: 'Form',
     aspect: 'IE',
     timesPerDay: 1,
+    planner: false,
   },
   {
     title: 'Workout',
@@ -39,6 +42,7 @@ const DEFAULT_ACTIVITIES = [
     dimension: 'Form',
     aspect: 'EE',
     timesPerDay: 1,
+    planner: false,
   },
   {
     title: 'Reading',
@@ -48,6 +52,7 @@ const DEFAULT_ACTIVITIES = [
     dimension: 'Form',
     aspect: 'II',
     timesPerDay: 1,
+    planner: false,
   },
 ];
 
@@ -225,6 +230,13 @@ export default function ActivityApp({ onBack }) {
     saveActivities(next);
   };
 
+  const togglePlanner = (title) => {
+    const next = activities.map((a) =>
+      a.title === title ? { ...a, planner: !a.planner } : a
+    );
+    saveActivities(next);
+  };
+
   return (
     <div className="placeholder-app activity-app">
       <button className="back-button" onClick={onBack}>Back</button>
@@ -251,6 +263,16 @@ export default function ActivityApp({ onBack }) {
               className="activity-box"
               onClick={() => setModalAct(act)}
             >
+              <button
+                className={act.planner ? 'planner-button active' : 'planner-button'}
+                title="Toggle Daily Planner"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlanner(act.title);
+                }}
+              >
+                📅
+              </button>
               <button
                 className="delete-button"
                 onClick={(e) => {

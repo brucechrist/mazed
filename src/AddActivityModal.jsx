@@ -11,6 +11,7 @@ export default function AddActivityModal({ onSave, onClose }) {
   const [dimension, setDimension] = useState(DIMENSIONS[0]);
   const [aspect, setAspect] = useState(ASPECTS[0]);
   const [times, setTimes] = useState(1);
+  const [planner, setPlanner] = useState(false);
 
   const handleSave = () => {
     onSave({
@@ -21,6 +22,7 @@ export default function AddActivityModal({ onSave, onClose }) {
       dimension,
       aspect,
       timesPerDay: times,
+      planner,
     });
   };
 
@@ -75,6 +77,14 @@ export default function AddActivityModal({ onSave, onClose }) {
             value={times}
             onChange={(e) => setTimes(Number(e.target.value))}
           />
+        </label>
+        <label className="note-label">
+          <input
+            type="checkbox"
+            checked={planner}
+            onChange={(e) => setPlanner(e.target.checked)}
+          />
+          Add to Daily Planner
         </label>
         <div className="actions">
           <button className="save-button" onClick={onClose}>

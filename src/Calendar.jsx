@@ -28,7 +28,14 @@ function CalendarEvent({ event, onDelete }) {
   );
 }
 
-export default function Calendar({ onBack, backLabel = 'Back', defaultView = 'month' }) {
+export default function Calendar({
+  onBack,
+  backLabel = 'Back',
+  defaultView = 'month',
+  externalActivity = null,
+  onExternalDrop,
+  backDisabled = false,
+}) {
   const roundSlot = (date) => {
     const d = new Date(date);
     d.setMinutes(Math.floor(d.getMinutes() / 30) * 30, 0, 0);
@@ -276,7 +283,7 @@ export default function Calendar({ onBack, backLabel = 'Back', defaultView = 'mo
 
   return (
     <div className="calendar-app">
-      <button className="back-button" onClick={onBack}>
+      <button className="back-button" onClick={onBack} disabled={backDisabled}>
         {backLabel}
       </button>
       <div className="calendar-container" ref={containerRef}>
@@ -295,6 +302,25 @@ export default function Calendar({ onBack, backLabel = 'Back', defaultView = 'mo
           onEventDrop={moveEvent}
           onEventResize={resizeEvent}
           eventPropGetter={eventPropGetter}
+          dragFromOutsideItem={() => externalActivity}
+          onDropFromOutside={({ start }) => {
+            if (!externalActivity) return;
+            const duration = externalActivity.base || 30;
+            const ev = {
+              title: externalActivity.title,
+              start: new Date(start),
+              end: new Date(new Date(start).getTime() + duration * 60000),
+              kind: 'planned',
+              color: '#4285f4',
+            };
+            setEvents((prev) => [...prev, ev]);
+            if (onExternalDrop) onExternalDrop(ev);
+          }}
+          onDragOver={(e) => {
+            if (externalActivity) {
+              e.preventDefault();
+            }
+          }}
           components={{
             event: (props) => (
               <CalendarEvent {...props} onDelete={handleDelete} />
