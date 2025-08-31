@@ -13,6 +13,26 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
   const [counts, setCounts] = useState({});
   const [dragging, setDragging] = useState(null);
 
+  const computeCounts = () => {
+    try {
+      const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+      const today = new Date().toDateString();
+      const c = {};
+      events
+        .filter(
+          (e) =>
+            e.kind === 'planned' &&
+            new Date(e.start).toDateString() === today
+        )
+        .forEach((e) => {
+          c[e.title] = (c[e.title] || 0) + 1;
+        });
+      setCounts(c);
+    } catch {
+      setCounts({});
+    }
+  };
+
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('todoBigGoals') || '{}');
@@ -42,21 +62,18 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
   }, []);
 
   useEffect(() => {
-    const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
-    const c = {};
-    events
-      .filter((e) => e.kind === 'planned')
-      .forEach((e) => {
-        c[e.title] = (c[e.title] || 0) + 1;
-      });
-    setCounts(c);
+    computeCounts();
   }, [activities]);
 
-  const handleDrop = (ev) => {
-    setCounts((prev) => ({
-      ...prev,
-      [ev.title]: (prev[ev.title] || 0) + 1,
-    }));
+  useEffect(() => {
+    computeCounts();
+    const onUpdate = () => computeCounts();
+    window.addEventListener('calendar-updated', onUpdate);
+    return () => window.removeEventListener('calendar-updated', onUpdate);
+  }, []);
+
+  const handleDrop = () => {
+    computeCounts();
   };
 
   const canStart = activities.every(
