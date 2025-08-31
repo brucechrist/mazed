@@ -73,7 +73,7 @@ const getColor = (val) => {
   return '#4caf50';
 };
 
-function ActivityModal({ activity, onStart, onClose }) {
+function ActivityModal({ activity, onStart, onClose, onTogglePlanner }) {
   const [duration, setDuration] = useState(activity.base);
   const reward = computeReward(duration);
   return (
@@ -90,6 +90,14 @@ function ActivityModal({ activity, onStart, onClose }) {
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
           />
+        </label>
+        <label className="note-label">
+          <input
+            type="checkbox"
+            checked={activity.planner}
+            onChange={() => onTogglePlanner(activity.title)}
+          />
+          Add to Daily Planner
         </label>
         <div className="reward-label">Reward: {reward} R</div>
         <div className="actions">
@@ -235,6 +243,10 @@ export default function ActivityApp({ onBack }) {
       a.title === title ? { ...a, planner: !a.planner } : a
     );
     saveActivities(next);
+    if (modalAct && modalAct.title === title) {
+      const updated = next.find((a) => a.title === title);
+      setModalAct(updated);
+    }
   };
 
   return (
@@ -311,6 +323,13 @@ export default function ActivityApp({ onBack }) {
           activity={modalAct}
           onStart={(mins) => startActivity(modalAct, mins)}
           onClose={() => setModalAct(null)}
+          onTogglePlanner={togglePlanner}
+        />
+      )}
+      {showAdd && (
+        <AddActivityModal
+          onSave={addActivity}
+          onClose={() => setShowAdd(false)}
         />
       )}
       {showAdd && (
