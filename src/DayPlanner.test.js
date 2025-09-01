@@ -53,6 +53,7 @@ describe('DayPlanner', () => {
         backLabel: 'Return',
         defaultView: 'day',
         backDisabled: false,
+        onMoveEvent: expect.any(Function),
       })
     );
   });
@@ -112,6 +113,42 @@ describe('DayPlanner', () => {
     );
     render(<DayPlanner onComplete={() => {}} backLabel="Start" />);
     expect(screen.getByText('0/2')).toBeInTheDocument();
+  });
+
+  test('updates counts when events are moved on or off today', () => {
+    localStorage.setItem(
+      'activities',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          icon: '🦒',
+          base: 10,
+          description: '',
+          dimension: 'Form',
+          aspect: 'II',
+          timesPerDay: 1,
+          planner: true,
+        },
+      ])
+    );
+    render(<DayPlanner onComplete={() => {}} backLabel="Start" />);
+    const props = mockCalendar.mock.calls[mockCalendar.mock.calls.length - 1][0];
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const startBtn = screen.getByRole('button', { name: 'Start' });
+    act(() => {
+      props.onExternalDrop({ title: 'Neck Training', start: today });
+    });
+    expect(startBtn).toBeEnabled();
+    act(() => {
+      props.onMoveEvent({ title: 'Neck Training', start: today }, { title: 'Neck Training', start: tomorrow });
+    });
+    expect(startBtn).toBeDisabled();
+    act(() => {
+      props.onMoveEvent({ title: 'Neck Training', start: tomorrow }, { title: 'Neck Training', start: today });
+    });
+    expect(startBtn).toBeEnabled();
   });
 
   test('decrements count when planned event deleted', async () => {
