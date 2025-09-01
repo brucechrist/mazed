@@ -82,23 +82,6 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
     });
   };
 
-  const handleMove = (from, to) => {
-    const wasToday = isToday(from.start);
-    const isTodayNow = isToday(to.start);
-    if (wasToday === isTodayNow) return;
-    setCounts((prev) => {
-      const next = { ...prev };
-      if (wasToday && next[from.title]) {
-        next[from.title] -= 1;
-        if (next[from.title] <= 0) delete next[from.title];
-      }
-      if (isTodayNow) {
-        next[to.title] = (next[to.title] || 0) + 1;
-      }
-      return next;
-    });
-  };
-
   const canStart = activities.every(
     (a) => (counts[a.title] || 0) >= (a.timesPerDay || 0)
   );
@@ -118,7 +101,6 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
             externalActivity={dragging}
             onExternalDrop={handleDrop}
             onDeleteEvent={handleDelete}
-            onMoveEvent={handleMove}
             backDisabled={!canStart}
           />
         </div>
