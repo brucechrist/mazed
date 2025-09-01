@@ -15,6 +15,7 @@ import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './src/ToolsBlog.jsx';
 import MomentoMori from './MomentoMori.jsx';
+import Watchdog from './src/Watchdog.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -67,6 +68,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showMomentoMori, setShowMomentoMori] = useState(false);
   // Avoid naming clash with src/App.jsx by giving the blog state a unique name
   const [showToolsBlog, setShowToolsBlog] = useState(false);
+  const [showWatchdog, setShowWatchdog] = useState(false);
 const [showAkashicRecords, setShowAkashicRecords] = useState(false);
 const [showProfile, setShowProfile] = useState(false);
 const [avatarUrl, setAvatarUrl] = useState(placeholderImg);
@@ -96,6 +98,7 @@ const anyAppOpen =
   showMoodtracker ||
   showAnima ||
   showMomentoMori ||
+  showWatchdog ||
   showToolsBlog ||
   showAkashicRecords ||
   showProfile ||
@@ -115,6 +118,7 @@ const closeOpenApp = () => {
   setShowMoodtracker(false);
   setShowAnima(false);
   setShowMomentoMori(false);
+  setShowWatchdog(false);
   setShowToolsBlog(false);
   setShowAkashicRecords(false);
   setShowProfile(false);
@@ -358,10 +362,12 @@ useEffect(() => {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
-            ) : showToolsBlog ? (
-              <ToolsBlog onBack={() => setShowToolsBlog(false)} />
             ) : showMomentoMori ? (
               <MomentoMori onBack={() => setShowMomentoMori(false)} />
+            ) : showWatchdog ? (
+              <Watchdog onBack={() => setShowWatchdog(false)} />
+            ) : showToolsBlog ? (
+              <ToolsBlog onBack={() => setShowToolsBlog(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : (
@@ -413,6 +419,10 @@ useEffect(() => {
                 <div className="app-card" onClick={() => setShowMomentoMori(true)}>
                   <div className="star-icon">☠️</div>
                   <span>Momento Mori</span>
+                </div>
+                <div className="app-card" onClick={() => setShowWatchdog(true)}>
+                  <div className="star-icon">🐶</div>
+                  <span>Watchdog</span>
                 </div>
                 <div className="app-card" onClick={() => setShowToolsBlog(true)}>
                   <div className="star-icon">📝</div>

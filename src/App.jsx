@@ -15,6 +15,7 @@ import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './ToolsBlog.jsx';
 import MomentoMori from '../MomentoMori.jsx';
+import Watchdog from './Watchdog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
@@ -80,6 +81,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
   const [showImplementationIdeas, setShowImplementationIdeas] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
+  const [showWatchdog, setShowWatchdog] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -114,15 +116,26 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       ideaBoard: 'Form',
       implementationIdeas: 'Form',
       orb: 'Form',
+      watchdog: 'Form',
     };
 
     const stored = localStorage.getItem('appLayers');
-    if (!stored) return defaults;
+    if (!stored) {
+      localStorage.setItem('appLayers', JSON.stringify(defaults));
+      return defaults;
+    }
 
     try {
       const parsed = JSON.parse(stored);
-      return { ...defaults, ...parsed };
+      const merged = { ...defaults, ...parsed };
+
+      if (Object.keys(defaults).some((key) => !(key in parsed))) {
+        localStorage.setItem('appLayers', JSON.stringify(merged));
+      }
+
+      return merged;
     } catch {
+      localStorage.setItem('appLayers', JSON.stringify(defaults));
       return defaults;
     }
   };
@@ -165,6 +178,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showIdeaBoard ||
     showImplementationIdeas ||
     showOrb ||
+    showWatchdog ||
     showToolsBlog ||
     showAkashicRecords ||
     showProfile ||
@@ -193,6 +207,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowIdeaBoard(false);
     setShowImplementationIdeas(false);
     setShowOrb(false);
+    setShowWatchdog(false);
     setShowToolsBlog(false);
     setShowAkashicRecords(false);
     setShowProfile(false);
@@ -529,6 +544,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
+            ) : showWatchdog ? (
+              <Watchdog onBack={() => setShowWatchdog(false)} />
             ) : activeLayer === 'Form' && showToolsBlog ? (
               <ToolsBlog onBack={() => setShowToolsBlog(false)} />
             ) : (
@@ -801,6 +818,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">🧿</div>
                     <span>Orb</span>
+                  </div>
+                )}
+                {appLayers.watchdog === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowWatchdog(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'watchdog')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'watchdog')}
+                  >
+                    <div className="star-icon">🐶</div>
+                    <span>Watchdog</span>
                   </div>
                 )}
               </div>
