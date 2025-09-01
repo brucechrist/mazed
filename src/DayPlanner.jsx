@@ -41,11 +41,21 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
     return () => window.removeEventListener('activities-updated', onUpdate);
   }, []);
 
+  const isToday = (date) => {
+    const d = new Date(date);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
   useEffect(() => {
     const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
     const c = {};
     events
-      .filter((e) => e.kind === 'planned')
+      .filter((e) => e.kind === 'planned' && isToday(e.start))
       .forEach((e) => {
         c[e.title] = (c[e.title] || 0) + 1;
       });
@@ -53,6 +63,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
   }, [activities]);
 
   const handleDrop = (ev) => {
+    if (!isToday(ev.start)) return;
     setCounts((prev) => ({
       ...prev,
       [ev.title]: (prev[ev.title] || 0) + 1,
@@ -94,18 +105,31 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
               <div className="planner-activities">
                 {activities.map((a) => {
                   const done = counts[a.title] || 0;
+                  const pct = Math.min(1, done / (a.timesPerDay || 1)) * 100;
+                  const complete = done >= (a.timesPerDay || 0);
                   return (
                     <div
                       key={a.title}
-                      className="planner-activity"
+                      className={`planner-activity ${complete ? 'completed' : ''}`}
                       draggable
                       onDragStart={() => setDragging(a)}
                       onDragEnd={() => setDragging(null)}
                     >
-                      <span>{a.title}</span>
-                      <span className="planner-count">
-                        {done}/{a.timesPerDay}
-                      </span>
+                      <div className="planner-activity-top">
+                        <span>{a.title}</span>
+                        <span className="planner-count">
+                          {done}/{a.timesPerDay}
+                        </span>
+                      </div>
+                      <div className="planner-progress">
+                        <div
+                          className="planner-progress-bar"
+                          style={{
+                            width: pct + '%',
+                            background: complete ? '#4caf50' : '#2196f3',
+                          }}
+                        />
+                      </div>
                     </div>
                   );
                 })}

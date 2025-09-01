@@ -77,4 +77,37 @@ describe('DayPlanner', () => {
     const startBtn = screen.getByRole('button', { name: 'Start' });
     expect(startBtn).toBeDisabled();
   });
+
+  test('ignores past planned events when counting repetitions', () => {
+    localStorage.setItem(
+      'activities',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          icon: '🦒',
+          base: 10,
+          description: '',
+          dimension: 'Form',
+          aspect: 'II',
+          timesPerDay: 2,
+          planner: true,
+        },
+      ])
+    );
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    localStorage.setItem(
+      'calendarEvents',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          start: yesterday.toISOString(),
+          end: yesterday.toISOString(),
+          kind: 'planned',
+        },
+      ])
+    );
+    render(<DayPlanner onComplete={() => {}} backLabel="Start" />);
+    expect(screen.getByText('0/2')).toBeInTheDocument();
+  });
 });

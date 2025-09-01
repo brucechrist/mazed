@@ -332,12 +332,6 @@ export default function ActivityApp({ onBack }) {
           onClose={() => setShowAdd(false)}
         />
       )}
-      {showAdd && (
-        <AddActivityModal
-          onSave={addActivity}
-          onClose={() => setShowAdd(false)}
-        />
-      )}
     </div>
   );
 }
