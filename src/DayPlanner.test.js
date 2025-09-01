@@ -1,15 +1,18 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('./Calendar.jsx', () => {
-  return jest.fn(({ onBack, backLabel, backDisabled }) => (
-    <div data-testid="calendar-mock">
-      <button onClick={onBack} disabled={backDisabled}>
-        {backLabel}
-      </button>
-    </div>
-  ));
+  return jest.fn((props) => {
+    const { onBack, backLabel, backDisabled } = props;
+    return (
+      <div data-testid="calendar-mock">
+        <button onClick={onBack} disabled={backDisabled}>
+          {backLabel}
+        </button>
+      </div>
+    );
+  });
 });
 import mockCalendar from './Calendar.jsx';
 import DayPlanner from './DayPlanner.jsx';
@@ -109,5 +112,37 @@ describe('DayPlanner', () => {
     );
     render(<DayPlanner onComplete={() => {}} backLabel="Start" />);
     expect(screen.getByText('0/2')).toBeInTheDocument();
+  });
+
+  test('decrements count when planned event deleted', async () => {
+    localStorage.setItem(
+      'activities',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          icon: '🦒',
+          base: 10,
+          description: '',
+          dimension: 'Form',
+          aspect: 'II',
+          timesPerDay: 2,
+          planner: true,
+        },
+      ])
+    );
+    render(<DayPlanner onComplete={() => {}} backLabel="Start" />);
+    const props = mockCalendar.mock.calls[mockCalendar.mock.calls.length - 1][0];
+    const now = new Date();
+    await screen.findByText('0/2');
+    const startBtn = screen.getByRole('button', { name: 'Start' });
+    act(() => {
+      props.onExternalDrop({ title: 'Neck Training', start: now });
+      props.onExternalDrop({ title: 'Neck Training', start: now });
+    });
+    expect(startBtn).toBeEnabled();
+    act(() => {
+      props.onDeleteEvent({ title: 'Neck Training', start: now });
+    });
+    expect(startBtn).toBeDisabled();
   });
 });

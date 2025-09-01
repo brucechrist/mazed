@@ -35,6 +35,7 @@ export default function Calendar({
   externalActivity = null,
   onExternalDrop,
   backDisabled = false,
+  onDeleteEvent,
 }) {
   const roundSlot = (date) => {
     const d = new Date(date);
@@ -265,6 +266,8 @@ export default function Calendar({
     const toDelete = target || (modalEvent && modalEvent.original);
     if (toDelete) {
       setEvents(events.filter((ev) => ev !== toDelete));
+      if (onDeleteEvent) onDeleteEvent(toDelete);
+      setModalEvent(null);
     }
   };
 

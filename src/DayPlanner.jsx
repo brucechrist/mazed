@@ -70,6 +70,18 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
     }));
   };
 
+  const handleDelete = (ev) => {
+    if (!isToday(ev.start)) return;
+    setCounts((prev) => {
+      const next = { ...prev };
+      if (next[ev.title]) {
+        next[ev.title] -= 1;
+        if (next[ev.title] <= 0) delete next[ev.title];
+      }
+      return next;
+    });
+  };
+
   const canStart = activities.every(
     (a) => (counts[a.title] || 0) >= (a.timesPerDay || 0)
   );
@@ -88,6 +100,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
             defaultView="day"
             externalActivity={dragging}
             onExternalDrop={handleDrop}
+            onDeleteEvent={handleDelete}
             backDisabled={!canStart}
           />
         </div>
