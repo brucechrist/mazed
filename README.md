@@ -1,4 +1,4 @@
-# mazed
+# mazed!!
 
 The idea is to build the Mazed app for PC, it will be built in react electron, so it's useable through web, app. mobile, while being highly customizable and alive
 

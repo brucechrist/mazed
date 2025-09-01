@@ -127,6 +127,7 @@ export default function Calendar({
 
   useEffect(() => {
     localStorage.setItem("calendarEvents", JSON.stringify(events));
+    window.dispatchEvent(new Event('calendar-updated'));
   }, [events]);
 
   useEffect(() => {
@@ -284,8 +285,10 @@ export default function Calendar({
     const idx = events.indexOf(event);
     if (idx !== -1) {
       const updated = [...events];
-      updated[idx] = { ...event, start, end };
+      const next = { ...event, start, end };
+      updated[idx] = next;
       setEvents(updated);
+      if (onMoveEvent) onMoveEvent(event, next);
     }
   };
 
