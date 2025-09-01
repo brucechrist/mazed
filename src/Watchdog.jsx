@@ -16,6 +16,7 @@ export default function Watchdog({ onBack }) {
     return saved ? JSON.parse(saved) : defaultSettings;
   });
   const [newApp, setNewApp] = useState('');
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('watchdogSettings', JSON.stringify(settings));
@@ -48,6 +49,10 @@ export default function Watchdog({ onBack }) {
         Back
       </button>
       <h2>Watchdog Settings</h2>
+      <p>Watchdog is {enabled ? 'ON' : 'OFF'}</p>
+      <button onClick={() => setEnabled(!enabled)}>
+        Turn {enabled ? 'Off' : 'On'}
+      </button>
 
       <label>
         <input
