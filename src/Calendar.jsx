@@ -126,6 +126,7 @@ export default function Calendar({
 
   useEffect(() => {
     localStorage.setItem("calendarEvents", JSON.stringify(events));
+    window.dispatchEvent(new Event('calendar-updated'));
   }, [events]);
 
   useEffect(() => {
