@@ -36,6 +36,7 @@ export default function Calendar({
   onExternalDrop,
   backDisabled = false,
   onDeleteEvent,
+  onMoveEvent,
 }) {
   const roundSlot = (date) => {
     const d = new Date(date);
@@ -276,8 +277,10 @@ export default function Calendar({
     const idx = events.indexOf(event);
     if (idx !== -1) {
       const updated = [...events];
-      updated[idx] = { ...event, start, end };
+      const next = { ...event, start, end };
+      updated[idx] = next;
       setEvents(updated);
+      if (onMoveEvent) onMoveEvent(event, next);
     }
   };
 
