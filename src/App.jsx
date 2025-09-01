@@ -120,12 +120,22 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     };
 
     const stored = localStorage.getItem('appLayers');
-    if (!stored) return defaults;
+    if (!stored) {
+      localStorage.setItem('appLayers', JSON.stringify(defaults));
+      return defaults;
+    }
 
     try {
       const parsed = JSON.parse(stored);
-      return { ...defaults, ...parsed };
+      const merged = { ...defaults, ...parsed };
+
+      if (Object.keys(defaults).some((key) => !(key in parsed))) {
+        localStorage.setItem('appLayers', JSON.stringify(merged));
+      }
+
+      return merged;
     } catch {
+      localStorage.setItem('appLayers', JSON.stringify(defaults));
       return defaults;
     }
   };
