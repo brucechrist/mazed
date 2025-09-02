@@ -10,6 +10,7 @@ export default function EventModal({
   description: initialDescription = '',
   onSave,
   onDelete,
+  onDone,
   onClose,
 }) {
   const [title, setTitle] = useState(initialTitle);
@@ -30,6 +31,17 @@ export default function EventModal({
       end: new Date(endTime),
       color,
       kind,
+      description,
+    });
+  };
+
+  const handleDone = () => {
+    onSave({
+      title: title || 'Untitled',
+      start: new Date(startTime),
+      end: new Date(endTime),
+      color: '#34a853',
+      kind: 'done',
       description,
     });
   };
@@ -88,6 +100,18 @@ export default function EventModal({
           {onDelete && (
             <button className="save-button" onClick={() => { onDelete(); onClose(); }}>
               Delete
+            </button>
+          )}
+          {onDone ? (
+            <button className="done-button" onClick={() => { onDone(); onClose(); }}>
+              Done
+            </button>
+          ) : (
+            <button
+              className="save-button done-button"
+              onClick={() => { handleDone(); onClose(); }}
+            >
+              Done
             </button>
           )}
           <button className="save-button" onClick={onClose}>Cancel</button>

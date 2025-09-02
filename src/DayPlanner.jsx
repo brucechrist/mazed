@@ -55,7 +55,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
     const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
     const c = {};
     events
-      .filter((e) => e.kind === 'planned' && isToday(e.start))
+      .filter((e) => ['planned', 'done'].includes(e.kind) && isToday(e.start))
       .forEach((e) => {
         c[e.title] = (c[e.title] || 0) + 1;
       });
@@ -71,7 +71,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
   };
 
   const handleDelete = (ev) => {
-    if (!isToday(ev.start)) return;
+    if (!isToday(ev.start) || ev.kind !== 'planned') return;
     setCounts((prev) => {
       const next = { ...prev };
       if (next[ev.title]) {
@@ -80,6 +80,26 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
       }
       return next;
     });
+  };
+
+  const handleMove = (prevEvent, nextEvent) => {
+    const wasToday = isToday(prevEvent.start);
+    const isNowToday = isToday(nextEvent.start);
+    if (wasToday && !isNowToday) {
+      setCounts((prev) => {
+        const next = { ...prev };
+        if (next[prevEvent.title]) {
+          next[prevEvent.title] -= 1;
+          if (next[prevEvent.title] <= 0) delete next[prevEvent.title];
+        }
+        return next;
+      });
+    } else if (!wasToday && isNowToday) {
+      setCounts((prev) => ({
+        ...prev,
+        [nextEvent.title]: (prev[nextEvent.title] || 0) + 1,
+      }));
+    }
   };
 
   const canStart = activities.every(
@@ -101,6 +121,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
             externalActivity={dragging}
             onExternalDrop={handleDrop}
             onDeleteEvent={handleDelete}
+            onMoveEvent={handleMove}
             backDisabled={!canStart}
           />
         </div>

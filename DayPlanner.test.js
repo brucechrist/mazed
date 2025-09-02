@@ -141,8 +141,39 @@ describe('DayPlanner', () => {
     });
     expect(startBtn).toBeEnabled();
     act(() => {
-      props.onDeleteEvent({ title: 'Neck Training', start: now });
+      props.onDeleteEvent({ title: 'Neck Training', start: now, kind: 'planned' });
     });
     expect(startBtn).toBeDisabled();
+  });
+
+  test('marking event done keeps planned count', async () => {
+    localStorage.setItem(
+      'activities',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          icon: '🦒',
+          base: 10,
+          description: '',
+          dimension: 'Form',
+          aspect: 'II',
+          timesPerDay: 2,
+          planner: true,
+        },
+      ])
+    );
+    render(<DayPlanner onComplete={() => {}} backLabel="Start" />);
+    const props = mockCalendar.mock.calls[mockCalendar.mock.calls.length - 1][0];
+    const now = new Date();
+    await screen.findByText('0/2');
+    act(() => {
+      props.onExternalDrop({ title: 'Neck Training', start: now });
+      props.onExternalDrop({ title: 'Neck Training', start: now });
+    });
+    await screen.findByText('2/2');
+    act(() => {
+      props.onDeleteEvent({ title: 'Neck Training', start: now, kind: 'done' });
+    });
+    expect(await screen.findByText('2/2')).toBeInTheDocument();
   });
 });
