@@ -97,12 +97,16 @@ export default function PageRouter() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !e.defaultPrevented) {
-        goBack();
+        if (dockEnabled) {
+          setDockEnabled(false);
+        } else {
+          goBack();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goBack]);
+  }, [goBack, dockEnabled]);
 
   useEffect(() => {
     document.body.style.setProperty('--menu-bg-url', `url("${menuBg}")`);
