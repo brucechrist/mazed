@@ -217,7 +217,18 @@ export default function Calendar({
     const end = new Date(start.getTime() + duration);
     const done = { ...event, start, end, kind: 'done', color: '#34a853' };
     if (onDeleteEvent) onDeleteEvent(event);
-    setEvents((prev) => prev.filter((ev) => ev !== event).concat(done));
+    setEvents((prev) =>
+      prev
+        .filter(
+          (ev) =>
+            !(
+              ev.title === event.title &&
+              ev.start.getTime() === new Date(event.start).getTime() &&
+              ev.end.getTime() === new Date(event.end).getTime()
+            )
+        )
+        .concat(done)
+    );
   };
 
   const eventPropGetter = (event) => {
@@ -345,6 +356,11 @@ export default function Calendar({
           kind={modalEvent.kind || "planned"}
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
+          onDone={
+            modalEvent.index != null
+              ? () => handleMarkDone(modalEvent.original)
+              : undefined
+          }
           onClose={() => setModalEvent(null)}
         />
       )}

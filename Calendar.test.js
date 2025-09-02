@@ -118,6 +118,40 @@ describe('Calendar', () => {
     expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
 
+  test('marks event as done from modal button', async () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 30 * 60000);
+    localStorage.setItem(
+      'calendarEvents',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          start: start.toISOString(),
+          end: end.toISOString(),
+          kind: 'planned',
+        },
+      ])
+    );
+
+    render(<Calendar onBack={() => {}} />);
+
+    act(() => {
+      RbcCalendar.latestProps.onSelectEvent({
+        ...RbcCalendar.latestProps.events[0],
+      });
+    });
+
+    const doneBtn = await screen.findByRole('button', { name: 'Done' });
+    act(() => {
+      doneBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(RbcCalendar.latestProps.events).toHaveLength(1);
+    });
+    expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
+  });
+
   test('dragging or resizing does not throw without onMoveEvent', () => {
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 60000);
