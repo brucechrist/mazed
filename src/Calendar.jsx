@@ -16,15 +16,23 @@ function CalendarEvent({ event, onDelete, onMarkDone }) {
     <div className="calendar-event-content">
       {event.title}
       {event.kind !== "done" && (
-        <span
-          className="event-done-icon"
+        <button
+          type="button"
+          className="event-done-button"
+          aria-label="Mark done"
           onClick={(e) => {
             e.stopPropagation();
             onMarkDone(event);
           }}
         >
-          ✓
-        </span>
+          <svg
+            viewBox="0 0 16 16"
+            className="event-done-icon"
+            aria-hidden="true"
+          >
+            <path d="M6 10.8L3.2 8l-1.4 1.4L6 13l8-8-1.4-1.4z" />
+          </svg>
+        </button>
       )}
       <span
         className="event-delete-icon"
@@ -206,7 +214,18 @@ export default function Calendar({
     const start = roundSlot(new Date());
     const end = new Date(start.getTime() + duration);
     const done = { ...event, start, end, kind: 'done', color: '#34a853' };
-    setEvents((prev) => prev.filter((ev) => ev !== event).concat(done));
+    setEvents((prev) =>
+      prev
+        .filter(
+          (ev) =>
+            !(
+              ev.title === event.title &&
+              ev.start.getTime() === new Date(event.start).getTime() &&
+              ev.end.getTime() === new Date(event.end).getTime()
+            )
+        )
+        .concat(done)
+    );
   };
 
   const eventPropGetter = (event) => {
@@ -335,6 +354,13 @@ export default function Calendar({
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
           onClose={() => setModalEvent(null)}
+          onMarkDone={
+            modalEvent.original && modalEvent.kind !== 'done'
+              ? () => {
+                  handleMarkDone(modalEvent.original);
+                }
+              : undefined
+          }
         />
       )}
       {selectedBlock && (

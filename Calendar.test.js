@@ -39,9 +39,9 @@ describe('Calendar', () => {
     render(<Calendar onBack={() => {}} />);
 
     act(() => {
-      RbcCalendar.latestProps.onSelectEvent({
-        ...RbcCalendar.latestProps.events[0],
-      });
+      RbcCalendar.latestProps.onSelectEvent(
+        RbcCalendar.latestProps.events[0]
+      );
     });
 
     const delBtn = await screen.findByText('Delete');
@@ -54,7 +54,7 @@ describe('Calendar', () => {
     });
   });
 
-  test('adds done event when marked complete', async () => {
+  test('renders mark done button and marks event complete on click', async () => {
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 60000);
     localStorage.setItem(
@@ -74,7 +74,8 @@ describe('Calendar', () => {
     const EventComp = RbcCalendar.latestProps.components.event;
     render(EventComp({ event: RbcCalendar.latestProps.events[0] }));
 
-    const doneBtn = screen.getByText('✓');
+    const doneBtn = screen.getByRole('button', { name: /mark done/i });
+    expect(doneBtn).toBeInTheDocument();
     act(() => {
       doneBtn.click();
     });
@@ -83,5 +84,39 @@ describe('Calendar', () => {
       expect(RbcCalendar.latestProps.events).toHaveLength(1);
     });
     expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
+  });
+
+  test('modal provides done option to mark event complete', async () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 30 * 60000);
+    localStorage.setItem(
+      'calendarEvents',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          start: start.toISOString(),
+          end: end.toISOString(),
+          kind: 'planned',
+        },
+      ])
+    );
+
+    render(<Calendar onBack={() => {}} />);
+
+    act(() => {
+      RbcCalendar.latestProps.onSelectEvent(
+        RbcCalendar.latestProps.events[0]
+      );
+    });
+
+    const modalDoneBtn = await screen.findByRole('button', { name: /done/i });
+    act(() => {
+      modalDoneBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(RbcCalendar.latestProps.events).toHaveLength(1);
+      expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
+    });
   });
 });

@@ -117,12 +117,36 @@
   position: relative;
 }
 
-.calendar-event-content .event-done-icon {
+.calendar-event-content .event-done-button {
   position: absolute;
-  top: 0;
-  left: 2px;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
   cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.calendar-event-content .event-done-button:hover,
+.calendar-event-content .event-done-button:focus {
+  background: #34a853;
+  transform: scale(1.1);
+  outline: none;
+}
+
+.calendar-event-content .event-done-button .event-done-icon {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
 }
 
 .calendar-event-content .event-delete-icon {

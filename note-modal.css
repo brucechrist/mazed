@@ -58,6 +58,7 @@
 .actions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .save-button {
@@ -71,6 +72,19 @@
 
 .save-button:hover {
   background: #0056b3;
+}
+
+.done-button {
+  padding: 6px 16px;
+  background: #34a853;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.done-button:hover {
+  background: #2c8c47;
 }
 
 .notes-list {

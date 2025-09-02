@@ -11,6 +11,7 @@ export default function EventModal({
   onSave,
   onDelete,
   onClose,
+  onMarkDone,
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [startTime, setStartTime] = useState(
@@ -86,12 +87,37 @@ export default function EventModal({
         </label>
         <div className="actions">
           {onDelete && (
-            <button className="save-button" onClick={() => { onDelete(); onClose(); }}>
+            <button
+              className="save-button"
+              onClick={() => {
+                onDelete();
+                onClose();
+              }}
+            >
               Delete
             </button>
           )}
-          <button className="save-button" onClick={onClose}>Cancel</button>
-          <button className="save-button" onClick={() => { handleSave(); onClose(); }}>
+          <button className="save-button" onClick={onClose}>
+            Cancel
+          </button>
+          {onMarkDone && (
+            <button
+              className="done-button"
+              onClick={() => {
+                onMarkDone();
+                onClose();
+              }}
+            >
+              Done
+            </button>
+          )}
+          <button
+            className="save-button"
+            onClick={() => {
+              handleSave();
+              onClose();
+            }}
+          >
             Save
           </button>
         </div>
