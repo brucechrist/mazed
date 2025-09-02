@@ -16,15 +16,17 @@ function CalendarEvent({ event, onDelete, onMarkDone }) {
     <div className="calendar-event-content">
       {event.title}
       {event.kind !== "done" && (
-        <span
-          className="event-done-icon"
+        <button
+          type="button"
+          className="event-done-button"
+          aria-label="Mark done"
           onClick={(e) => {
             e.stopPropagation();
             onMarkDone(event);
           }}
         >
           ✓
-        </span>
+        </button>
       )}
       <span
         className="event-delete-icon"
