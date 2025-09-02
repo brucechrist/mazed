@@ -889,10 +889,14 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           className="layer-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
-          <li onClick={handleOpenSplit}>Open in Split Screen</li>
-          {layers.map((layer) => (
-            <li key={layer.label} onClick={() => moveAppToLayer(contextMenu.appId, layer.label)}>
-              {layer.label}
+          {[{ label: 'Open in Split Screen', action: handleOpenSplit },
+            ...layers.map((layer) => ({
+              label: layer.label,
+              action: () => moveAppToLayer(contextMenu.appId, layer.label),
+            })),
+          ].map((opt) => (
+            <li key={opt.label} onClick={opt.action}>
+              {opt.label}
             </li>
           ))}
         </ul>
