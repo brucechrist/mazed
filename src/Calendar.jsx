@@ -11,10 +11,21 @@ import BlockModal from "./BlockModal.jsx";
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
-function CalendarEvent({ event, onDelete }) {
+function CalendarEvent({ event, onDelete, onMarkDone }) {
   return (
     <div className="calendar-event-content">
       {event.title}
+      {event.kind !== "done" && (
+        <span
+          className="event-done-icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkDone(event);
+          }}
+        >
+          ✓
+        </span>
+      )}
       <span
         className="event-delete-icon"
         onClick={(e) => {
@@ -47,62 +58,21 @@ export default function Calendar({
     const stored = localStorage.getItem("calendarEvents");
     if (!stored) return [];
     try {
-      const parsed = JSON.parse(stored).filter(
-        (e) =>
-          e &&
-          e.start &&
-          e.end &&
-          typeof e.title === "string" &&
-          e.title.trim() !== ""
-      );
-
-      const planned = [];
-      const done = [];
-      parsed.forEach((e) => {
-        const kind = e.kind || (e.title.includes(":") ? "done" : "planned");
-        const ev = { ...e, start: new Date(e.start), end: new Date(e.end), kind };
-        if (kind === "planned") planned.push(ev);
-        else if (kind === "done") done.push(ev);
-      });
-
-      if (done.length) {
-        let blocks = [];
-        try {
-          blocks = JSON.parse(localStorage.getItem("calendarBlocks") || "[]");
-        } catch {
-          blocks = [];
-        }
-        done.forEach((ev) => {
-          const slot = roundSlot(ev.start);
-          const blockEnd = new Date(slot.getTime() + 30 * 60000);
-          let block = blocks.find(
-            (b) => new Date(b.start).getTime() === slot.getTime()
-          );
-          if (!block) {
-            block = {
-              start: slot.toISOString(),
-              end: blockEnd.toISOString(),
-              items: [],
-              kind: "block",
-              color: "#000000",
-            };
-            blocks.push(block);
-          }
-          block.items.push({
-            label: ev.title,
-            duration: new Date(ev.end).getTime() - new Date(ev.start).getTime(),
-          });
-          block.title = block.items
-            .map((i) => i.label.split(":")[0])
-            .slice(0, 2)
-            .join(", ");
-          if (block.items.length > 2) block.title += " & more";
-        });
-        localStorage.setItem("calendarBlocks", JSON.stringify(blocks));
-        localStorage.setItem("calendarEvents", JSON.stringify(planned));
-      }
-
-      return planned;
+      return JSON.parse(stored)
+        .filter(
+          (e) =>
+            e &&
+            e.start &&
+            e.end &&
+            typeof e.title === "string" &&
+            e.title.trim() !== ""
+        )
+        .map((e) => ({
+          ...e,
+          start: new Date(e.start),
+          end: new Date(e.end),
+          kind: e.kind || "planned",
+        }));
     } catch {
       return [];
     }
@@ -231,6 +201,14 @@ export default function Calendar({
     }
   };
 
+  const handleMarkDone = (event) => {
+    const duration = new Date(event.end).getTime() - new Date(event.start).getTime();
+    const start = roundSlot(new Date());
+    const end = new Date(start.getTime() + duration);
+    const done = { ...event, start, end, kind: 'done', color: '#34a853' };
+    setEvents((prev) => prev.filter((ev) => ev !== event).concat(done));
+  };
+
   const eventPropGetter = (event) => {
     const base = {
       backgroundColor:
@@ -338,7 +316,11 @@ export default function Calendar({
           }}
           components={{
             event: (props) => (
-              <CalendarEvent {...props} onDelete={handleDelete} />
+              <CalendarEvent
+                {...props}
+                onDelete={handleDelete}
+                onMarkDone={handleMarkDone}
+              />
             ),
           }}
         />
