@@ -119,23 +119,28 @@
 
 .calendar-event-content .event-done-button {
   position: absolute;
-  top: 0;
+  top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   padding: 0;
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
   line-height: 1;
-  background-color: rgba(255, 255, 255, 0.7);
-  color: #000;
+  background-color: #34a853;
+  color: #fff;
   border: none;
-  border-radius: 2px;
+  border-radius: 50%;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.2s;
 }
 
 .calendar-event-content .event-done-button:hover,
 .calendar-event-content .event-done-button:focus {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: #2c7a43;
   outline: none;
 }
 

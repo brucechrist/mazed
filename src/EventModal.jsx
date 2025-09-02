@@ -34,6 +34,17 @@ export default function EventModal({
     });
   };
 
+  const handleDone = () => {
+    onSave({
+      title: title || 'Untitled',
+      start: new Date(startTime),
+      end: new Date(endTime),
+      color: '#34a853',
+      kind: 'done',
+      description,
+    });
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -91,6 +102,12 @@ export default function EventModal({
             </button>
           )}
           <button className="save-button" onClick={onClose}>Cancel</button>
+          <button
+            className="save-button done-button"
+            onClick={() => { handleDone(); onClose(); }}
+          >
+            Done
+          </button>
           <button className="save-button" onClick={() => { handleSave(); onClose(); }}>
             Save
           </button>
