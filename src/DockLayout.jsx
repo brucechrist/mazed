@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import GoldenLayout from 'golden-layout';
+import { GoldenLayout } from 'golden-layout';
 import 'golden-layout/dist/css/goldenlayout-base.css';
 import 'golden-layout/dist/css/themes/goldenlayout-light-theme.css';
 
