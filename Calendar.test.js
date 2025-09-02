@@ -54,7 +54,7 @@ describe('Calendar', () => {
     });
   });
 
-  test('adds done event when marked complete', async () => {
+  test('renders mark done button and marks event complete on click', async () => {
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 60000);
     localStorage.setItem(
@@ -74,7 +74,8 @@ describe('Calendar', () => {
     const EventComp = RbcCalendar.latestProps.components.event;
     render(EventComp({ event: RbcCalendar.latestProps.events[0] }));
 
-    const doneBtn = screen.getByText('✓');
+    const doneBtn = screen.getByRole('button', { name: /mark done/i });
+    expect(doneBtn).toBeInTheDocument();
     act(() => {
       doneBtn.click();
     });
