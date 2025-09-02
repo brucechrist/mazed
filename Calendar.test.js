@@ -84,4 +84,45 @@ describe('Calendar', () => {
     });
     expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
+
+  test('dragging or resizing does not throw without onMoveEvent', () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 30 * 60000);
+    localStorage.setItem(
+      'calendarEvents',
+      JSON.stringify([
+        {
+          title: 'Test',
+          start: start.toISOString(),
+          end: end.toISOString(),
+          kind: 'planned',
+        },
+      ])
+    );
+
+    render(<Calendar onBack={() => {}} />);
+    const original = RbcCalendar.latestProps.events[0];
+    const newStart = new Date(start.getTime() + 60 * 60000);
+    const newEnd = new Date(end.getTime() + 60 * 60000);
+
+    expect(() => {
+      act(() => {
+        RbcCalendar.latestProps.onEventDrop({
+          event: original,
+          start: newStart,
+          end: newEnd,
+        });
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      act(() => {
+        RbcCalendar.latestProps.onEventResize({
+          event: RbcCalendar.latestProps.events[0],
+          start: newStart,
+          end: newEnd,
+        });
+      });
+    }).not.toThrow();
+  });
 });
