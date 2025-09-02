@@ -10,6 +10,7 @@ import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
 import ImageGallery from './ImageGallery.jsx';
 import LoadingScreen from './LoadingScreen.jsx';
+import DockLayout from './DockLayout.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -163,6 +164,9 @@ export default function PageRouter() {
       break;
     case 'gallery':
       content = <ImageGallery onBack={() => navigate('5th')} />;
+      break;
+    case 'dock':
+      content = <DockLayout />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
