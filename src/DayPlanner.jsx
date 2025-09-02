@@ -71,7 +71,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
   };
 
   const handleDelete = (ev) => {
-    if (!isToday(ev.start)) return;
+    if (!isToday(ev.start) || ev.kind !== 'planned') return;
     setCounts((prev) => {
       const next = { ...prev };
       if (next[ev.title]) {
