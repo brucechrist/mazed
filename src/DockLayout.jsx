@@ -17,7 +17,7 @@ const componentMap = {
   shadowWork: { title: 'Shadow Work', component: ShadowWork },
 };
 
-export default function DockLayout() {
+export default function DockLayout({ onClose }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -53,5 +53,19 @@ export default function DockLayout() {
     };
   }, []);
 
-  return <div style={{ height: '100%', width: '100%' }} ref={containerRef} />;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 1000,
+      }}
+    >
+      <button onClick={onClose}>Close dock</button>
+      <div style={{ height: '100%', width: '100%' }} ref={containerRef} />
+    </div>
+  );
 }

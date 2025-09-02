@@ -5,7 +5,7 @@ import './main-page.css';
 import QuadrantMenu from './QuadrantMenu.jsx';
 import DayPlanner from './DayPlanner.jsx';
 
-export default function FifthMain({ onSelectQuadrant }) {
+export default function FifthMain({ onSelectQuadrant, onOpenDock = () => {} }) {
   const MIN_WIDTH = 253;
   const MAX_WIDTH = 523;
 
@@ -130,6 +130,7 @@ export default function FifthMain({ onSelectQuadrant }) {
 
   return (
     <div className="main-page">
+      <button onClick={onOpenDock}>Dock mode</button>
       <div className="side left" style={{ width: leftWidth }}>
         <div className="drag-handle" onMouseDown={startLeftDrag}></div>
       </div>

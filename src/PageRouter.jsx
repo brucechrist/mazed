@@ -24,6 +24,7 @@ export default function PageRouter() {
     () => localStorage.getItem('menuBg') || defaultMenuBg
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [dockEnabled, setDockEnabled] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -155,7 +156,7 @@ export default function PageRouter() {
         <IImain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
@@ -164,7 +165,7 @@ export default function PageRouter() {
         <IEmain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
@@ -173,7 +174,7 @@ export default function PageRouter() {
         <EImain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
@@ -182,18 +183,20 @@ export default function PageRouter() {
         <EEmain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
     case 'gallery':
       content = <ImageGallery onBack={() => navigate('5th')} />;
       break;
-    case 'dock':
-      content = <DockLayout />;
-      break;
     default:
-      content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
+      content = (
+        <FifthMain
+          onSelectQuadrant={(label) => navigate(label)}
+          onOpenDock={() => setDockEnabled(true)}
+        />
+      );
   }
 
   return (
@@ -201,6 +204,7 @@ export default function PageRouter() {
       {isLoading && <LoadingScreen />}
       <ActivityTimer />
       {content}
+      {dockEnabled && <DockLayout onClose={() => setDockEnabled(false)} />}
     </>
   );
 }
