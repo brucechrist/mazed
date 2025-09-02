@@ -206,7 +206,9 @@ export default function Calendar({
     const start = roundSlot(new Date());
     const end = new Date(start.getTime() + duration);
     const done = { ...event, start, end, kind: 'done', color: '#34a853' };
-    setEvents((prev) => prev.filter((ev) => ev !== event).concat(done));
+    const getKey = (e) =>
+      [e.title, new Date(e.start).getTime(), new Date(e.end).getTime()].join('|');
+    setEvents((prev) => prev.filter((ev) => getKey(ev) !== getKey(event)).concat(done));
   };
 
   const eventPropGetter = (event) => {

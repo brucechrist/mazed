@@ -84,4 +84,36 @@ describe('Calendar', () => {
     });
     expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
+
+  test('removes original event when marking done with new object instance', async () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 30 * 60000);
+    localStorage.setItem(
+      'calendarEvents',
+      JSON.stringify([
+        {
+          title: 'Neck Training',
+          start: start.toISOString(),
+          end: end.toISOString(),
+          kind: 'planned',
+        },
+      ])
+    );
+
+    render(<Calendar onBack={() => {}} />);
+
+    const EventComp = RbcCalendar.latestProps.components.event;
+    const copy = { ...RbcCalendar.latestProps.events[0] };
+    render(EventComp({ event: copy }));
+
+    const doneBtn = screen.getByText('✓');
+    act(() => {
+      doneBtn.click();
+    });
+
+    await waitFor(() => {
+      expect(RbcCalendar.latestProps.events).toHaveLength(1);
+    });
+    expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
+  });
 });
