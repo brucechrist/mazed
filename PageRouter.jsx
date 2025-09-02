@@ -8,6 +8,8 @@ import Auth from './Auth.jsx';
 import { supabaseClient } from './supabaseClient';
 import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
+import DockLayout from './src/DockLayout.jsx';
+import NofapCalendar from './src/NofapCalendar.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -125,6 +127,15 @@ export default function PageRouter() {
       break;
     case 'EE':
       content = <EEmain />;
+      break;
+    case 'dock':
+      content = (
+        <DockLayout
+          onExit={() => navigate('5th')}
+          left={<FifthMain onSelectQuadrant={(label) => navigate(label)} />}
+          right={<NofapCalendar onBack={() => navigate('5th')} />}
+        />
+      );
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
