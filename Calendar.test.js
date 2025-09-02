@@ -141,9 +141,10 @@ describe('Calendar', () => {
       });
     });
 
-    const doneBtn = await screen.findByRole('button', { name: 'Done' });
+    const doneBtns = await screen.findAllByRole('button', { name: 'Done' });
+    expect(doneBtns).toHaveLength(1);
     act(() => {
-      doneBtn.click();
+      doneBtns[0].click();
     });
 
     await waitFor(() => {

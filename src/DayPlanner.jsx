@@ -55,7 +55,7 @@ export default function DayPlanner({ onComplete, backLabel = 'Start Day' }) {
     const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
     const c = {};
     events
-      .filter((e) => e.kind === 'planned' && isToday(e.start))
+      .filter((e) => ['planned', 'done'].includes(e.kind) && isToday(e.start))
       .forEach((e) => {
         c[e.title] = (c[e.title] || 0) + 1;
       });

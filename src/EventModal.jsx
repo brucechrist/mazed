@@ -102,18 +102,19 @@ export default function EventModal({
               Delete
             </button>
           )}
-          {onDone && (
+          {onDone ? (
             <button className="done-button" onClick={() => { onDone(); onClose(); }}>
+              Done
+            </button>
+          ) : (
+            <button
+              className="save-button done-button"
+              onClick={() => { handleDone(); onClose(); }}
+            >
               Done
             </button>
           )}
           <button className="save-button" onClick={onClose}>Cancel</button>
-          <button
-            className="save-button done-button"
-            onClick={() => { handleDone(); onClose(); }}
-          >
-            Done
-          </button>
           <button className="save-button" onClick={() => { handleSave(); onClose(); }}>
             Save
           </button>
