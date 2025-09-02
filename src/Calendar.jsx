@@ -190,7 +190,7 @@ export default function Calendar({
   };
 
   const handleSaveEvent = (event) => {
-    if (modalEvent && modalEvent.index != null) {
+    if (modalEvent && modalEvent.index != null && modalEvent.index !== -1) {
       const updated = [...events];
       updated[modalEvent.index] = event;
       setEvents(updated);
@@ -203,9 +203,15 @@ export default function Calendar({
     if (event.kind === 'block') {
       setSelectedBlock(event);
     } else {
+      const idx = events.findIndex(
+        (ev) =>
+          ev.title === event.title &&
+          ev.start.getTime() === new Date(event.start).getTime() &&
+          ev.end.getTime() === new Date(event.end).getTime()
+      );
       setModalEvent({
         ...event,
-        index: events.indexOf(event),
+        index: idx,
         original: event,
       });
     }
