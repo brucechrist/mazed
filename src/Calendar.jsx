@@ -5,7 +5,7 @@ import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./calendar-app.css";
-import EventModal from "../EventModal.jsx";
+import EventModal from "./EventModal.jsx";
 import BlockModal from "./BlockModal.jsx";
 
 const localizer = momentLocalizer(moment);
@@ -16,15 +16,17 @@ function CalendarEvent({ event, onDelete, onMarkDone }) {
     <div className="calendar-event-content">
       {event.title}
       {event.kind !== "done" && (
-        <span
-          className="event-done-icon"
+        <button
+          type="button"
+          className="event-done-button"
+          aria-label="Mark done"
           onClick={(e) => {
             e.stopPropagation();
             onMarkDone(event);
           }}
         >
           ✓
-        </span>
+        </button>
       )}
       <span
         className="event-delete-icon"
@@ -39,6 +41,13 @@ function CalendarEvent({ event, onDelete, onMarkDone }) {
   );
 }
 
+/**
+ * Calendar component used throughout the app.
+ *
+ * @param {Object} props
+ * @param {Function} [props.onMoveEvent] - Callback fired when an event is moved
+ * or resized. Receives the original event followed by the updated event.
+ */
 export default function Calendar({
   onBack,
   backLabel = 'Back',
@@ -47,6 +56,7 @@ export default function Calendar({
   onExternalDrop,
   backDisabled = false,
   onDeleteEvent,
+  onMoveEvent,
 }) {
   const roundSlot = (date) => {
     const d = new Date(date);
