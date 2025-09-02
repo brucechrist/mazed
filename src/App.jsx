@@ -420,6 +420,13 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setContextMenu({ appId, x: e.clientX, y: e.clientY });
   };
 
+  const handleOpenSplit = () => {
+    if (contextMenu) {
+      window.postMessage({ type: 'OPEN_SPLIT', appId: contextMenu.appId }, '*');
+      setContextMenu(null);
+    }
+  };
+
   if (showCalendarApp) {
     return (
       <QuestProvider>
@@ -882,6 +889,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           className="layer-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
+          <li onClick={handleOpenSplit}>Open in Split Screen</li>
           {layers.map((layer) => (
             <li key={layer.label} onClick={() => moveAppToLayer(contextMenu.appId, layer.label)}>
               {layer.label}
