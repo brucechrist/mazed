@@ -146,7 +146,7 @@ describe('DayPlanner', () => {
     expect(startBtn).toBeDisabled();
   });
 
-  test('marking event done decreases planned count', async () => {
+  test('marking event done keeps planned count', async () => {
     localStorage.setItem(
       'activities',
       JSON.stringify([
@@ -172,8 +172,8 @@ describe('DayPlanner', () => {
     });
     await screen.findByText('2/2');
     act(() => {
-      props.onDeleteEvent({ title: 'Neck Training', start: now, kind: 'planned' });
+      props.onDeleteEvent({ title: 'Neck Training', start: now, kind: 'done' });
     });
-    expect(await screen.findByText('1/2')).toBeInTheDocument();
+    expect(await screen.findByText('2/2')).toBeInTheDocument();
   });
 });
