@@ -53,7 +53,7 @@ const layers = [
 const defaultMainBg = './assets/backgrounds/background_EI.jpg';
 const defaultCharBg = './assets/backgrounds/Viego_0.jpg';
 
-export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
+export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg, onOpenDock }) {
   const [activeTab, setActiveTab] = useState(initialTab || tabs[0].label);
   const [activeLayer, setActiveLayer] = useState(layers[0].label);
   const [showJournal, setShowJournal] = useState(false);
@@ -830,6 +830,12 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">🐶</div>
                     <span>Watchdog</span>
+                  </div>
+                )}
+                {activeLayer === 'Form' && onOpenDock && (
+                  <div className="app-card" onClick={onOpenDock}>
+                    <div className="star-icon">📐</div>
+                    <span>Dock Layout</span>
                   </div>
                 )}
               </div>

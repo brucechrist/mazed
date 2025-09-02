@@ -151,16 +151,40 @@ export default function PageRouter() {
   let content;
   switch (page) {
     case 'II':
-      content = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <IImain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'IE':
-      content = <IEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <IEmain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'EI':
-      content = <EImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <EImain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'EE':
-      content = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <EEmain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'gallery':
       content = <ImageGallery onBack={() => navigate('5th')} />;
