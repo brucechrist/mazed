@@ -41,6 +41,13 @@ function CalendarEvent({ event, onDelete, onMarkDone }) {
   );
 }
 
+/**
+ * Calendar component used throughout the app.
+ *
+ * @param {Object} props
+ * @param {Function} [props.onMoveEvent] - Callback fired when an event is moved
+ * or resized. Receives the original event followed by the updated event.
+ */
 export default function Calendar({
   onBack,
   backLabel = 'Back',
@@ -49,6 +56,7 @@ export default function Calendar({
   onExternalDrop,
   backDisabled = false,
   onDeleteEvent,
+  onMoveEvent,
 }) {
   const roundSlot = (date) => {
     const d = new Date(date);
