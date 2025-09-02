@@ -18,6 +18,7 @@
     "active-win": "^8.2.1",
     "color-namer": "^1.4.0",
     "compromise": "^14.14.4",
+    "golden-layout": "^2.6.0",
     "jimp": "^0.22.12",
     "konva": "^9.3.22",
     "react": "^19.1.0",
