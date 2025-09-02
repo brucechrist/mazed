@@ -11,10 +11,21 @@ import BlockModal from "./BlockModal.jsx";
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
 
-function CalendarEvent({ event, onDelete }) {
+function CalendarEvent({ event, onDelete, onMarkDone }) {
   return (
     <div className="calendar-event-content">
       {event.title}
+      {event.kind !== "done" && (
+        <span
+          className="event-done-icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkDone(event);
+          }}
+        >
+          ✓
+        </span>
+      )}
       <span
         className="event-delete-icon"
         onClick={(e) => {
@@ -231,6 +242,14 @@ export default function Calendar({
     }
   };
 
+  const handleMarkDone = (event) => {
+    const duration = new Date(event.end).getTime() - new Date(event.start).getTime();
+    const start = roundSlot(new Date());
+    const end = new Date(start.getTime() + duration);
+    const done = { ...event, start, end, kind: 'done', color: '#34a853' };
+    setEvents((prev) => [...prev, done]);
+  };
+
   const eventPropGetter = (event) => {
     const base = {
       backgroundColor:
@@ -338,7 +357,11 @@ export default function Calendar({
           }}
           components={{
             event: (props) => (
-              <CalendarEvent {...props} onDelete={handleDelete} />
+              <CalendarEvent
+                {...props}
+                onDelete={handleDelete}
+                onMarkDone={handleMarkDone}
+              />
             ),
           }}
         />

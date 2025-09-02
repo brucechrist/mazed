@@ -117,6 +117,14 @@
   position: relative;
 }
 
+.calendar-event-content .event-done-icon {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .calendar-event-content .event-delete-icon {
   position: absolute;
   top: 0;
