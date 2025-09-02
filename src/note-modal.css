@@ -73,6 +73,14 @@
   background: #444;
 }
 
+.done-button {
+  background: #34a853;
+}
+
+.done-button:hover {
+  background: #2c7a43;
+}
+
 .notes-list {
   list-style: none;
   padding: 0;
