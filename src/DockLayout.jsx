@@ -1,40 +1,49 @@
-import React, { useEffect, useRef } from 'react';
-import { GoldenLayout } from 'golden-layout';
-import 'golden-layout/dist/css/goldenlayout-base.css';
-import 'golden-layout/dist/css/themes/goldenlayout-light-theme.css';
+import React, { useRef, useState } from 'react';
+import './dock-layout.css';
 
-export default function DockLayout() {
+export default function DockLayout({ onExit }) {
   const containerRef = useRef(null);
+  const isDragging = useRef(false);
+  const [dividerPos, setDividerPos] = useState(50); // percentage of left pane width
 
-  useEffect(() => {
-    const config = {
-      content: [
-        {
-          type: 'row',
-          content: [
-            { type: 'component', componentName: 'left', title: 'Left Pane' },
-            { type: 'component', componentName: 'right', title: 'Right Pane' }
-          ]
-        }
-      ]
-    };
+  const startDrag = (e) => {
+    isDragging.current = true;
+    e.preventDefault();
+  };
 
-    const layout = new GoldenLayout(config, containerRef.current);
+  const onDrag = (e) => {
+    if (!isDragging.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pos = ((e.clientX - rect.left) / rect.width) * 100;
+    const clamped = Math.min(80, Math.max(20, pos));
+    setDividerPos(clamped);
+  };
 
-    layout.registerComponent('left', (container) => {
-      container.getElement().html('<div style="padding:10px;">Left content</div>');
-    });
+  const stopDrag = () => {
+    isDragging.current = false;
+  };
 
-    layout.registerComponent('right', (container) => {
-      container.getElement().html('<div style="padding:10px;">Right content</div>');
-    });
-
-    layout.init();
-
-    return () => {
-      layout.destroy();
-    };
-  }, []);
-
-  return <div style={{ height: '100%', width: '100%' }} ref={containerRef} />;
+  return (
+    <div
+      className="dock-layout"
+      ref={containerRef}
+      onMouseMove={onDrag}
+      onMouseUp={stopDrag}
+      onMouseLeave={stopDrag}
+    >
+      <div className="pane left" style={{ width: `${dividerPos}%` }}>
+        Left content
+      </div>
+      <div className="divider" onMouseDown={startDrag} />
+      <div className="pane right" style={{ width: `${100 - dividerPos}%` }}>
+        Right content
+      </div>
+      {onExit && (
+        <button className="exit-button" onClick={onExit}>
+          Back
+        </button>
+      )}
+    </div>
+  );
 }
+
