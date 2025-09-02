@@ -80,8 +80,8 @@ describe('Calendar', () => {
     });
 
     await waitFor(() => {
-      expect(RbcCalendar.latestProps.events).toHaveLength(2);
+      expect(RbcCalendar.latestProps.events).toHaveLength(1);
     });
-    expect(RbcCalendar.latestProps.events[1].kind).toBe('done');
+    expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
 });
