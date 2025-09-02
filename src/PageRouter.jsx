@@ -24,6 +24,7 @@ export default function PageRouter() {
     () => localStorage.getItem('menuBg') || defaultMenuBg
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [dockEnabled, setDockEnabled] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -96,12 +97,16 @@ export default function PageRouter() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !e.defaultPrevented) {
-        goBack();
+        if (dockEnabled) {
+          setDockEnabled(false);
+        } else {
+          goBack();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goBack]);
+  }, [goBack, dockEnabled]);
 
   useEffect(() => {
     document.body.style.setProperty('--menu-bg-url', `url("${menuBg}")`);
@@ -155,7 +160,7 @@ export default function PageRouter() {
         <IImain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
@@ -164,7 +169,7 @@ export default function PageRouter() {
         <IEmain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
@@ -173,7 +178,7 @@ export default function PageRouter() {
         <EImain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
@@ -182,15 +187,12 @@ export default function PageRouter() {
         <EEmain
           menuBg={menuBg}
           onChangeMenuBg={setMenuBg}
-          onOpenDock={() => navigate('dock')}
+          onOpenDock={() => setDockEnabled(true)}
         />
       );
       break;
     case 'gallery':
       content = <ImageGallery onBack={() => navigate('5th')} />;
-      break;
-    case 'dock':
-      content = <DockLayout />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
@@ -201,6 +203,16 @@ export default function PageRouter() {
       {isLoading && <LoadingScreen />}
       <ActivityTimer />
       {content}
+      {dockEnabled && (
+        <div className="modal-overlay" onClick={() => setDockEnabled(false)}>
+          <div
+            style={{ width: '80vw', height: '80vh', background: '#fff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DockLayout />
+          </div>
+        </div>
+      )}
     </>
   );
 }
