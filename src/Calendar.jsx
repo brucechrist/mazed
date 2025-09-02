@@ -229,8 +229,8 @@ export default function Calendar({
           (ev) =>
             !(
               ev.title === event.title &&
-              new Date(ev.start).getTime() === new Date(event.start).getTime() &&
-              new Date(ev.end).getTime() === new Date(event.end).getTime()
+              ev.start.getTime() === new Date(event.start).getTime() &&
+              ev.end.getTime() === new Date(event.end).getTime()
             )
         )
         .concat(done)
@@ -362,6 +362,11 @@ export default function Calendar({
           kind={modalEvent.kind || "planned"}
           onSave={handleSaveEvent}
           onDelete={modalEvent.index != null ? handleDelete : undefined}
+          onDone={
+            modalEvent.index != null
+              ? () => handleMarkDone(modalEvent.original)
+              : undefined
+          }
           onClose={() => setModalEvent(null)}
         />
       )}

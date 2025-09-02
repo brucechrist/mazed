@@ -118,7 +118,7 @@ describe('Calendar', () => {
     expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
 
-  test('modal done button marks event complete', async () => {
+  test('marks event as done from modal button', async () => {
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 60000);
     localStorage.setItem(
@@ -147,8 +147,9 @@ describe('Calendar', () => {
     });
 
     await waitFor(() => {
-      expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
+      expect(RbcCalendar.latestProps.events).toHaveLength(1);
     });
+    expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
 
   test('dragging or resizing does not throw without onMoveEvent', () => {
