@@ -166,7 +166,7 @@ export default function PageRouter() {
       content = <ImageGallery onBack={() => navigate('5th')} />;
       break;
     case 'dock':
-      content = <DockLayout />;
+      content = <DockLayout onExit={() => navigate('5th')} />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
