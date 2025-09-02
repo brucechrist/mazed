@@ -10,6 +10,7 @@ import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
 import ImageGallery from './ImageGallery.jsx';
 import LoadingScreen from './LoadingScreen.jsx';
+import DockLayout from './DockLayout.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -150,19 +151,46 @@ export default function PageRouter() {
   let content;
   switch (page) {
     case 'II':
-      content = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <IImain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'IE':
-      content = <IEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <IEmain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'EI':
-      content = <EImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <EImain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'EE':
-      content = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      content = (
+        <EEmain
+          menuBg={menuBg}
+          onChangeMenuBg={setMenuBg}
+          onOpenDock={() => navigate('dock')}
+        />
+      );
       break;
     case 'gallery':
       content = <ImageGallery onBack={() => navigate('5th')} />;
+      break;
+    case 'dock':
+      content = <DockLayout />;
       break;
     default:
       content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
