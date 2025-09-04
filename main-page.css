@@ -18,6 +18,12 @@ body {
   max-width: 523px;
 }
 
+.side.left {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
 .content-area {
   flex: 1;
   display: flex;
