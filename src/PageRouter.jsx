@@ -48,6 +48,7 @@ export default function PageRouter() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [dockApp, setDockApp] = useState(null);
+  const [isDocked, setIsDocked] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -84,6 +85,13 @@ export default function PageRouter() {
   }, [user]);
 
   const navigate = useCallback((newPage) => {
+    if (newPage === 'dock') {
+      setIsDocked(true);
+      if (!dockApp) {
+        setDockApp('nofap');
+      }
+      return;
+    }
     setIsLoading(true);
     if (newPage === '5th') {
       history.current = ['5th'];
@@ -94,29 +102,36 @@ export default function PageRouter() {
       }
     }
     setPage(newPage);
-  }, []);
+  }, [dockApp]);
 
   useEffect(() => {
     const handler = (e) => {
       if (e.data?.type === 'OPEN_SPLIT') {
         setDockApp(e.data.appId);
-        navigate('dock');
+        setIsDocked(true);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [navigate]);
+  }, []);
 
   const goBack = useCallback(() => {
-    if (history.current.length > 1) {
+    if (isDocked) {
+      setIsDocked(false);
+      setDockApp(null);
+    } else if (history.current.length > 1) {
       history.current = history.current.slice(0, -1);
       setPage(history.current[history.current.length - 1]);
     }
-  }, []);
+  }, [isDocked]);
 
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onGoHome) {
-      window.electronAPI.onGoHome(() => navigate('5th'));
+      window.electronAPI.onGoHome(() => {
+        setIsDocked(false);
+        setDockApp(null);
+        navigate('5th');
+      });
     }
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
@@ -183,7 +198,7 @@ export default function PageRouter() {
     );
   }
 
-  let content;
+  let leftContent;
   const renderDockApp = (id) => {
     const props = { onBack: goBack };
     const mapping = {
@@ -215,32 +230,29 @@ export default function PageRouter() {
   };
   switch (page) {
     case 'II':
-      content = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      leftContent = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'IE':
-      content = <IEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      leftContent = <IEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'EI':
-      content = <EImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      leftContent = <EImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'EE':
-      content = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
+      leftContent = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
     case 'gallery':
-      content = <ImageGallery onBack={() => navigate('5th')} />;
-      break;
-    case 'dock':
-      content = (
-        <DockLayout
-          onExit={goBack}
-          left={<FifthMain onSelectQuadrant={(label) => navigate(label)} />}
-          right={renderDockApp(dockApp)}
-        />
-      );
+      leftContent = <ImageGallery onBack={() => navigate('5th')} />;
       break;
     default:
-      content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
+      leftContent = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
   }
+
+  const content = isDocked ? (
+    <DockLayout onExit={goBack} left={leftContent} right={renderDockApp(dockApp)} />
+  ) : (
+    leftContent
+  );
 
   return (
     <>
