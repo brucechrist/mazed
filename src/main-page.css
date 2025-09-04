@@ -19,11 +19,12 @@ body {
 }
 
 .side.left {
-  position: fixed;
+  position: sticky;
   top: 0;
-  bottom: 0;
   left: 0;
   height: 100vh;
+  align-self: flex-start;
+  flex-shrink: 0;
   z-index: 1;
 }
 
