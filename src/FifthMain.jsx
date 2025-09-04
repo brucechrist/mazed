@@ -133,7 +133,7 @@ export default function FifthMain({ onSelectQuadrant }) {
       <div className="side left" style={{ width: leftWidth }}>
         <div className="drag-handle" onMouseDown={startLeftDrag}></div>
       </div>
-      <div className="content-area"></div>
+      <div className="content-area" style={{ marginLeft: leftWidth }}></div>
       <div className="side right" style={{ width: rightWidth }}>
         <div className="drag-handle" onMouseDown={startRightDrag}></div>
       </div>
