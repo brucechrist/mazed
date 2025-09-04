@@ -12,7 +12,7 @@
 .pane {
   height: 100%;
   overflow: auto;
-  padding: 10px;
+  padding: 0;
 }
 
 .divider {
