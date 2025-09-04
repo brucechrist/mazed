@@ -18,6 +18,7 @@ export default function PageRouter() {
   const [showExitVideo, setShowExitVideo] = useState(false);
   const [pendingResize, setPendingResize] = useState(false);
   const prevUser = useRef(null);
+  const [isDocked, setIsDocked] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -54,6 +55,10 @@ export default function PageRouter() {
   }, [user]);
 
   const navigate = useCallback((newPage) => {
+    if (newPage === 'dock') {
+      setIsDocked(true);
+      return;
+    }
     if (newPage === '5th') {
       history.current = ['5th'];
     } else {
@@ -66,15 +71,20 @@ export default function PageRouter() {
   }, []);
 
   const goBack = useCallback(() => {
-    if (history.current.length > 1) {
+    if (isDocked) {
+      setIsDocked(false);
+    } else if (history.current.length > 1) {
       history.current = history.current.slice(0, -1);
       setPage(history.current[history.current.length - 1]);
     }
-  }, []);
+  }, [isDocked]);
 
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onGoHome) {
-      window.electronAPI.onGoHome(() => navigate('5th'));
+      window.electronAPI.onGoHome(() => {
+        setIsDocked(false);
+        navigate('5th');
+      });
     }
     if (window.electronAPI && window.electronAPI.onDisconnect) {
       window.electronAPI.onDisconnect(async () => {
@@ -114,32 +124,38 @@ export default function PageRouter() {
     );
   }
 
-  let content;
+  let leftContent;
   switch (page) {
     case 'II':
-      content = <IImain />;
+      leftContent = <IImain />;
       break;
     case 'IE':
-      content = <IEmain />;
+      leftContent = <IEmain />;
       break;
     case 'EI':
-      content = <EImain />;
+      leftContent = <EImain />;
       break;
     case 'EE':
-      content = <EEmain />;
-      break;
-    case 'dock':
-      content = (
-        <DockLayout
-          onExit={() => navigate('5th')}
-          left={<FifthMain onSelectQuadrant={(label) => navigate(label)} />}
-          right={<NofapCalendar onBack={() => navigate('5th')} />}
-        />
-      );
+      leftContent = <EEmain />;
       break;
     default:
-      content = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
+      leftContent = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
   }
+
+  const exitDock = useCallback(() => setIsDocked(false), []);
+
+  const content = isDocked ? (
+    <DockLayout
+      onExit={() => {
+        exitDock();
+        navigate('5th');
+      }}
+      left={leftContent}
+      right={<NofapCalendar onBack={() => { exitDock(); navigate('5th'); }} />}
+    />
+  ) : (
+    leftContent
+  );
 
   return (
     <>
