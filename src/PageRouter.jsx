@@ -30,6 +30,7 @@ import TodoGoals from './TodoGoals.jsx';
 import ActivityApp from './ActivityApp.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
 import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
+import FormlessCharacter from './FormlessCharacter.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import Orb from './Orb.jsx';
@@ -221,6 +222,7 @@ export default function PageRouter() {
       activity: <ActivityApp onBack={goBack} />,
       characterEvolve: <CharacterEvolve onBack={goBack} />,
       semiCharacter: <SemiFormlessCharacter onBack={goBack} />,
+      formlessCharacter: <FormlessCharacter onBack={goBack} />,
       ideaBoard: <IdeaBoard onBack={goBack} />,
       implementationIdeas: <ImplementationIdeas onBack={goBack} />,
       orb: <Orb onBack={goBack} />,
