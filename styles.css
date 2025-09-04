@@ -42,6 +42,7 @@ body {
   flex-direction: row;
   gap: 15px;
   margin-top: 20px;
+  z-index: 1000;
 }
 
 .layer-button {
