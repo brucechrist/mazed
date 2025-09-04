@@ -4,7 +4,8 @@
   height: 100%;
   display: flex;
   flex-direction: row;
-  background: #111;
+  /* Let the body wallpaper show through when docked */
+  background: transparent;
   color: #eee;
 }
 
