@@ -75,7 +75,10 @@
 }
 
 .image-grid {
-  column-gap: 20px;
+  display: grid;
+  grid-auto-rows: 10px;
+  grid-auto-flow: dense;
+  gap: 20px;
   position: relative;
 }
 
@@ -139,8 +142,6 @@
   transition: border 0.3s, box-shadow 0.3s;
   cursor: grab;
   width: 100%;
-  break-inside: avoid;
-  margin-bottom: 20px;
 }
 
 .image-card:active {
@@ -150,6 +151,8 @@
 .image-card img {
   width: 100%;
   display: block;
+  max-height: 400px;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 
