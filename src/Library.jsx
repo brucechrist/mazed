@@ -74,10 +74,20 @@ export default function Library({ onBack }) {
     const rowHeight = parseInt(styles.getPropertyValue('grid-auto-rows')) || 1;
     const rowGap = parseInt(styles.getPropertyValue('row-gap')) || 0;
     if (!rowHeight) return;
-    const span = Math.ceil(
-      (el.getBoundingClientRect().height + rowGap) /
-        (rowHeight + rowGap)
-    );
+
+    const img = el.querySelector('img, .sound-placeholder');
+    if (!img) return;
+
+    let height;
+    if (img.tagName === 'IMG' && img.naturalWidth) {
+      const width = el.clientWidth || img.naturalWidth;
+      height = (img.naturalHeight / img.naturalWidth) * width;
+    } else {
+      const width = el.clientWidth;
+      height = width; // assume square for non-image placeholders
+    }
+
+    const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
     el.style.gridRowEnd = `span ${span}`;
   };
 
