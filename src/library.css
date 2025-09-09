@@ -75,9 +75,7 @@
 }
 
 .image-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  column-gap: 20px;
   position: relative;
 }
 
@@ -139,8 +137,10 @@
   border: 1px solid #2a2a2d;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: border 0.3s, box-shadow 0.3s;
-  flex: 0 0 auto;
   cursor: grab;
+  width: 100%;
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .image-card:active {
