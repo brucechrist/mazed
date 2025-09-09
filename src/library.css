@@ -198,6 +198,95 @@
   align-items: center;
 }
 
+.library-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.library-tabs button {
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  color: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.library-tabs button.active {
+  background: #00f0ff;
+  color: #0f0f10;
+}
+
+.word-section,
+.sound-section {
+  margin-top: 20px;
+}
+
+.word-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.word-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sound-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sound-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sound-thumb {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+}
+
+.sound-title {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.sound-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-modal-content {
+  background: #1b1b1e;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+}
+
+.sound-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .color-dot {
   width: 10px;
   height: 10px;
