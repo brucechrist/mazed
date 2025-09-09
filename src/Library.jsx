@@ -468,13 +468,11 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img, index) => {
-    const displayWidth = img.width * zoom;
-    const displayHeight = img.height * zoom;
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: displayWidth, height: displayHeight }}
+        style={{ width: '100%' }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -713,6 +711,7 @@ export default function Library({ onBack }) {
                     </h3>
                     <div
                       className="image-grid"
+                      style={{ columnWidth: `${800 * zoom}px` }}
                       onDragOver={(e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDragOver(e);
@@ -756,6 +755,7 @@ export default function Library({ onBack }) {
             <div
               ref={gridRef}
               className="image-grid"
+              style={{ columnWidth: `${800 * zoom}px` }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
                   ? (e) => {
