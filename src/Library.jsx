@@ -34,10 +34,28 @@ export default function Library({ onBack }) {
   const [originalImages, setOriginalImages] = useState([]);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
+  const cardRefs = useRef([]);
   const dragItem = useRef(null);
   const dragPlaceholder = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragMoveListener = useRef(null);
+
+  const updateRowSpans = () => {
+    const rowHeight = 10;
+    const gap = 20;
+    cardRefs.current.forEach((card) => {
+      if (card) {
+        const img = card.querySelector('img');
+        if (img) {
+          const span = Math.ceil(
+            (img.getBoundingClientRect().height + gap) /
+              (rowHeight + gap)
+          );
+          card.style.gridRowEnd = `span ${span}`;
+        }
+      }
+    });
+  };
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -151,6 +169,12 @@ export default function Library({ onBack }) {
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, []);
+
+  useEffect(() => {
+    updateRowSpans();
+    window.addEventListener('resize', updateRowSpans);
+    return () => window.removeEventListener('resize', updateRowSpans);
+  }, [images, zoom]);
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
@@ -468,13 +492,12 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img, index) => {
-    const displayWidth = img.width * zoom;
-    const displayHeight = img.height * zoom;
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: displayWidth, height: displayHeight }}
+        style={{ width: '100%' }}
+        ref={(el) => (cardRefs.current[index] = el)}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -587,6 +610,7 @@ export default function Library({ onBack }) {
                 setLightbox((l) => ({ ...l, width: w, height: h }));
               }
             }
+            updateRowSpans();
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -713,6 +737,9 @@ export default function Library({ onBack }) {
                     </h3>
                     <div
                       className="image-grid"
+                      style={{
+                        gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
+                      }}
                       onDragOver={(e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDragOver(e);
@@ -756,6 +783,9 @@ export default function Library({ onBack }) {
             <div
               ref={gridRef}
               className="image-grid"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
+              }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
                   ? (e) => {

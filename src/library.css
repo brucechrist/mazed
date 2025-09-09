@@ -75,8 +75,9 @@
 }
 
 .image-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-auto-rows: 10px;
+  grid-auto-flow: dense;
   gap: 20px;
   position: relative;
 }
@@ -139,8 +140,8 @@
   border: 1px solid #2a2a2d;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: border 0.3s, box-shadow 0.3s;
-  flex: 0 0 auto;
   cursor: grab;
+  width: 100%;
 }
 
 .image-card:active {
@@ -150,6 +151,8 @@
 .image-card img {
   width: 100%;
   display: block;
+  max-height: 400px;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 
