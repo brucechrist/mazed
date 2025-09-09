@@ -34,10 +34,24 @@ export default function Library({ onBack }) {
   const [originalImages, setOriginalImages] = useState([]);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
+  const cardRefs = useRef([]);
   const dragItem = useRef(null);
   const dragPlaceholder = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragMoveListener = useRef(null);
+
+  cardRefs.current = [];
+  const updateRowSpans = () => {
+    const rowHeight = 10;
+    const gap = 20;
+    cardRefs.current.forEach((card) => {
+      if (card) {
+        const height = card.getBoundingClientRect().height;
+        const span = Math.ceil((height + gap) / (rowHeight + gap));
+        card.style.gridRowEnd = `span ${span}`;
+      }
+    });
+  };
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -183,6 +197,12 @@ export default function Library({ onBack }) {
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, []);
+
+  useEffect(() => {
+    updateRowSpans();
+    window.addEventListener('resize', updateRowSpans);
+    return () => window.removeEventListener('resize', updateRowSpans);
+  }, [images, sounds, zoom]);
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
@@ -825,6 +845,23 @@ export default function Library({ onBack }) {
                   </div>
                 );
               })}
+              {activeTab === 'all' && sounds.length > 0 && (
+                <div className="color-group">
+                  <h3 className="color-title" style={{ color: '#fff' }}>
+                    Sounds
+                  </h3>
+                  <div
+                    className="image-grid"
+                    style={{
+                      gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
+                    }}
+                  >
+                    {sounds.map((s, i) =>
+                      renderSoundCard(s, images.length + i)
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div
