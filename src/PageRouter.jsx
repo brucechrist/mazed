@@ -8,7 +8,7 @@ import Auth from './Auth.jsx';
 import { supabaseClient } from './supabaseClient';
 import ActivityTimer from './ActivityTimer.jsx';
 import ExitVideo from './ExitVideo.jsx';
-import ImageGallery from './ImageGallery.jsx';
+import Library from './Library.jsx';
 import LoadingScreen from './LoadingScreen.jsx';
 import DockLayout from './DockLayout.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
@@ -243,8 +243,8 @@ export default function PageRouter() {
     case 'EE':
       leftContent = <EEmain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
       break;
-    case 'gallery':
-      leftContent = <ImageGallery onBack={() => navigate('5th')} />;
+    case 'library':
+      leftContent = <Library onBack={() => navigate('5th')} />;
       break;
     default:
       leftContent = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
