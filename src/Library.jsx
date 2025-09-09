@@ -42,9 +42,11 @@ export default function Library({ onBack }) {
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
   const [sounds, setSounds] = useState([]);
+  const [soundModal, setSoundModal] = useState(null);
   const [soundTitle, setSoundTitle] = useState('');
-  const [soundFile, setSoundFile] = useState(null);
-  const [thumbFile, setThumbFile] = useState(null);
+  const [soundThumb, setSoundThumb] = useState(null);
+  const [soundColor, setSoundColor] = useState('');
+  const [soundTag, setSoundTag] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
   // Load saved images from localStorage on mount
@@ -393,9 +395,62 @@ export default function Library({ onBack }) {
         }
       }
     }
-    if (!droppedFile || !droppedFile.type.startsWith('image/')) return;
-    await uploadToServer(droppedFile);
-    processFile(droppedFile);
+    if (!droppedFile) return;
+    if (droppedFile.type.startsWith('image/')) {
+      await uploadToServer(droppedFile);
+      processFile(droppedFile);
+    } else if (
+      droppedFile.type.startsWith('audio/') ||
+      droppedFile.type === 'video/mp4'
+    ) {
+      await uploadToServer(droppedFile);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSoundModal(reader.result);
+        setSoundTitle(droppedFile.name.replace(/\.[^/.]+$/, ''));
+        setSoundThumb(null);
+        setSoundColor('');
+        setSoundTag('');
+      };
+      reader.readAsDataURL(droppedFile);
+    }
+  };
+
+  const handleAddWord = (e) => {
+    e.preventDefault();
+    if (!wordInput.trim()) return;
+    const newWord = { id: Date.now(), text: wordInput.trim() };
+    const updated = [...words, newWord];
+    saveWords(updated);
+    setWordInput('');
+  };
+
+  const saveDroppedSound = () => {
+    if (!soundModal) return;
+    const create = (thumbData) => {
+      const newSound = {
+        id: Date.now(),
+        title: soundTitle || 'Untitled',
+        dataUrl: soundModal,
+        thumbnail: thumbData || null,
+        color: soundColor,
+        tag: soundTag,
+      };
+      const updated = [...sounds, newSound];
+      saveSounds(updated);
+      setSoundModal(null);
+      setSoundTitle('');
+      setSoundThumb(null);
+      setSoundColor('');
+      setSoundTag('');
+    };
+    if (soundThumb) {
+      const reader2 = new FileReader();
+      reader2.onload = () => create(reader2.result);
+      reader2.readAsDataURL(soundThumb);
+    } else {
+      create(null);
+    }
   };
 
   const handleAddWord = (e) => {
@@ -575,7 +630,7 @@ export default function Library({ onBack }) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {isDragging && <div className="drop-overlay">Upload Image</div>}
+      {isDragging && <div className="drop-overlay">Upload Media</div>}
       {uploading && <div className="upload-status">Uploading…</div>}
       <div className="library-manager">
         <div className="library-header">
@@ -736,15 +791,17 @@ export default function Library({ onBack }) {
         )}
         {(activeTab === 'all' || activeTab === 'words') && (
           <div className="word-section">
-            <form onSubmit={handleAddWord} className="word-form">
-              <input
-                type="text"
-                value={wordInput}
-                onChange={(e) => setWordInput(e.target.value)}
-                placeholder="Add word or sentence"
-              />
-              <button type="submit">Add</button>
-            </form>
+            {activeTab === 'words' && (
+              <form onSubmit={handleAddWord} className="word-form">
+                <input
+                  type="text"
+                  value={wordInput}
+                  onChange={(e) => setWordInput(e.target.value)}
+                  placeholder="Add word or sentence"
+                />
+                <button type="submit">Add</button>
+              </form>
+            )}
             <ul className="word-list">
               {words.map((w) => (
                 <li key={w.id}>{w.text}</li>
@@ -754,25 +811,6 @@ export default function Library({ onBack }) {
         )}
         {(activeTab === 'all' || activeTab === 'sounds') && (
           <div className="sound-section">
-            <form onSubmit={handleAddSound} className="sound-form">
-              <input
-                type="file"
-                accept="audio/*,video/mp4"
-                onChange={(e) => setSoundFile(e.target.files[0] || null)}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setThumbFile(e.target.files[0] || null)}
-              />
-              <input
-                type="text"
-                value={soundTitle}
-                onChange={(e) => setSoundTitle(e.target.value)}
-                placeholder="Title"
-              />
-              <button type="submit">Add</button>
-            </form>
             <div className="sound-list">
               {sounds.map((s) => (
                 <div key={s.id} className="sound-item">
@@ -784,11 +822,75 @@ export default function Library({ onBack }) {
                     />
                   )}
                   <div className="sound-meta">
-                    <div className="sound-title">{s.title}</div>
+                    <div className="sound-title">
+                      {s.color && (
+                        <span
+                          className="color-dot"
+                          style={{ background: s.color }}
+                        ></span>
+                      )}
+                      {s.title}
+                    </div>
+                    {s.tag && <span className="tag">{s.tag}</span>}
                     <audio controls src={s.dataUrl}></audio>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+        {soundModal && (
+          <div className="sound-modal" onClick={() => setSoundModal(null)}>
+            <div
+              className="sound-modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <audio controls src={soundModal}></audio>
+              <input
+                type="text"
+                value={soundTitle}
+                onChange={(e) => setSoundTitle(e.target.value)}
+                placeholder="Title"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setSoundThumb(e.target.files[0] || null)}
+              />
+              <div className="color-list">
+                {palette.map((c, idx) => (
+                  <button
+                    key={idx}
+                    className={`color-circle${
+                      soundColor === c ? ' selected' : ''
+                    }`}
+                    style={{ background: c }}
+                    onClick={() =>
+                      setSoundColor(soundColor === c ? '' : c)
+                    }
+                  />
+                ))}
+              </div>
+              <input
+                type="text"
+                value={soundTag}
+                onChange={(e) => setSoundTag(e.target.value)}
+                placeholder="Tag"
+              />
+              <div className="sound-modal-actions">
+                <button
+                  onClick={() => {
+                    setSoundModal(null);
+                    setSoundTitle('');
+                    setSoundThumb(null);
+                    setSoundColor('');
+                    setSoundTag('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button onClick={saveDroppedSound}>Save</button>
+              </div>
             </div>
           </div>
         )}

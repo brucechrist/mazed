@@ -222,8 +222,7 @@
   margin-top: 20px;
 }
 
-.word-form,
-.sound-form {
+.word-form {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
@@ -255,6 +254,37 @@
 
 .sound-title {
   font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.sound-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-modal-content {
+  background: #1b1b1e;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+}
+
+.sound-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .color-dot {
