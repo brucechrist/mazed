@@ -41,7 +41,6 @@ export default function Library({ onBack }) {
   const dragMoveListener = useRef(null);
 
   cardRefs.current = [];
-
   const updateRowSpans = () => {
     const rowHeight = 10;
     const gap = 20;
