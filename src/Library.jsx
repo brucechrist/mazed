@@ -627,46 +627,34 @@ export default function Library({ onBack }) {
     );
   };
 
-  const renderSoundCard = (snd, index) => {
-    return (
-      <div
-        key={snd.id}
-        className="sound-item"
-        style={{ width: '100%' }}
-        ref={(el) => (cardRefs.current[index] = el)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
-        }}
-      >
-        {snd.thumbnail && (
-          <img
-            src={snd.thumbnail}
-            alt={snd.title}
-            className="sound-thumb"
-            onLoad={updateRowSpans}
-          />
-        )}
-        <div className="sound-meta">
-          <div className="sound-title">
-            {snd.color && (
-              <span
-                className="color-dot"
-                style={{ background: snd.color }}
-              ></span>
-            )}
-            {snd.title}
-          </div>
-          {snd.tag && <span className="tag">{snd.tag}</span>}
-          <audio
-            controls
-            src={snd.dataUrl}
-            className="sound-player"
-          ></audio>
+  const renderSoundCard = (snd, style = {}) => (
+    <div
+      key={snd.id}
+      className="sound-item"
+      style={{ flex: '0 0 auto', ...style }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+      }}
+    >
+      {snd.thumbnail && (
+        <img src={snd.thumbnail} alt={snd.title} className="sound-thumb" />
+      )}
+      <div className="sound-meta">
+        <div className="sound-title">
+          {snd.color && (
+            <span
+              className="color-dot"
+              style={{ background: snd.color }}
+            ></span>
+          )}
+          {snd.title}
         </div>
+        {snd.tag && <span className="tag">{snd.tag}</span>}
+        <audio controls src={snd.dataUrl} className="sound-player"></audio>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
     <div
@@ -876,8 +864,8 @@ export default function Library({ onBack }) {
             >
               {images.map((img, index) => renderImageCard(img, index))}
               {activeTab === 'all' &&
-                sounds.map((s, i) =>
-                  renderSoundCard(s, images.length + i)
+                sounds.map((s) =>
+                  renderSoundCard(s, { width: 800 * zoom })
                 )}
             </div>
           )
@@ -904,13 +892,8 @@ export default function Library({ onBack }) {
         )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
-            <div
-              className="image-grid"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
-              }}
-            >
-              {sounds.map((s, i) => renderSoundCard(s, i))}
+            <div className="sound-list">
+              {sounds.map((s) => renderSoundCard(s))}
             </div>
           </div>
         )}
