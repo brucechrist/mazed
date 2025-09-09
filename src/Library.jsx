@@ -48,6 +48,9 @@ export default function Library({ onBack }) {
   const [soundColor, setSoundColor] = useState('');
   const [soundTag, setSoundTag] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [soundMenu, setSoundMenu] = useState(null);
+  const [editingSoundId, setEditingSoundId] = useState(null);
+  const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -140,9 +143,9 @@ export default function Library({ onBack }) {
   }, []);
 
   useEffect(() => {
-
     const close = () => {
       setMenu(null);
+      setSoundMenu(null);
       setSortMenuOpen(false);
     };
     window.addEventListener('click', close);
@@ -414,8 +417,10 @@ export default function Library({ onBack }) {
         setSoundModal(reader.result);
         setSoundTitle(droppedFile.name.replace(/\.[^/.]+$/, ''));
         setSoundThumb(null);
+        setSoundThumbPreview(null);
         setSoundColor('');
         setSoundTag('');
+        setEditingSoundId(null);
       };
       reader.readAsDataURL(droppedFile);
     }
@@ -434,27 +439,31 @@ export default function Library({ onBack }) {
     if (!soundModal) return;
     const create = (thumbData) => {
       const newSound = {
-        id: Date.now(),
+        id: editingSoundId || Date.now(),
         title: soundTitle || 'Untitled',
         dataUrl: soundModal,
         thumbnail: thumbData || null,
         color: soundColor,
         tag: soundTag,
       };
-      const updated = [...sounds, newSound];
+      const updated = editingSoundId
+        ? sounds.map((s) => (s.id === editingSoundId ? newSound : s))
+        : [...sounds, newSound];
       saveSounds(updated);
       setSoundModal(null);
       setSoundTitle('');
       setSoundThumb(null);
+      setSoundThumbPreview(null);
       setSoundColor('');
       setSoundTag('');
+      setEditingSoundId(null);
     };
     if (soundThumb) {
       const reader2 = new FileReader();
       reader2.onload = () => create(reader2.result);
       reader2.readAsDataURL(soundThumb);
     } else {
-      create(null);
+      create(soundThumbPreview);
     }
   };
 
@@ -809,7 +818,14 @@ export default function Library({ onBack }) {
           <div className="sound-section">
             <div className="sound-list">
               {sounds.map((s) => (
-                <div key={s.id} className="sound-item">
+                <div
+                  key={s.id}
+                  className="sound-item"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setSoundMenu({ id: s.id, x: e.clientX, y: e.clientY });
+                  }}
+                >
                   {s.thumbnail && (
                     <img
                       src={s.thumbnail}
@@ -828,7 +844,11 @@ export default function Library({ onBack }) {
                       {s.title}
                     </div>
                     {s.tag && <span className="tag">{s.tag}</span>}
-                    <audio controls src={s.dataUrl}></audio>
+                    <audio
+                      controls
+                      src={s.dataUrl}
+                      className="sound-player"
+                    ></audio>
                   </div>
                 </div>
               ))}
@@ -848,10 +868,27 @@ export default function Library({ onBack }) {
                 onChange={(e) => setSoundTitle(e.target.value)}
                 placeholder="Title"
               />
+              {soundThumbPreview && (
+                <img
+                  src={soundThumbPreview}
+                  alt="Thumbnail preview"
+                  className="sound-thumb-preview"
+                />
+              )}
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setSoundThumb(e.target.files[0] || null)}
+                onChange={(e) => {
+                  const file = e.target.files[0] || null;
+                  setSoundThumb(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => setSoundThumbPreview(reader.result);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setSoundThumbPreview(null);
+                  }
+                }}
               />
               <div className="color-list">
                 {palette.map((c, idx) => (
@@ -879,8 +916,10 @@ export default function Library({ onBack }) {
                     setSoundModal(null);
                     setSoundTitle('');
                     setSoundThumb(null);
+                    setSoundThumbPreview(null);
                     setSoundColor('');
                     setSoundTag('');
+                    setEditingSoundId(null);
                   }}
                 >
                   Cancel
@@ -888,6 +927,30 @@ export default function Library({ onBack }) {
                 <button onClick={saveDroppedSound}>Save</button>
               </div>
             </div>
+          </div>
+        )}
+        {soundMenu && (
+          <div
+            className="context-menu"
+            style={{ left: soundMenu.x, top: soundMenu.y }}
+          >
+            <button
+              onClick={() => {
+                const snd = sounds.find((s) => s.id === soundMenu.id);
+                if (snd) {
+                  setSoundModal(snd.dataUrl);
+                  setSoundTitle(snd.title);
+                  setSoundThumb(null);
+                  setSoundThumbPreview(snd.thumbnail || null);
+                  setSoundColor(snd.color || '');
+                  setSoundTag(snd.tag || '');
+                  setEditingSoundId(snd.id);
+                }
+                setSoundMenu(null);
+              }}
+            >
+              Edit
+            </button>
           </div>
         )}
         {menu && (
