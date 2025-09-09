@@ -34,10 +34,24 @@ export default function Library({ onBack }) {
   const [originalImages, setOriginalImages] = useState([]);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
+  const cardRefs = useRef([]);
   const dragItem = useRef(null);
   const dragPlaceholder = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragMoveListener = useRef(null);
+
+  cardRefs.current = [];
+  const updateRowSpans = () => {
+    const rowHeight = 10;
+    const gap = 20;
+    cardRefs.current.forEach((card) => {
+      if (card) {
+        const height = card.getBoundingClientRect().height;
+        const span = Math.ceil((height + gap) / (rowHeight + gap));
+        card.style.gridRowEnd = `span ${span}`;
+      }
+    });
+  };
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -51,6 +65,39 @@ export default function Library({ onBack }) {
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
+
+  const calcSpan = (el) => {
+    if (!el) return;
+    const grid = gridRef.current || el.parentNode;
+    if (!grid) return;
+    const styles = getComputedStyle(grid);
+    const rowHeight = parseInt(styles.getPropertyValue('grid-auto-rows')) || 1;
+    const rowGap = parseInt(styles.getPropertyValue('row-gap')) || 0;
+    if (!rowHeight) return;
+
+    const img = el.querySelector('img, .sound-placeholder');
+    if (!img) return;
+
+    let height;
+    if (img.tagName === 'IMG' && img.naturalWidth) {
+      const width = el.clientWidth || img.naturalWidth;
+      height = (img.naturalHeight / img.naturalWidth) * width;
+    } else {
+      const width = el.clientWidth;
+      height = width; // assume square for non-image placeholders
+    }
+
+    const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
+    el.style.gridRowEnd = `span ${span}`;
+  };
+
+  const recalcSpans = () => {
+    document
+      .querySelectorAll('.image-grid')
+      .forEach((grid) =>
+        Array.from(grid.children).forEach((child) => calcSpan(child))
+      );
+  };
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -103,6 +150,15 @@ export default function Library({ onBack }) {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
 
+  useEffect(() => {
+    recalcSpans();
+  }, [images, sounds, zoom]);
+
+  useEffect(() => {
+    window.addEventListener('resize', recalcSpans);
+    return () => window.removeEventListener('resize', recalcSpans);
+  }, []);
+
   const maxZoom = 1; // max 100% of native size
 
   useEffect(() => {
@@ -151,6 +207,12 @@ export default function Library({ onBack }) {
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, []);
+
+  useEffect(() => {
+    updateRowSpans();
+    window.addEventListener('resize', updateRowSpans);
+    return () => window.removeEventListener('resize', updateRowSpans);
+  }, [images, sounds, zoom]);
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
@@ -468,19 +530,17 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img, index) => {
-    const displayWidth = img.width * zoom;
-    const displayHeight = img.height * zoom;
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: displayWidth, height: displayHeight }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={() => setLightbox(img)}
+        ref={calcSpan}
         onDragStart=
           {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
@@ -587,6 +647,7 @@ export default function Library({ onBack }) {
                 setLightbox((l) => ({ ...l, width: w, height: h }));
               }
             }
+            calcSpan(e.target.parentNode);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -606,6 +667,41 @@ export default function Library({ onBack }) {
       </div>
     );
   };
+
+  const renderSoundCard = (snd) => (
+    <div
+      key={snd.id}
+      className="image-card sound-card"
+      ref={calcSpan}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+      }}
+    >
+      {snd.thumbnail ? (
+        <img src={snd.thumbnail} alt={snd.title} draggable={false} />
+      ) : (
+        <div className="sound-placeholder">♪</div>
+      )}
+      <div className="image-overlay">
+        <h3>
+          {snd.color && (
+            <span
+              className="color-dot"
+              style={{ background: snd.color }}
+            ></span>
+          )}
+          {snd.title}
+        </h3>
+        {snd.tag && <span className="tag">{snd.tag}</span>}
+        <audio
+          controls
+          src={snd.dataUrl}
+          className="sound-player"
+        ></audio>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -704,8 +800,9 @@ export default function Library({ onBack }) {
           sortMode === 'color' ? (
             <div className="color-groups">
               {palette.map((c) => {
-                const group = images.filter((img) => img.color === c);
-                if (!group.length) return null;
+                const groupImgs = images.filter((img) => img.color === c);
+                  const groupSounds = sounds.filter((s) => s.color === c);
+                  if (!groupImgs.length && !groupSounds.length) return null;
                 return (
                   <div key={c} className="color-group">
                     <h3 className="color-title" style={{ color: c }}>
@@ -713,6 +810,11 @@ export default function Library({ onBack }) {
                     </h3>
                     <div
                       className="image-grid"
+                      style={{
+                        gridTemplateColumns: `repeat(auto-fill, minmax(${
+                          250 * zoom
+                        }px, 1fr))`,
+                      }}
                       onDragOver={(e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDragOver(e);
@@ -741,21 +843,45 @@ export default function Library({ onBack }) {
                         resetDrag();
                       }}
                     >
-                      {group.map((img) =>
+                      {groupImgs.map((img) =>
                         renderImageCard(
                           img,
                           images.findIndex((i) => i.id === img.id)
                         )
                       )}
+                      {activeTab === 'all' &&
+                        groupSounds.map((s) => renderSoundCard(s))}
                     </div>
                   </div>
                 );
               })}
+              {activeTab === 'all' && sounds.length > 0 && (
+                <div className="color-group">
+                  <h3 className="color-title" style={{ color: '#fff' }}>
+                    Sounds
+                  </h3>
+                  <div
+                    className="image-grid"
+                    style={{
+                      gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
+                    }}
+                  >
+                    {sounds.map((s, i) =>
+                      renderSoundCard(s, images.length + i)
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div
               ref={gridRef}
               className="image-grid"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${
+                  250 * zoom
+                }px, 1fr))`,
+              }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
                   ? (e) => {
@@ -789,9 +915,23 @@ export default function Library({ onBack }) {
                     }
                   : undefined
               }
-            >
-              {images.map((img, index) => renderImageCard(img, index))}
-            </div>
+              >
+                {(
+                  activeTab === 'all'
+                    ? [...images.map((img) => ({ type: 'image', item: img })),
+                      ...sounds.map((s) => ({ type: 'sound', item: s }))]
+                        .sort((a, b) => a.item.id - b.item.id)
+                        .map(({ type, item }) =>
+                          type === 'image'
+                            ? renderImageCard(
+                                item,
+                                images.findIndex((i) => i.id === item.id)
+                              )
+                            : renderSoundCard(item)
+                        )
+                    : images.map((img, index) => renderImageCard(img, index))
+                )}
+              </div>
           )
         )}
         {(activeTab === 'all' || activeTab === 'words') && (
@@ -814,44 +954,17 @@ export default function Library({ onBack }) {
             </ul>
           </div>
         )}
-        {(activeTab === 'all' || activeTab === 'sounds') && (
+        {activeTab === 'sounds' && (
           <div className="sound-section">
-            <div className="sound-list">
-              {sounds.map((s) => (
-                <div
-                  key={s.id}
-                  className="sound-item"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setSoundMenu({ id: s.id, x: e.clientX, y: e.clientY });
-                  }}
-                >
-                  {s.thumbnail && (
-                    <img
-                      src={s.thumbnail}
-                      alt={s.title}
-                      className="sound-thumb"
-                    />
-                  )}
-                  <div className="sound-meta">
-                    <div className="sound-title">
-                      {s.color && (
-                        <span
-                          className="color-dot"
-                          style={{ background: s.color }}
-                        ></span>
-                      )}
-                      {s.title}
-                    </div>
-                    {s.tag && <span className="tag">{s.tag}</span>}
-                    <audio
-                      controls
-                      src={s.dataUrl}
-                      className="sound-player"
-                    ></audio>
-                  </div>
-                </div>
-              ))}
+            <div
+              className="image-grid"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${
+                  250 * zoom
+                }px, 1fr))`,
+              }}
+            >
+              {sounds.map((s) => renderSoundCard(s))}
             </div>
           </div>
         )}
