@@ -66,6 +66,32 @@ export default function Library({ onBack }) {
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
+  const calcSpan = (el) => {
+    if (!el) return;
+    const grid = gridRef.current || el.parentNode;
+    if (!grid) return;
+    const rowHeight = parseInt(
+      getComputedStyle(grid).getPropertyValue('grid-auto-rows')
+    );
+    const rowGap = parseInt(
+      getComputedStyle(grid).getPropertyValue('grid-row-gap')
+    );
+    if (!rowHeight) return;
+    const span = Math.ceil(
+      (el.getBoundingClientRect().height + rowGap) /
+        (rowHeight + rowGap)
+    );
+    el.style.gridRowEnd = `span ${span}`;
+  };
+
+  const recalcSpans = () => {
+    document
+      .querySelectorAll('.image-grid')
+      .forEach((grid) =>
+        Array.from(grid.children).forEach((child) => calcSpan(child))
+      );
+  };
+
   // Load saved images from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
@@ -116,6 +142,15 @@ export default function Library({ onBack }) {
   useEffect(() => {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
+
+  useEffect(() => {
+    recalcSpans();
+  }, [images, sounds, zoom]);
+
+  useEffect(() => {
+    window.addEventListener('resize', recalcSpans);
+    return () => window.removeEventListener('resize', recalcSpans);
+  }, []);
 
   const maxZoom = 1; // max 100% of native size
 
@@ -488,18 +523,20 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img, index) => {
+    const maxHeight = 500 * zoom;
+    const displayHeight = Math.min(img.height * zoom, maxHeight);
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: '100%' }}
-        ref={(el) => (cardRefs.current[index] = el)}
+        style={{ height: displayHeight }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={() => setLightbox(img)}
+        ref={calcSpan}
         onDragStart=
           {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
@@ -606,7 +643,7 @@ export default function Library({ onBack }) {
                 setLightbox((l) => ({ ...l, width: w, height: h }));
               }
             }
-            updateRowSpans();
+            calcSpan(e.target.parentNode);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -627,11 +664,11 @@ export default function Library({ onBack }) {
     );
   };
 
-  const renderSoundCard = (snd, style = {}) => (
+  const renderSoundCard = (snd) => (
     <div
       key={snd.id}
       className="sound-item"
-      style={{ flex: '0 0 auto', ...style }}
+      ref={calcSpan}
       onContextMenu={(e) => {
         e.preventDefault();
         setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
@@ -763,7 +800,9 @@ export default function Library({ onBack }) {
                     <div
                       className="image-grid"
                       style={{
-                        gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
+                        gridTemplateColumns: `repeat(auto-fill, minmax(${
+                          250 * zoom
+                        }px, 1fr))`,
                       }}
                       onDragOver={(e) => {
                         if (e.dataTransfer.files?.length) {
@@ -826,7 +865,9 @@ export default function Library({ onBack }) {
               ref={gridRef}
               className="image-grid"
               style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
+                gridTemplateColumns: `repeat(auto-fill, minmax(${
+                  250 * zoom
+                }px, 1fr))`,
               }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
@@ -863,10 +904,7 @@ export default function Library({ onBack }) {
               }
             >
               {images.map((img, index) => renderImageCard(img, index))}
-              {activeTab === 'all' &&
-                sounds.map((s) =>
-                  renderSoundCard(s, { width: 800 * zoom })
-                )}
+              {activeTab === 'all' && sounds.map((s) => renderSoundCard(s))}
             </div>
           )
         )}
