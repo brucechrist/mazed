@@ -70,12 +70,9 @@ export default function Library({ onBack }) {
     if (!el) return;
     const grid = gridRef.current || el.parentNode;
     if (!grid) return;
-    const rowHeight = parseInt(
-      getComputedStyle(grid).getPropertyValue('grid-auto-rows')
-    );
-    const rowGap = parseInt(
-      getComputedStyle(grid).getPropertyValue('grid-row-gap')
-    );
+    const styles = getComputedStyle(grid);
+    const rowHeight = parseInt(styles.getPropertyValue('grid-auto-rows')) || 1;
+    const rowGap = parseInt(styles.getPropertyValue('row-gap')) || 0;
     if (!rowHeight) return;
     const span = Math.ceil(
       (el.getBoundingClientRect().height + rowGap) /
