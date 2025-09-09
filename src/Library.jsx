@@ -453,6 +453,45 @@ export default function Library({ onBack }) {
     }
   };
 
+  const handleAddWord = (e) => {
+    e.preventDefault();
+    if (!wordInput.trim()) return;
+    const newWord = { id: Date.now(), text: wordInput.trim() };
+    const updated = [...words, newWord];
+    saveWords(updated);
+    setWordInput('');
+  };
+
+  const handleAddSound = (e) => {
+    e.preventDefault();
+    if (!soundFile) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const soundData = reader.result;
+      const create = (thumbData) => {
+        const newSound = {
+          id: Date.now(),
+          title: soundTitle || soundFile.name,
+          dataUrl: soundData,
+          thumbnail: thumbData || null,
+        };
+        const updated = [...sounds, newSound];
+        saveSounds(updated);
+        setSoundTitle('');
+        setSoundFile(null);
+        setThumbFile(null);
+      };
+      if (thumbFile) {
+        const reader2 = new FileReader();
+        reader2.onload = () => create(reader2.result);
+        reader2.readAsDataURL(thumbFile);
+      } else {
+        create(null);
+      }
+    };
+    reader.readAsDataURL(soundFile);
+  };
+
   const renderImageCard = (img, index) => {
     const displayWidth = img.width * zoom;
     const displayHeight = img.height * zoom;
