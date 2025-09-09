@@ -16,7 +16,6 @@ const hexToName = (hex) => {
 
 export default function ImageGallery({ onBack }) {
   const [images, setImages] = useState([]);
-  const [view, setView] = useState('home'); // 'home' or 'gallery'
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
@@ -33,7 +32,6 @@ export default function ImageGallery({ onBack }) {
   const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [originalImages, setOriginalImages] = useState([]);
-  const filePickerRef = useRef(null);
   const dragIndex = useRef(null);
   const gridRef = useRef(null);
   const dragItem = useRef(null);
@@ -64,9 +62,7 @@ export default function ImageGallery({ onBack }) {
 
   const maxZoom = 1; // max 100% of native size
 
-
   useEffect(() => {
-    if (view !== 'gallery') return;
     const handleWheel = (e) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -78,11 +74,7 @@ export default function ImageGallery({ onBack }) {
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
-  }, [view, maxZoom]);
-
-  useEffect(() => {
-    localStorage.setItem('galleryZoom', zoom);
-  }, [zoom]);
+  }, [maxZoom]);
 
   useEffect(() => {
     if (lightbox) {
@@ -319,9 +311,31 @@ export default function ImageGallery({ onBack }) {
     }
   };
 
+  const isFileDrag = (e) => {
+    const types = Array.from(e.dataTransfer?.types || []);
+    return types.includes('Files') || types.includes('text/uri-list');
+  };
+
+  const handleDragOver = (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragEnter = (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   const handleDrop = async (e) => {
     e.preventDefault();
-    if (view !== 'home') return;
     setIsDragging(false);
     let droppedFile = e.dataTransfer.files && e.dataTransfer.files[0];
     if (!droppedFile) {
@@ -479,242 +493,84 @@ export default function ImageGallery({ onBack }) {
   return (
     <div
       className={`image-gallery-container ${isDragging ? 'dragging' : ''}`}
-      onDragOver={(e) => {
-        if (view !== 'home') return;
-        e.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragEnter={(e) => {
-        if (view !== 'home') return;
-        e.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragLeave={(e) => {
-        if (view !== 'home') return;
-        e.preventDefault();
-        setIsDragging(false);
-      }}
-      onDrop={view === 'home' ? handleDrop : undefined}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
-      {isDragging && view === 'home' && (
-        <div className="drop-overlay">Upload Image</div>
-      )}
+      {isDragging && <div className="drop-overlay">Upload Image</div>}
       {uploading && <div className="upload-status">Uploading…</div>}
-      {view === 'home' ? (
-        <div className="gallery-home">
-          <div className="top-bar">
-            <button className="brand" onClick={onBack}>MZ</button>
-            <input
-              className="search-input"
-              type="text"
-              placeholder="What will you imagine?"
-            />
-            <button className="submit-edit">Submit Edit</button>
-            <button className="view-all" onClick={() => setView('gallery')}>
-              View All →
-            </button>
-          </div>
-          <aside className="side-bar">
-            <button>Move / Resize</button>
-            <button>Paint</button>
-            <button>Smart Select</button>
-          </aside>
-          <main className="home-main">
-            <input
-              type="file"
-              accept="image/*"
-              ref={filePickerRef}
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const f = e.target.files[0];
-                if (f) {
-                  setView('gallery');
-                  await uploadToServer(f);
-                  processFile(f);
-                  e.target.value = '';
-                }
+      <div className="gallery-manager">
+        <div className="image-gallery-header">
+          <button onClick={onBack} className="back-button">
+            Back
+          </button>
+          <h2>Image Library</h2>
+          <div className="sort-dropdown">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSortMenuOpen((o) => !o);
               }}
-            />
-            <div className="option-list">
-              <button
-                className="option-card computer"
-                onClick={() => filePickerRef.current?.click()}
-              >
-                <span className="icon">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                  <path d="M12 5v14" />
-                  <path d="M5 12h14" />
-                </svg>
-              </span>
-                <span className="text">Upload from Computer</span>
-                <span className="arrow">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14" />
-                    <path d="M13 5l7 7-7 7" />
-                  </svg>
-                </span>
-              </button>
-              <button
-                className="option-card upload"
-                onClick={() => setView('gallery')}
-              >
-                <span className="icon">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path d="M21 15l-5-5L5 21" />
-                  </svg>
-                </span>
-                <span className="text">Edit Uploaded Images</span>
-                <span className="arrow">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14" />
-                    <path d="M13 5l7 7-7 7" />
-                  </svg>
-                </span>
-              </button>
-            </div>
-          </main>
-        </div>
-      ) : (
-        <div className="gallery-manager">
-          <div className="image-gallery-header">
-            <button onClick={() => setView('home')} className="back-button">
-              Back
+              className="sort-button"
+            >
+              Order
             </button>
-            <h2>Image Library</h2>
-            <div className="sort-dropdown">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSortMenuOpen((o) => !o);
-                }}
-                className="sort-button"
+            {sortMenuOpen && (
+              <div
+                className="sort-menu"
+                onClick={(e) => e.stopPropagation()}
               >
-                Order
-              </button>
-              {sortMenuOpen && (
-                <div
-                  className="sort-menu"
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  onClick={() => {
+                    resetSort();
+                    setSortMenuOpen(false);
+                  }}
                 >
-                  <button
-                    onClick={() => {
-                      resetSort();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Original
-                  </button>
-                  <button
-                    onClick={() => {
-                      sortByTitle();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Title
-                  </button>
-                  <button
-                    onClick={() => {
-                      sortByDate();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Date Added
-                  </button>
-                  <button
-                    onClick={() => {
-                      autoSortByColor();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Color
-                  </button>
-                </div>
-              )}
-            </div>
+                  Original
+                </button>
+                <button
+                  onClick={() => {
+                    sortByTitle();
+                    setSortMenuOpen(false);
+                  }}
+                >
+                  Title
+                </button>
+                <button
+                  onClick={() => {
+                    sortByDate();
+                    setSortMenuOpen(false);
+                  }}
+                >
+                  Date Added
+                </button>
+                <button
+                  onClick={() => {
+                    autoSortByColor();
+                    setSortMenuOpen(false);
+                  }}
+                >
+                  Color
+                </button>
+              </div>
+            )}
           </div>
-          {sortMode === 'color' ? (
-            <div className="color-groups">
-              {palette.map((c) => {
-                const group = images.filter((img) => img.color === c);
-                if (!group.length) return null;
-                return (
-                  <div key={c} className="color-group">
-                    <h3 className="color-title" style={{ color: c }}>
-                      {hexToName(c)}
-                    </h3>
-                    <div
-                      className="image-grid"
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const from = dragIndex.current;
-                        if (from == null) {
-                          resetDrag();
-                          return;
-                        }
-                        const updated = [...images];
-                        const [moved] = updated.splice(from, 1);
-                        moved.color = c;
-                        moved.title = hexToName(c);
-                        updated.push(moved);
-                        saveImages(updated);
-                        dragIndex.current = null;
-                        resetDrag();
-                      }}
-                    >
-                      {group.map((img) =>
-                        renderImageCard(
-                          img,
-                          images.findIndex((i) => i.id === img.id)
-                        )
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div
-              ref={gridRef}
-              className="image-grid"
-              onDragOver={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => e.preventDefault()
-                  : undefined
-              }
-              onDrop={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => {
+        </div>
+        {sortMode === 'color' ? (
+          <div className="color-groups">
+            {palette.map((c) => {
+              const group = images.filter((img) => img.color === c);
+              if (!group.length) return null;
+              return (
+                <div key={c} className="color-group">
+                  <h3 className="color-title" style={{ color: c }}>
+                    {hexToName(c)}
+                  </h3>
+                  <div
+                    className="image-grid"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
                       e.preventDefault();
                       const from = dragIndex.current;
                       if (from == null) {
@@ -723,57 +579,96 @@ export default function ImageGallery({ onBack }) {
                       }
                       const updated = [...images];
                       const [moved] = updated.splice(from, 1);
+                      moved.color = c;
+                      moved.title = hexToName(c);
                       updated.push(moved);
                       saveImages(updated);
                       dragIndex.current = null;
                       resetDrag();
+                    }}
+                  >
+                    {group.map((img) =>
+                      renderImageCard(
+                        img,
+                        images.findIndex((i) => i.id === img.id)
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div
+            ref={gridRef}
+            className="image-grid"
+            onDragOver={
+              sortMode !== 'title' && sortMode !== 'date'
+                ? (e) => e.preventDefault()
+                : undefined
+            }
+            onDrop={
+              sortMode !== 'title' && sortMode !== 'date'
+                ? (e) => {
+                    e.preventDefault();
+                    const from = dragIndex.current;
+                    if (from == null) {
+                      resetDrag();
+                      return;
                     }
-                  : undefined
-              }
+                    const updated = [...images];
+                    const [moved] = updated.splice(from, 1);
+                    updated.push(moved);
+                    saveImages(updated);
+                    dragIndex.current = null;
+                    resetDrag();
+                  }
+                : undefined
+            }
+          >
+            {images.map((img, index) => renderImageCard(img, index))}
+          </div>
+        )}
+        {menu && (
+          <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
+            <button
+              onClick={() => {
+                deleteImage(menu.id);
+                setMenu(null);
+              }}
             >
-              {images.map((img, index) => renderImageCard(img, index))}
-            </div>
-          )}
-          {menu && (
-            <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
-              <button
-                onClick={() => {
-                  deleteImage(menu.id);
-                  setMenu(null);
+              Delete
+            </button>
+          </div>
+        )}
+        {!lightbox && (
+          <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
+        )}
+        {lightbox && (
+          <div className="lightbox" onClick={() => setLightbox(null)}>
+            <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="lightbox-inner"
+                onWheel={(e) => {
+                  if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    setLightboxZoom((z) => {
+                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                      return Math.min(5, Math.max(0.1, next));
+                    });
+                  }
                 }}
               >
-                Delete
-              </button>
-            </div>
-          )}
-          {!lightbox && (
-            <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
-          )}
-          {lightbox && (
-            <div className="lightbox" onClick={() => setLightbox(null)}>
-              <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-                <div
-                  className="lightbox-inner"
-                  onWheel={(e) => {
-                    if (e.ctrlKey || e.metaKey) {
-                      e.preventDefault();
-                      setLightboxZoom((z) => {
-                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                        return Math.min(5, Math.max(0.1, next));
-                      });
-                    }
+                <img
+                  src={lightbox.dataUrl}
+                  alt={lightbox.title}
+                  style={{
+                    width: lightbox.width * lightboxZoom,
+                    height: lightbox.height * lightboxZoom,
                   }}
-                >
-                  <img
-                    src={lightbox.dataUrl}
-                    alt={lightbox.title}
-                    style={{
-                      width: lightbox.width * lightboxZoom,
-                      height: lightbox.height * lightboxZoom,
-                    }}
-                  />
-                </div>
-                <div className="lightbox-info">
+                />
+              </div>
+              <div className="lightbox-info">
                   {editingTitle ? (
                     <input
                       type="text"
