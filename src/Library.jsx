@@ -52,6 +52,32 @@ export default function Library({ onBack }) {
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
+  const calcSpan = (el) => {
+    if (!el) return;
+    const grid = gridRef.current || el.parentNode;
+    if (!grid) return;
+    const rowHeight = parseInt(
+      getComputedStyle(grid).getPropertyValue('grid-auto-rows')
+    );
+    const rowGap = parseInt(
+      getComputedStyle(grid).getPropertyValue('grid-row-gap')
+    );
+    if (!rowHeight) return;
+    const span = Math.ceil(
+      (el.getBoundingClientRect().height + rowGap) /
+        (rowHeight + rowGap)
+    );
+    el.style.gridRowEnd = `span ${span}`;
+  };
+
+  const recalcSpans = () => {
+    document
+      .querySelectorAll('.image-grid')
+      .forEach((grid) =>
+        Array.from(grid.children).forEach((child) => calcSpan(child))
+      );
+  };
+
   // Load saved images from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
@@ -102,6 +128,15 @@ export default function Library({ onBack }) {
   useEffect(() => {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
+
+  useEffect(() => {
+    recalcSpans();
+  }, [images, sounds, zoom]);
+
+  useEffect(() => {
+    window.addEventListener('resize', recalcSpans);
+    return () => window.removeEventListener('resize', recalcSpans);
+  }, []);
 
   const maxZoom = 1; // max 100% of native size
 
@@ -468,19 +503,20 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img, index) => {
-    const displayWidth = img.width * zoom;
-    const displayHeight = img.height * zoom;
+    const maxHeight = 500 * zoom;
+    const displayHeight = Math.min(img.height * zoom, maxHeight);
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: displayWidth, height: displayHeight }}
+        style={{ height: displayHeight }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={() => setLightbox(img)}
+        ref={calcSpan}
         onDragStart=
           {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
@@ -587,6 +623,7 @@ export default function Library({ onBack }) {
                 setLightbox((l) => ({ ...l, width: w, height: h }));
               }
             }
+            calcSpan(e.target.parentNode);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -606,6 +643,35 @@ export default function Library({ onBack }) {
       </div>
     );
   };
+
+  const renderSoundCard = (snd) => (
+    <div
+      key={snd.id}
+      className="sound-item"
+      ref={calcSpan}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+      }}
+    >
+      {snd.thumbnail && (
+        <img src={snd.thumbnail} alt={snd.title} className="sound-thumb" />
+      )}
+      <div className="sound-meta">
+        <div className="sound-title">
+          {snd.color && (
+            <span
+              className="color-dot"
+              style={{ background: snd.color }}
+            ></span>
+          )}
+          {snd.title}
+        </div>
+        {snd.tag && <span className="tag">{snd.tag}</span>}
+        <audio controls src={snd.dataUrl} className="sound-player"></audio>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -713,6 +779,11 @@ export default function Library({ onBack }) {
                     </h3>
                     <div
                       className="image-grid"
+                      style={{
+                        gridTemplateColumns: `repeat(auto-fill, minmax(${
+                          250 * zoom
+                        }px, 1fr))`,
+                      }}
                       onDragOver={(e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDragOver(e);
@@ -756,6 +827,11 @@ export default function Library({ onBack }) {
             <div
               ref={gridRef}
               className="image-grid"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${
+                  250 * zoom
+                }px, 1fr))`,
+              }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
                   ? (e) => {
@@ -791,6 +867,7 @@ export default function Library({ onBack }) {
               }
             >
               {images.map((img, index) => renderImageCard(img, index))}
+              {activeTab === 'all' && sounds.map((s) => renderSoundCard(s))}
             </div>
           )
         )}
@@ -814,44 +891,10 @@ export default function Library({ onBack }) {
             </ul>
           </div>
         )}
-        {(activeTab === 'all' || activeTab === 'sounds') && (
+        {activeTab === 'sounds' && (
           <div className="sound-section">
             <div className="sound-list">
-              {sounds.map((s) => (
-                <div
-                  key={s.id}
-                  className="sound-item"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setSoundMenu({ id: s.id, x: e.clientX, y: e.clientY });
-                  }}
-                >
-                  {s.thumbnail && (
-                    <img
-                      src={s.thumbnail}
-                      alt={s.title}
-                      className="sound-thumb"
-                    />
-                  )}
-                  <div className="sound-meta">
-                    <div className="sound-title">
-                      {s.color && (
-                        <span
-                          className="color-dot"
-                          style={{ background: s.color }}
-                        ></span>
-                      )}
-                      {s.title}
-                    </div>
-                    {s.tag && <span className="tag">{s.tag}</span>}
-                    <audio
-                      controls
-                      src={s.dataUrl}
-                      className="sound-player"
-                    ></audio>
-                  </div>
-                </div>
-              ))}
+              {sounds.map((s) => renderSoundCard(s))}
             </div>
           </div>
         )}
