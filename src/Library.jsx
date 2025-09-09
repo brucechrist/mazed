@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './image-gallery.css';
+import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
 import { colorDiff } from './colorUtils.js';
@@ -14,7 +14,7 @@ const hexToName = (hex) => {
   }
 };
 
-export default function ImageGallery({ onBack }) {
+export default function Library({ onBack }) {
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -22,7 +22,7 @@ export default function ImageGallery({ onBack }) {
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [zoom, setZoom] = useState(
-    () => Number(localStorage.getItem('galleryZoom')) || 0.35
+    () => Number(localStorage.getItem('libraryZoom')) || 0.35
   );
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
@@ -57,7 +57,7 @@ export default function ImageGallery({ onBack }) {
   };
 
   useEffect(() => {
-    localStorage.setItem('galleryZoom', zoom);
+    localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
 
   const maxZoom = 1; // max 100% of native size
@@ -492,7 +492,7 @@ export default function ImageGallery({ onBack }) {
 
   return (
     <div
-      className={`image-gallery-container ${isDragging ? 'dragging' : ''}`}
+      className={`library-container ${isDragging ? 'dragging' : ''}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -500,12 +500,12 @@ export default function ImageGallery({ onBack }) {
     >
       {isDragging && <div className="drop-overlay">Upload Image</div>}
       {uploading && <div className="upload-status">Uploading…</div>}
-      <div className="gallery-manager">
-        <div className="image-gallery-header">
+      <div className="library-manager">
+        <div className="library-header">
           <button onClick={onBack} className="back-button">
             Back
           </button>
-          <h2>Image Library</h2>
+          <h2>Library</h2>
           <div className="sort-dropdown">
             <button
               onClick={(e) => {
