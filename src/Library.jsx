@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './image-gallery.css';
+import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
 import { colorDiff } from './colorUtils.js';
@@ -14,7 +14,7 @@ const hexToName = (hex) => {
   }
 };
 
-export default function ImageGallery({ onBack }) {
+export default function Library({ onBack }) {
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -22,7 +22,7 @@ export default function ImageGallery({ onBack }) {
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [zoom, setZoom] = useState(
-    () => Number(localStorage.getItem('galleryZoom')) || 0.35
+    () => Number(localStorage.getItem('libraryZoom')) || 0.35
   );
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
@@ -39,6 +39,19 @@ export default function ImageGallery({ onBack }) {
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragMoveListener = useRef(null);
 
+  const [words, setWords] = useState([]);
+  const [wordInput, setWordInput] = useState('');
+  const [sounds, setSounds] = useState([]);
+  const [soundModal, setSoundModal] = useState(null);
+  const [soundTitle, setSoundTitle] = useState('');
+  const [soundThumb, setSoundThumb] = useState(null);
+  const [soundColor, setSoundColor] = useState('');
+  const [soundTag, setSoundTag] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+  const [soundMenu, setSoundMenu] = useState(null);
+  const [editingSoundId, setEditingSoundId] = useState(null);
+  const [soundThumbPreview, setSoundThumbPreview] = useState(null);
+
   // Load saved images from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
@@ -51,13 +64,43 @@ export default function ImageGallery({ onBack }) {
     }
   }, []);
 
+  // Load saved words and sounds from localStorage on mount
+  useEffect(() => {
+    const savedWords = localStorage.getItem('mazedWords');
+    if (savedWords) {
+      try {
+        setWords(JSON.parse(savedWords));
+      } catch (e) {
+        console.error('Failed to parse saved words', e);
+      }
+    }
+    const savedSounds = localStorage.getItem('mazedSounds');
+    if (savedSounds) {
+      try {
+        setSounds(JSON.parse(savedSounds));
+      } catch (e) {
+        console.error('Failed to parse saved sounds', e);
+      }
+    }
+  }, []);
+
   const saveImages = (imgs) => {
     setImages(imgs);
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
   };
 
+  const saveWords = (w) => {
+    setWords(w);
+    localStorage.setItem('mazedWords', JSON.stringify(w));
+  };
+
+  const saveSounds = (s) => {
+    setSounds(s);
+    localStorage.setItem('mazedSounds', JSON.stringify(s));
+  };
+
   useEffect(() => {
-    localStorage.setItem('galleryZoom', zoom);
+    localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
 
   const maxZoom = 1; // max 100% of native size
@@ -100,9 +143,9 @@ export default function ImageGallery({ onBack }) {
   }, []);
 
   useEffect(() => {
-
     const close = () => {
       setMenu(null);
+      setSoundMenu(null);
       setSortMenuOpen(false);
     };
     window.addEventListener('click', close);
@@ -355,9 +398,73 @@ export default function ImageGallery({ onBack }) {
         }
       }
     }
-    if (!droppedFile || !droppedFile.type.startsWith('image/')) return;
-    await uploadToServer(droppedFile);
-    processFile(droppedFile);
+    if (!droppedFile) return;
+
+    const ext = droppedFile.name.toLowerCase().split('.').pop();
+    const soundExts = ['mp3', 'mp4', 'wav', 'aiff', 'm4a'];
+    const isSound =
+      droppedFile.type.startsWith('audio/') ||
+      droppedFile.type.startsWith('video/') ||
+      soundExts.includes(ext);
+
+    if (droppedFile.type.startsWith('image/')) {
+      uploadToServer(droppedFile);
+      processFile(droppedFile);
+    } else if (isSound) {
+      uploadToServer(droppedFile);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSoundModal(reader.result);
+        setSoundTitle(droppedFile.name.replace(/\.[^/.]+$/, ''));
+        setSoundThumb(null);
+        setSoundThumbPreview(null);
+        setSoundColor('');
+        setSoundTag('');
+        setEditingSoundId(null);
+      };
+      reader.readAsDataURL(droppedFile);
+    }
+  };
+
+  const handleAddWord = (e) => {
+    e.preventDefault();
+    if (!wordInput.trim()) return;
+    const newWord = { id: Date.now(), text: wordInput.trim() };
+    const updated = [...words, newWord];
+    saveWords(updated);
+    setWordInput('');
+  };
+
+  const saveDroppedSound = () => {
+    if (!soundModal) return;
+    const create = (thumbData) => {
+      const newSound = {
+        id: editingSoundId || Date.now(),
+        title: soundTitle || 'Untitled',
+        dataUrl: soundModal,
+        thumbnail: thumbData || null,
+        color: soundColor,
+        tag: soundTag,
+      };
+      const updated = editingSoundId
+        ? sounds.map((s) => (s.id === editingSoundId ? newSound : s))
+        : [...sounds, newSound];
+      saveSounds(updated);
+      setSoundModal(null);
+      setSoundTitle('');
+      setSoundThumb(null);
+      setSoundThumbPreview(null);
+      setSoundColor('');
+      setSoundTag('');
+      setEditingSoundId(null);
+    };
+    if (soundThumb) {
+      const reader2 = new FileReader();
+      reader2.onload = () => create(reader2.result);
+      reader2.readAsDataURL(soundThumb);
+    } else {
+      create(soundThumbPreview);
+    }
   };
 
   const renderImageCard = (img, index) => {
@@ -421,12 +528,22 @@ export default function ImageGallery({ onBack }) {
             : undefined}
         onDragOver={
           sortMode !== 'title' && sortMode !== 'date'
-            ? (e) => e.preventDefault()
+            ? (e) => {
+                if (e.dataTransfer.files?.length) {
+                  handleDragOver(e);
+                } else {
+                  e.preventDefault();
+                }
+              }
             : undefined
         }
         onDrop=
           {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
+                if (e.dataTransfer.files?.length) {
+                  handleDrop(e);
+                  return;
+                }
                 e.preventDefault();
                 const from = dragIndex.current;
                 if (from == null || from === index) {
@@ -492,20 +609,20 @@ export default function ImageGallery({ onBack }) {
 
   return (
     <div
-      className={`image-gallery-container ${isDragging ? 'dragging' : ''}`}
+      className={`library-container ${isDragging ? 'dragging' : ''}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {isDragging && <div className="drop-overlay">Upload Image</div>}
+      {isDragging && <div className="drop-overlay">Upload Media</div>}
       {uploading && <div className="upload-status">Uploading…</div>}
-      <div className="gallery-manager">
-        <div className="image-gallery-header">
+      <div className="library-manager">
+        <div className="library-header">
           <button onClick={onBack} className="back-button">
             Back
           </button>
-          <h2>Image Library</h2>
+          <h2>Library</h2>
           <div className="sort-dropdown">
             <button
               onClick={(e) => {
@@ -557,20 +674,106 @@ export default function ImageGallery({ onBack }) {
             )}
           </div>
         </div>
-        {sortMode === 'color' ? (
-          <div className="color-groups">
-            {palette.map((c) => {
-              const group = images.filter((img) => img.color === c);
-              if (!group.length) return null;
-              return (
-                <div key={c} className="color-group">
-                  <h3 className="color-title" style={{ color: c }}>
-                    {hexToName(c)}
-                  </h3>
-                  <div
-                    className="image-grid"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
+        <div className="library-tabs">
+          <button
+            className={activeTab === 'all' ? 'active' : ''}
+            onClick={() => setActiveTab('all')}
+          >
+            All
+          </button>
+          <button
+            className={activeTab === 'images' ? 'active' : ''}
+            onClick={() => setActiveTab('images')}
+          >
+            Images
+          </button>
+          <button
+            className={activeTab === 'words' ? 'active' : ''}
+            onClick={() => setActiveTab('words')}
+          >
+            Words
+          </button>
+          <button
+            className={activeTab === 'sounds' ? 'active' : ''}
+            onClick={() => setActiveTab('sounds')}
+          >
+            Sounds
+          </button>
+        </div>
+        {(activeTab === 'all' || activeTab === 'images') && (
+          sortMode === 'color' ? (
+            <div className="color-groups">
+              {palette.map((c) => {
+                const group = images.filter((img) => img.color === c);
+                if (!group.length) return null;
+                return (
+                  <div key={c} className="color-group">
+                    <h3 className="color-title" style={{ color: c }}>
+                      {hexToName(c)}
+                    </h3>
+                    <div
+                      className="image-grid"
+                      onDragOver={(e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDragOver(e);
+                        } else {
+                          e.preventDefault();
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDrop(e);
+                          return;
+                        }
+                        e.preventDefault();
+                        const from = dragIndex.current;
+                        if (from == null) {
+                          resetDrag();
+                          return;
+                        }
+                        const updated = [...images];
+                        const [moved] = updated.splice(from, 1);
+                        moved.color = c;
+                        moved.title = hexToName(c);
+                        updated.push(moved);
+                        saveImages(updated);
+                        dragIndex.current = null;
+                        resetDrag();
+                      }}
+                    >
+                      {group.map((img) =>
+                        renderImageCard(
+                          img,
+                          images.findIndex((i) => i.id === img.id)
+                        )
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              ref={gridRef}
+              className="image-grid"
+              onDragOver={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => {
+                      if (e.dataTransfer.files?.length) {
+                        handleDragOver(e);
+                      } else {
+                        e.preventDefault();
+                      }
+                    }
+                  : undefined
+              }
+              onDrop={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => {
+                      if (e.dataTransfer.files?.length) {
+                        handleDrop(e);
+                        return;
+                      }
                       e.preventDefault();
                       const from = dragIndex.current;
                       if (from == null) {
@@ -579,54 +782,175 @@ export default function ImageGallery({ onBack }) {
                       }
                       const updated = [...images];
                       const [moved] = updated.splice(from, 1);
-                      moved.color = c;
-                      moved.title = hexToName(c);
                       updated.push(moved);
                       saveImages(updated);
                       dragIndex.current = null;
                       resetDrag();
-                    }}
-                  >
-                    {group.map((img) =>
-                      renderImageCard(
-                        img,
-                        images.findIndex((i) => i.id === img.id)
-                      )
-                    )}
+                    }
+                  : undefined
+              }
+            >
+              {images.map((img, index) => renderImageCard(img, index))}
+            </div>
+          )
+        )}
+        {(activeTab === 'all' || activeTab === 'words') && (
+          <div className="word-section">
+            {activeTab === 'words' && (
+              <form onSubmit={handleAddWord} className="word-form">
+                <input
+                  type="text"
+                  value={wordInput}
+                  onChange={(e) => setWordInput(e.target.value)}
+                  placeholder="Add word or sentence"
+                />
+                <button type="submit">Add</button>
+              </form>
+            )}
+            <ul className="word-list">
+              {words.map((w) => (
+                <li key={w.id}>{w.text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {(activeTab === 'all' || activeTab === 'sounds') && (
+          <div className="sound-section">
+            <div className="sound-list">
+              {sounds.map((s) => (
+                <div
+                  key={s.id}
+                  className="sound-item"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setSoundMenu({ id: s.id, x: e.clientX, y: e.clientY });
+                  }}
+                >
+                  {s.thumbnail && (
+                    <img
+                      src={s.thumbnail}
+                      alt={s.title}
+                      className="sound-thumb"
+                    />
+                  )}
+                  <div className="sound-meta">
+                    <div className="sound-title">
+                      {s.color && (
+                        <span
+                          className="color-dot"
+                          style={{ background: s.color }}
+                        ></span>
+                      )}
+                      {s.title}
+                    </div>
+                    {s.tag && <span className="tag">{s.tag}</span>}
+                    <audio
+                      controls
+                      src={s.dataUrl}
+                      className="sound-player"
+                    ></audio>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        ) : (
-          <div
-            ref={gridRef}
-            className="image-grid"
-            onDragOver={
-              sortMode !== 'title' && sortMode !== 'date'
-                ? (e) => e.preventDefault()
-                : undefined
-            }
-            onDrop={
-              sortMode !== 'title' && sortMode !== 'date'
-                ? (e) => {
-                    e.preventDefault();
-                    const from = dragIndex.current;
-                    if (from == null) {
-                      resetDrag();
-                      return;
-                    }
-                    const updated = [...images];
-                    const [moved] = updated.splice(from, 1);
-                    updated.push(moved);
-                    saveImages(updated);
-                    dragIndex.current = null;
-                    resetDrag();
+        )}
+        {soundModal && (
+          <div className="sound-modal" onClick={() => setSoundModal(null)}>
+            <div
+              className="sound-modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <audio controls src={soundModal}></audio>
+              <input
+                type="text"
+                value={soundTitle}
+                onChange={(e) => setSoundTitle(e.target.value)}
+                placeholder="Title"
+              />
+              {soundThumbPreview && (
+                <img
+                  src={soundThumbPreview}
+                  alt="Thumbnail preview"
+                  className="sound-thumb-preview"
+                />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0] || null;
+                  setSoundThumb(file);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => setSoundThumbPreview(reader.result);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setSoundThumbPreview(null);
                   }
-                : undefined
-            }
+                }}
+              />
+              <div className="color-list">
+                {palette.map((c, idx) => (
+                  <button
+                    key={idx}
+                    className={`color-circle${
+                      soundColor === c ? ' selected' : ''
+                    }`}
+                    style={{ background: c }}
+                    onClick={() =>
+                      setSoundColor(soundColor === c ? '' : c)
+                    }
+                  />
+                ))}
+              </div>
+              <input
+                type="text"
+                value={soundTag}
+                onChange={(e) => setSoundTag(e.target.value)}
+                placeholder="Tag"
+              />
+              <div className="sound-modal-actions">
+                <button
+                  onClick={() => {
+                    setSoundModal(null);
+                    setSoundTitle('');
+                    setSoundThumb(null);
+                    setSoundThumbPreview(null);
+                    setSoundColor('');
+                    setSoundTag('');
+                    setEditingSoundId(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button onClick={saveDroppedSound}>Save</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {soundMenu && (
+          <div
+            className="context-menu"
+            style={{ left: soundMenu.x, top: soundMenu.y }}
           >
-            {images.map((img, index) => renderImageCard(img, index))}
+            <button
+              onClick={() => {
+                const snd = sounds.find((s) => s.id === soundMenu.id);
+                if (snd) {
+                  setSoundModal(snd.dataUrl);
+                  setSoundTitle(snd.title);
+                  setSoundThumb(null);
+                  setSoundThumbPreview(snd.thumbnail || null);
+                  setSoundColor(snd.color || '');
+                  setSoundTag(snd.tag || '');
+                  setEditingSoundId(snd.id);
+                }
+                setSoundMenu(null);
+              }}
+            >
+              Edit
+            </button>
           </div>
         )}
         {menu && (

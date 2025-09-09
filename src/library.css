@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;700&display=swap');
 
-.image-gallery-container {
+.library-container {
   min-height: 100vh;
   background: #0f0f10;
   color: #e0e0e0;
@@ -8,7 +8,7 @@
   position: relative;
 }
 
-.image-gallery-container.dragging {
+.library-container.dragging {
   cursor: copy;
 }
 
@@ -41,17 +41,17 @@
   z-index: 1001;
 }
 
-.gallery-manager {
+.library-manager {
   padding: 20px;
 }
 
-.image-gallery-header {
+.library-header {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.image-gallery-header h2 {
+.library-header h2 {
   flex: 1;
   text-align: center;
   margin: 0;
@@ -196,6 +196,148 @@
   font-size: 1rem;
   display: flex;
   align-items: center;
+}
+
+.library-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.library-tabs button {
+  background: #2a2a2d;
+  border: 1px solid #3a3a3d;
+  color: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.library-tabs button.active {
+  background: #00f0ff;
+  color: #0f0f10;
+}
+
+.word-section,
+.sound-section {
+  margin-top: 20px;
+}
+
+.word-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.word-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Display sounds in a responsive grid so each entry can be a square card */
+.sound-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+/* Style each sound entry as a vertical card */
+.sound-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  background: linear-gradient(135deg, #1e1e1e, #282828);
+  color: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sound-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* Ensure thumbnails are square and fill the card width */
+.sound-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Stack meta information below the thumbnail */
+.sound-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+/* Center the song title */
+.sound-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 4px;
+}
+
+/* Place tags below the title */
+.sound-item .tag {
+  align-self: flex-start;
+  background: #1db954;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.sound-player {
+  width: 100%;
+  margin-top: 8px;
+  background: #121212;
+  border-radius: 6px;
+}
+
+.sound-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-modal-content {
+  background: #1b1b1e;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+}
+
+.sound-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.sound-thumb-preview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
 }
 
 .color-dot {

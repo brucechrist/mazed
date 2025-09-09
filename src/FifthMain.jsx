@@ -113,7 +113,7 @@ export default function FifthMain({ onSelectQuadrant }) {
         if (menuIndex >= 3 && menuIndex <= 4) setMenuIndex((prev) => prev + 2);
       } else if (key === 'enter') {
         if (menuIndex === 0) {
-          onSelectQuadrant('gallery');
+          onSelectQuadrant('library');
         } else if (menuIndex === 1) {
           setShowList(true);
         } else if (menuIndex === 2) {
@@ -140,7 +140,7 @@ export default function FifthMain({ onSelectQuadrant }) {
       <div className="bottom-menu">
         <button
           className={`side-button ${menuIndex === 0 ? 'selected' : ''}`}
-          onClick={() => onSelectQuadrant('gallery')}
+          onClick={() => onSelectQuadrant('library')}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 7.5C3 6.67157 3.67157 6 4.5 6H19.5C20.3284 6 21 6.67157 21 7.5V16.5C21 17.3284 20.3284 18 19.5 18H4.5C3.67157 18 3 17.3284 3 16.5V7.5Z" stroke="white" strokeWidth="2"/>
