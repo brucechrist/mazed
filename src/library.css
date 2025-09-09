@@ -302,6 +302,19 @@
   margin-top: 8px;
 }
 
+.sound-item .tag {
+  align-self: flex-start;
+  background: #1db954;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.sound-item audio {
+  width: 100%;
+}
+
 .sound-modal {
   position: fixed;
   top: 0;
