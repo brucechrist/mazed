@@ -39,6 +39,14 @@ export default function Library({ onBack }) {
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragMoveListener = useRef(null);
 
+  const [words, setWords] = useState([]);
+  const [wordInput, setWordInput] = useState('');
+  const [sounds, setSounds] = useState([]);
+  const [soundTitle, setSoundTitle] = useState('');
+  const [soundFile, setSoundFile] = useState(null);
+  const [thumbFile, setThumbFile] = useState(null);
+  const [activeTab, setActiveTab] = useState('all');
+
   // Load saved images from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
@@ -51,9 +59,39 @@ export default function Library({ onBack }) {
     }
   }, []);
 
+  // Load saved words and sounds from localStorage on mount
+  useEffect(() => {
+    const savedWords = localStorage.getItem('mazedWords');
+    if (savedWords) {
+      try {
+        setWords(JSON.parse(savedWords));
+      } catch (e) {
+        console.error('Failed to parse saved words', e);
+      }
+    }
+    const savedSounds = localStorage.getItem('mazedSounds');
+    if (savedSounds) {
+      try {
+        setSounds(JSON.parse(savedSounds));
+      } catch (e) {
+        console.error('Failed to parse saved sounds', e);
+      }
+    }
+  }, []);
+
   const saveImages = (imgs) => {
     setImages(imgs);
     localStorage.setItem('mazedImages', JSON.stringify(imgs));
+  };
+
+  const saveWords = (w) => {
+    setWords(w);
+    localStorage.setItem('mazedWords', JSON.stringify(w));
+  };
+
+  const saveSounds = (s) => {
+    setSounds(s);
+    localStorage.setItem('mazedSounds', JSON.stringify(s));
   };
 
   useEffect(() => {
@@ -360,6 +398,45 @@ export default function Library({ onBack }) {
     processFile(droppedFile);
   };
 
+  const handleAddWord = (e) => {
+    e.preventDefault();
+    if (!wordInput.trim()) return;
+    const newWord = { id: Date.now(), text: wordInput.trim() };
+    const updated = [...words, newWord];
+    saveWords(updated);
+    setWordInput('');
+  };
+
+  const handleAddSound = (e) => {
+    e.preventDefault();
+    if (!soundFile) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const soundData = reader.result;
+      const create = (thumbData) => {
+        const newSound = {
+          id: Date.now(),
+          title: soundTitle || soundFile.name,
+          dataUrl: soundData,
+          thumbnail: thumbData || null,
+        };
+        const updated = [...sounds, newSound];
+        saveSounds(updated);
+        setSoundTitle('');
+        setSoundFile(null);
+        setThumbFile(null);
+      };
+      if (thumbFile) {
+        const reader2 = new FileReader();
+        reader2.onload = () => create(reader2.result);
+        reader2.readAsDataURL(thumbFile);
+      } else {
+        create(null);
+      }
+    };
+    reader.readAsDataURL(soundFile);
+  };
+
   const renderImageCard = (img, index) => {
     const displayWidth = img.width * zoom;
     const displayHeight = img.height * zoom;
@@ -557,20 +634,86 @@ export default function Library({ onBack }) {
             )}
           </div>
         </div>
-        {sortMode === 'color' ? (
-          <div className="color-groups">
-            {palette.map((c) => {
-              const group = images.filter((img) => img.color === c);
-              if (!group.length) return null;
-              return (
-                <div key={c} className="color-group">
-                  <h3 className="color-title" style={{ color: c }}>
-                    {hexToName(c)}
-                  </h3>
-                  <div
-                    className="image-grid"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
+        <div className="library-tabs">
+          <button
+            className={activeTab === 'all' ? 'active' : ''}
+            onClick={() => setActiveTab('all')}
+          >
+            All
+          </button>
+          <button
+            className={activeTab === 'images' ? 'active' : ''}
+            onClick={() => setActiveTab('images')}
+          >
+            Images
+          </button>
+          <button
+            className={activeTab === 'words' ? 'active' : ''}
+            onClick={() => setActiveTab('words')}
+          >
+            Words
+          </button>
+          <button
+            className={activeTab === 'sounds' ? 'active' : ''}
+            onClick={() => setActiveTab('sounds')}
+          >
+            Sounds
+          </button>
+        </div>
+        {(activeTab === 'all' || activeTab === 'images') && (
+          sortMode === 'color' ? (
+            <div className="color-groups">
+              {palette.map((c) => {
+                const group = images.filter((img) => img.color === c);
+                if (!group.length) return null;
+                return (
+                  <div key={c} className="color-group">
+                    <h3 className="color-title" style={{ color: c }}>
+                      {hexToName(c)}
+                    </h3>
+                    <div
+                      className="image-grid"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const from = dragIndex.current;
+                        if (from == null) {
+                          resetDrag();
+                          return;
+                        }
+                        const updated = [...images];
+                        const [moved] = updated.splice(from, 1);
+                        moved.color = c;
+                        moved.title = hexToName(c);
+                        updated.push(moved);
+                        saveImages(updated);
+                        dragIndex.current = null;
+                        resetDrag();
+                      }}
+                    >
+                      {group.map((img) =>
+                        renderImageCard(
+                          img,
+                          images.findIndex((i) => i.id === img.id)
+                        )
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              ref={gridRef}
+              className="image-grid"
+              onDragOver={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => e.preventDefault()
+                  : undefined
+              }
+              onDrop={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => {
                       e.preventDefault();
                       const from = dragIndex.current;
                       if (from == null) {
@@ -579,54 +722,74 @@ export default function Library({ onBack }) {
                       }
                       const updated = [...images];
                       const [moved] = updated.splice(from, 1);
-                      moved.color = c;
-                      moved.title = hexToName(c);
                       updated.push(moved);
                       saveImages(updated);
                       dragIndex.current = null;
                       resetDrag();
-                    }}
-                  >
-                    {group.map((img) =>
-                      renderImageCard(
-                        img,
-                        images.findIndex((i) => i.id === img.id)
-                      )
-                    )}
+                    }
+                  : undefined
+              }
+            >
+              {images.map((img, index) => renderImageCard(img, index))}
+            </div>
+          )
+        )}
+        {(activeTab === 'all' || activeTab === 'words') && (
+          <div className="word-section">
+            <form onSubmit={handleAddWord} className="word-form">
+              <input
+                type="text"
+                value={wordInput}
+                onChange={(e) => setWordInput(e.target.value)}
+                placeholder="Add word or sentence"
+              />
+              <button type="submit">Add</button>
+            </form>
+            <ul className="word-list">
+              {words.map((w) => (
+                <li key={w.id}>{w.text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {(activeTab === 'all' || activeTab === 'sounds') && (
+          <div className="sound-section">
+            <form onSubmit={handleAddSound} className="sound-form">
+              <input
+                type="file"
+                accept="audio/*,video/mp4"
+                onChange={(e) => setSoundFile(e.target.files[0] || null)}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setThumbFile(e.target.files[0] || null)}
+              />
+              <input
+                type="text"
+                value={soundTitle}
+                onChange={(e) => setSoundTitle(e.target.value)}
+                placeholder="Title"
+              />
+              <button type="submit">Add</button>
+            </form>
+            <div className="sound-list">
+              {sounds.map((s) => (
+                <div key={s.id} className="sound-item">
+                  {s.thumbnail && (
+                    <img
+                      src={s.thumbnail}
+                      alt={s.title}
+                      className="sound-thumb"
+                    />
+                  )}
+                  <div className="sound-meta">
+                    <div className="sound-title">{s.title}</div>
+                    <audio controls src={s.dataUrl}></audio>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div
-            ref={gridRef}
-            className="image-grid"
-            onDragOver={
-              sortMode !== 'title' && sortMode !== 'date'
-                ? (e) => e.preventDefault()
-                : undefined
-            }
-            onDrop={
-              sortMode !== 'title' && sortMode !== 'date'
-                ? (e) => {
-                    e.preventDefault();
-                    const from = dragIndex.current;
-                    if (from == null) {
-                      resetDrag();
-                      return;
-                    }
-                    const updated = [...images];
-                    const [moved] = updated.splice(from, 1);
-                    updated.push(moved);
-                    saveImages(updated);
-                    dragIndex.current = null;
-                    resetDrag();
-                  }
-                : undefined
-            }
-          >
-            {images.map((img, index) => renderImageCard(img, index))}
+              ))}
+            </div>
           </div>
         )}
         {menu && (
