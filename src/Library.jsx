@@ -790,8 +790,9 @@ export default function Library({ onBack }) {
           sortMode === 'color' ? (
             <div className="color-groups">
               {palette.map((c) => {
-                const group = images.filter((img) => img.color === c);
-                if (!group.length) return null;
+                const groupImgs = images.filter((img) => img.color === c);
+                  const groupSounds = sounds.filter((s) => s.color === c);
+                  if (!groupImgs.length && !groupSounds.length) return null;
                 return (
                   <div key={c} className="color-group">
                     <h3 className="color-title" style={{ color: c }}>
@@ -832,12 +833,14 @@ export default function Library({ onBack }) {
                         resetDrag();
                       }}
                     >
-                      {group.map((img) =>
+                      {groupImgs.map((img) =>
                         renderImageCard(
                           img,
                           images.findIndex((i) => i.id === img.id)
                         )
                       )}
+                      {activeTab === 'all' &&
+                        groupSounds.map((s) => renderSoundCard(s))}
                     </div>
                   </div>
                 );
@@ -902,10 +905,23 @@ export default function Library({ onBack }) {
                     }
                   : undefined
               }
-            >
-              {images.map((img, index) => renderImageCard(img, index))}
-              {activeTab === 'all' && sounds.map((s) => renderSoundCard(s))}
-            </div>
+              >
+                {(
+                  activeTab === 'all'
+                    ? [...images.map((img) => ({ type: 'image', item: img })),
+                      ...sounds.map((s) => ({ type: 'sound', item: s }))]
+                        .sort((a, b) => a.item.id - b.item.id)
+                        .map(({ type, item }) =>
+                          type === 'image'
+                            ? renderImageCard(
+                                item,
+                                images.findIndex((i) => i.id === item.id)
+                              )
+                            : renderSoundCard(item)
+                        )
+                    : images.map((img, index) => renderImageCard(img, index))
+                )}
+              </div>
           )
         )}
         {(activeTab === 'all' || activeTab === 'words') && (
