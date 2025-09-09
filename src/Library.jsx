@@ -523,13 +523,10 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img, index) => {
-    const maxHeight = 500 * zoom;
-    const displayHeight = Math.min(img.height * zoom, maxHeight);
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ height: displayHeight }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -667,18 +664,20 @@ export default function Library({ onBack }) {
   const renderSoundCard = (snd) => (
     <div
       key={snd.id}
-      className="sound-item"
+      className="image-card sound-card"
       ref={calcSpan}
       onContextMenu={(e) => {
         e.preventDefault();
         setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
       }}
     >
-      {snd.thumbnail && (
-        <img src={snd.thumbnail} alt={snd.title} className="sound-thumb" />
+      {snd.thumbnail ? (
+        <img src={snd.thumbnail} alt={snd.title} draggable={false} />
+      ) : (
+        <div className="sound-placeholder">♪</div>
       )}
-      <div className="sound-meta">
-        <div className="sound-title">
+      <div className="image-overlay">
+        <h3>
           {snd.color && (
             <span
               className="color-dot"
@@ -686,9 +685,13 @@ export default function Library({ onBack }) {
             ></span>
           )}
           {snd.title}
-        </div>
+        </h3>
         {snd.tag && <span className="tag">{snd.tag}</span>}
-        <audio controls src={snd.dataUrl} className="sound-player"></audio>
+        <audio
+          controls
+          src={snd.dataUrl}
+          className="sound-player"
+        ></audio>
       </div>
     </div>
   );
@@ -930,7 +933,14 @@ export default function Library({ onBack }) {
         )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
-            <div className="sound-list">
+            <div
+              className="image-grid"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${
+                  250 * zoom
+                }px, 1fr))`,
+              }}
+            >
               {sounds.map((s) => renderSoundCard(s))}
             </div>
           </div>
