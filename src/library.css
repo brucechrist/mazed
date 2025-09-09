@@ -193,6 +193,18 @@
   transition: opacity 0.3s;
 }
 
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  right: 4px;
+  bottom: 4px;
+  background: #00f0ff;
+  cursor: se-resize;
+  border-radius: 2px;
+  z-index: 2;
+}
+
 .image-overlay h3 {
   margin: 0 0 6px;
   font-size: 1rem;
