@@ -27,6 +27,7 @@ import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
 import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
+import FormlessCharacter from './FormlessCharacter.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import AkashicRecords from './AkashicRecords.jsx';
 import { supabaseClient } from './supabaseClient';
@@ -501,6 +502,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
         {activeTab === 'Character' && (
           activeLayer === 'Semi-Formless' ? (
             <SemiFormlessCharacter />
+          ) : activeLayer === 'Formless' ? (
+            <FormlessCharacter />
           ) : (
             <StatsQuadrant />
           )
