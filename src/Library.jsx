@@ -396,14 +396,19 @@ export default function Library({ onBack }) {
       }
     }
     if (!droppedFile) return;
-    if (droppedFile.type.startsWith('image/')) {
-      await uploadToServer(droppedFile);
-      processFile(droppedFile);
-    } else if (
+
+    const ext = droppedFile.name.toLowerCase().split('.').pop();
+    const soundExts = ['mp3', 'mp4', 'wav', 'aiff', 'm4a'];
+    const isSound =
       droppedFile.type.startsWith('audio/') ||
-      droppedFile.type === 'video/mp4'
-    ) {
-      await uploadToServer(droppedFile);
+      droppedFile.type.startsWith('video/') ||
+      soundExts.includes(ext);
+
+    if (droppedFile.type.startsWith('image/')) {
+      uploadToServer(droppedFile);
+      processFile(droppedFile);
+    } else if (isSound) {
+      uploadToServer(droppedFile);
       const reader = new FileReader();
       reader.onload = () => {
         setSoundModal(reader.result);
@@ -451,45 +456,6 @@ export default function Library({ onBack }) {
     } else {
       create(null);
     }
-  };
-
-  const handleAddWord = (e) => {
-    e.preventDefault();
-    if (!wordInput.trim()) return;
-    const newWord = { id: Date.now(), text: wordInput.trim() };
-    const updated = [...words, newWord];
-    saveWords(updated);
-    setWordInput('');
-  };
-
-  const handleAddSound = (e) => {
-    e.preventDefault();
-    if (!soundFile) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const soundData = reader.result;
-      const create = (thumbData) => {
-        const newSound = {
-          id: Date.now(),
-          title: soundTitle || soundFile.name,
-          dataUrl: soundData,
-          thumbnail: thumbData || null,
-        };
-        const updated = [...sounds, newSound];
-        saveSounds(updated);
-        setSoundTitle('');
-        setSoundFile(null);
-        setThumbFile(null);
-      };
-      if (thumbFile) {
-        const reader2 = new FileReader();
-        reader2.onload = () => create(reader2.result);
-        reader2.readAsDataURL(thumbFile);
-      } else {
-        create(null);
-      }
-    };
-    reader.readAsDataURL(soundFile);
   };
 
   const renderImageCard = (img, index) => {
@@ -553,12 +519,22 @@ export default function Library({ onBack }) {
             : undefined}
         onDragOver={
           sortMode !== 'title' && sortMode !== 'date'
-            ? (e) => e.preventDefault()
+            ? (e) => {
+                if (e.dataTransfer.files?.length) {
+                  handleDragOver(e);
+                } else {
+                  e.preventDefault();
+                }
+              }
             : undefined
         }
         onDrop=
           {sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
+                if (e.dataTransfer.files?.length) {
+                  handleDrop(e);
+                  return;
+                }
                 e.preventDefault();
                 const from = dragIndex.current;
                 if (from == null || from === index) {
@@ -728,8 +704,18 @@ export default function Library({ onBack }) {
                     </h3>
                     <div
                       className="image-grid"
-                      onDragOver={(e) => e.preventDefault()}
+                      onDragOver={(e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDragOver(e);
+                        } else {
+                          e.preventDefault();
+                        }
+                      }}
                       onDrop={(e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDrop(e);
+                          return;
+                        }
                         e.preventDefault();
                         const from = dragIndex.current;
                         if (from == null) {
@@ -763,12 +749,22 @@ export default function Library({ onBack }) {
               className="image-grid"
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => e.preventDefault()
+                  ? (e) => {
+                      if (e.dataTransfer.files?.length) {
+                        handleDragOver(e);
+                      } else {
+                        e.preventDefault();
+                      }
+                    }
                   : undefined
               }
               onDrop={
                 sortMode !== 'title' && sortMode !== 'date'
                   ? (e) => {
+                      if (e.dataTransfer.files?.length) {
+                        handleDrop(e);
+                        return;
+                      }
                       e.preventDefault();
                       const from = dragIndex.current;
                       if (from == null) {
