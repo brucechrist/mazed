@@ -607,6 +607,35 @@ export default function Library({ onBack }) {
     );
   };
 
+  const renderSoundCard = (snd, style = {}) => (
+    <div
+      key={snd.id}
+      className="sound-item"
+      style={{ flex: '0 0 auto', ...style }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+      }}
+    >
+      {snd.thumbnail && (
+        <img src={snd.thumbnail} alt={snd.title} className="sound-thumb" />
+      )}
+      <div className="sound-meta">
+        <div className="sound-title">
+          {snd.color && (
+            <span
+              className="color-dot"
+              style={{ background: snd.color }}
+            ></span>
+          )}
+          {snd.title}
+        </div>
+        {snd.tag && <span className="tag">{snd.tag}</span>}
+        <audio controls src={snd.dataUrl} className="sound-player"></audio>
+      </div>
+    </div>
+  );
+
   return (
     <div
       className={`library-container ${isDragging ? 'dragging' : ''}`}
@@ -791,6 +820,10 @@ export default function Library({ onBack }) {
               }
             >
               {images.map((img, index) => renderImageCard(img, index))}
+              {activeTab === 'all' &&
+                sounds.map((s) =>
+                  renderSoundCard(s, { width: 800 * zoom })
+                )}
             </div>
           )
         )}
@@ -814,44 +847,10 @@ export default function Library({ onBack }) {
             </ul>
           </div>
         )}
-        {(activeTab === 'all' || activeTab === 'sounds') && (
+        {activeTab === 'sounds' && (
           <div className="sound-section">
             <div className="sound-list">
-              {sounds.map((s) => (
-                <div
-                  key={s.id}
-                  className="sound-item"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setSoundMenu({ id: s.id, x: e.clientX, y: e.clientY });
-                  }}
-                >
-                  {s.thumbnail && (
-                    <img
-                      src={s.thumbnail}
-                      alt={s.title}
-                      className="sound-thumb"
-                    />
-                  )}
-                  <div className="sound-meta">
-                    <div className="sound-title">
-                      {s.color && (
-                        <span
-                          className="color-dot"
-                          style={{ background: s.color }}
-                        ></span>
-                      )}
-                      {s.title}
-                    </div>
-                    {s.tag && <span className="tag">{s.tag}</span>}
-                    <audio
-                      controls
-                      src={s.dataUrl}
-                      className="sound-player"
-                    ></audio>
-                  </div>
-                </div>
-              ))}
+              {sounds.map((s) => renderSoundCard(s))}
             </div>
           </div>
         )}
