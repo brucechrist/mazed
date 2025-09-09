@@ -75,8 +75,9 @@
 }
 
 .image-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-auto-rows: 10px;
+  grid-auto-flow: dense;
   gap: 20px;
   position: relative;
 }
@@ -139,8 +140,8 @@
   border: 1px solid #2a2a2d;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: border 0.3s, box-shadow 0.3s;
-  flex: 0 0 auto;
   cursor: grab;
+  width: 100%;
 }
 
 .image-card:active {
@@ -150,6 +151,8 @@
 .image-card img {
   width: 100%;
   display: block;
+  max-height: 400px;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 
@@ -234,13 +237,6 @@
   margin: 0;
 }
 
-/* Display sounds in a responsive grid so each entry can be a square card */
-.sound-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-}
-
 /* Style each sound entry as a vertical card */
 .sound-item {
   display: flex;
@@ -253,11 +249,15 @@
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #2a2a2d;
 }
 
 .sound-item:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  border-color: #00f0ff;
+  box-shadow: 0 0 10px #00f0ff;
 }
 
 /* Ensure thumbnails are square and fill the card width */
