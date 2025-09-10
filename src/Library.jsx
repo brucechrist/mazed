@@ -14,6 +14,40 @@ const hexToName = (hex) => {
   }
 };
 
+const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
+
+function QuadrantPicker({ value = [], onChange }) {
+  const main = value[0];
+  const sub = value[1];
+  const handle = (outer, inner) => {
+    if (main === outer && sub === inner) {
+      onChange([]);
+    } else {
+      onChange([outer, inner]);
+    }
+  };
+  return (
+    <div className="quadrant-grid">
+      {QUADRANT_ORDER.map((outer) => (
+        <div
+          key={outer}
+          className={`quadrant-outer${main === outer ? ' selected' : ''}`}
+        >
+          {QUADRANT_ORDER.map((inner) => (
+            <div
+              key={outer + '-' + inner}
+              className={`quadrant-inner${
+                main === outer && sub === inner ? ' selected' : ''
+              }`}
+              onClick={() => handle(outer, inner)}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Library({ onBack }) {
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -1096,69 +1130,28 @@ export default function Library({ onBack }) {
                     onBlur={() => updateImage(lightbox.id, { description: descInput })}
                   />
                   <div className="quad-section">
-                    <div className="quad-header">
-                      <h2>Quads</h2>
-                      {(lightbox.quadrants?.length || 0) < 2 && (
-                        <button
-                          className="add-quad-btn"
-                          onClick={() => {
-                            const nq = [...(lightbox.quadrants || []), ''];
-                            updateImage(lightbox.id, { quadrants: nq });
-                          }}
-                        >
-                          +
-                        </button>
-                      )}
-                    </div>
-                    <div className="quad-list">
-                      {(lightbox.quadrants && lightbox.quadrants.length > 0
-                        ? lightbox.quadrants
-                        : ['']
-                      ).map((q, idx) => (
-                        <select
-                          key={idx}
-                          value={q}
-                          className={`quad-select ${q ? 'quad-' + q : ''}`}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            let nq = [...(lightbox.quadrants || [])];
-                            if (val === '') {
-                              nq.splice(idx, 1);
-                            } else {
-                              nq[idx] = val;
-                            }
-                            updateImage(lightbox.id, { quadrants: nq });
-                          }}
-                        >
-                          <option value=""></option>
-                          <option value="II">II</option>
-                          <option value="IE">IE</option>
-                          <option value="EI">EI</option>
-                          <option value="EE">EE</option>
-                        </select>
-                      ))}
-                    </div>
+                    <QuadrantPicker
+                      value={lightbox.quadrants || []}
+                      onChange={(q) => updateImage(lightbox.id, { quadrants: q })}
+                    />
                   </div>
                   <div className="color-section">
-                    <h2>Colors</h2>
                     <div className="color-list">
                       {palette.map((c, idx) => (
-                        <div key={idx} className="color-entry">
-                          <button
-                            className={`color-circle${
-                              lightbox.color === c ? ' selected' : ''
-                            }`}
-                            style={{ background: c }}
-                            title={hexToName(c)}
-                            onClick={() => {
-                              const nc = lightbox.color === c ? '' : c;
-                              const updates = { color: nc };
-                              if (nc) updates.title = hexToName(nc);
-                              updateImage(lightbox.id, updates);
-                            }}
-                          />
-                          <span className="color-label">{hexToName(c)}</span>
-                        </div>
+                        <button
+                          key={idx}
+                          className={`color-circle${
+                            lightbox.color === c ? ' selected' : ''
+                          }`}
+                          style={{ background: c }}
+                          title={hexToName(c)}
+                          onClick={() => {
+                            const nc = lightbox.color === c ? '' : c;
+                            const updates = { color: nc };
+                            if (nc) updates.title = hexToName(nc);
+                            updateImage(lightbox.id, updates);
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
