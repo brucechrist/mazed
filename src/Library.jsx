@@ -206,6 +206,11 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
+  const deleteSound = (id) => {
+    const updated = sounds.filter((s) => s.id !== id);
+    saveSounds(updated);
+  };
+
   const moveImage = (fromId, toId) => {
     const fromIndex = images.findIndex((img) => img.id === fromId);
     const toIndex = images.findIndex((img) => img.id === toId);
@@ -1010,6 +1015,14 @@ export default function Library({ onBack }) {
               }}
             >
               Edit
+            </button>
+            <button
+              onClick={() => {
+                deleteSound(soundMenu.id);
+                setSoundMenu(null);
+              }}
+            >
+              Delete
             </button>
           </div>
         )}
