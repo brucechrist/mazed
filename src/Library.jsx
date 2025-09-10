@@ -32,26 +32,8 @@ export default function Library({ onBack }) {
   const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [originalImages, setOriginalImages] = useState([]);
-  const dragIndex = useRef(null);
+  const [draggedId, setDraggedId] = useState(null);
   const gridRef = useRef(null);
-  const cardRefs = useRef([]);
-  const dragItem = useRef(null);
-  const dragPlaceholder = useRef(null);
-  const dragOffset = useRef({ x: 0, y: 0 });
-  const dragMoveListener = useRef(null);
-
-  cardRefs.current = [];
-  const updateRowSpans = () => {
-    const rowHeight = 10;
-    const gap = 20;
-    cardRefs.current.forEach((card) => {
-      if (card) {
-        const height = card.getBoundingClientRect().height;
-        const span = Math.ceil((height + gap) / (rowHeight + gap));
-        card.style.gridRowEnd = `span ${span}`;
-      }
-    });
-  };
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -104,7 +86,12 @@ export default function Library({ onBack }) {
     const saved = localStorage.getItem('mazedImages');
     if (saved) {
       try {
-        setImages(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setImages(
+          Array.isArray(parsed)
+            ? parsed.map((img) => ({ span: img.span || 1, ...img }))
+            : []
+        );
       } catch (e) {
         console.error('Failed to parse saved images', e);
       }
@@ -209,9 +196,9 @@ export default function Library({ onBack }) {
   }, []);
 
   useEffect(() => {
-    updateRowSpans();
-    window.addEventListener('resize', updateRowSpans);
-    return () => window.removeEventListener('resize', updateRowSpans);
+    recalcSpans();
+    window.addEventListener('resize', recalcSpans);
+    return () => window.removeEventListener('resize', recalcSpans);
   }, [images, sounds, zoom]);
 
   const deleteImage = (id) => {
@@ -232,6 +219,35 @@ export default function Library({ onBack }) {
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
     saveImages(updated);
+  };
+
+  const resizeImage = (id, span) => {
+    const updated = images.map((img) =>
+      img.id === id ? { ...img, span } : img
+    );
+    saveImages(updated);
+  };
+
+  const startResize = (id, startSpan, e) => {
+    e.stopPropagation();
+    const startX = e.clientX;
+    const baseWidth = 250 * zoom;
+    const onMove = (ev) => {
+      ev.preventDefault();
+      const diff = ev.clientX - startX;
+      const rawSpan = startSpan + diff / baseWidth;
+      const img = images.find((i) => i.id === id);
+      const maxSpan = Math.max(1, Math.ceil(img.width / baseWidth));
+      const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
+      resizeImage(id, newSpan);
+      recalcSpans();
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
   };
 
   const updateImage = (id, updates) => {
@@ -361,27 +377,6 @@ export default function Library({ onBack }) {
     sortImages(sorted, 'color');
   };
 
-  const resetDrag = () => {
-    if (dragMoveListener.current) {
-      // Use dragover events so the actual element follows the pointer
-      window.removeEventListener('dragover', dragMoveListener.current);
-      dragMoveListener.current = null;
-    }
-    if (dragPlaceholder.current) {
-      dragPlaceholder.current.remove();
-      dragPlaceholder.current = null;
-    }
-    if (dragItem.current) {
-      dragItem.current.classList.remove('dragging-card');
-      dragItem.current.style.position = '';
-      dragItem.current.style.left = '';
-      dragItem.current.style.top = '';
-      dragItem.current.style.zIndex = '';
-      dragItem.current.style.pointerEvents = '';
-      dragItem.current = null;
-    }
-  };
-
   const processFile = (fileObj, imgTitle = '', imgTags = []) => {
     const reader = new FileReader();
     reader.onload = async () => {
@@ -399,6 +394,7 @@ export default function Library({ onBack }) {
           dataUrl: result,
           width: imgEl.width,
           height: imgEl.height,
+          span: 1,
         };
         const updated = [...images, newImage];
         saveImages(updated);
@@ -534,11 +530,14 @@ export default function Library({ onBack }) {
     }
   };
 
-  const renderImageCard = (img, index) => {
+  const renderImageCard = (img) => {
+    const colWidth = 250 * zoom;
+    const span = img.span || 1;
     return (
       <div
         key={img.id}
         className="image-card"
+        style={{ width: colWidth * span, gridColumnEnd: `span ${span}` }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -546,51 +545,11 @@ export default function Library({ onBack }) {
         }}
         onClick={() => setLightbox(img)}
         ref={calcSpan}
-        onDragStart=
-          {sortMode !== 'title' && sortMode !== 'date'
-            ? (e) => {
-                dragIndex.current = index;
-                dragItem.current = e.currentTarget;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const gridRect = gridRef.current.getBoundingClientRect();
-                dragOffset.current = {
-                  x: e.clientX - rect.left,
-                  y: e.clientY - rect.top,
-                };
-                e.dataTransfer.setDragImage(new Image(), 0, 0);
-                e.dataTransfer.setData('text/plain', '');
-                const ph = document.createElement('div');
-                ph.className = 'image-card placeholder';
-                ph.style.width = `${rect.width}px`;
-                ph.style.height = `${rect.height}px`;
-                dragPlaceholder.current = ph;
-                e.currentTarget.parentNode.insertBefore(
-                  ph,
-                  e.currentTarget
-                );
-                e.currentTarget.classList.add('dragging-card');
-                e.currentTarget.style.width = `${rect.width}px`;
-                e.currentTarget.style.height = `${rect.height}px`;
-                e.currentTarget.style.position = 'absolute';
-                e.currentTarget.style.left = `${rect.left - gridRect.left}px`;
-                e.currentTarget.style.top = `${rect.top - gridRect.top}px`;
-                e.currentTarget.style.zIndex = '1000';
-                e.currentTarget.style.pointerEvents = 'none';
-                dragMoveListener.current = (event) => {
-                  event.preventDefault();
-                  const gridRect2 = gridRef.current.getBoundingClientRect();
-                  const x =
-                    event.clientX - dragOffset.current.x - gridRect2.left;
-                  const y =
-                    event.clientY - dragOffset.current.y - gridRect2.top;
-                  if (dragItem.current) {
-                    dragItem.current.style.left = `${x}px`;
-                    dragItem.current.style.top = `${y}px`;
-                  }
-                };
-                window.addEventListener('dragover', dragMoveListener.current);
-              }
-            : undefined}
+        onDragStart={
+          sortMode !== 'title' && sortMode !== 'date'
+            ? () => setDraggedId(img.id)
+            : undefined
+        }
         onDragOver={
           sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
@@ -602,39 +561,26 @@ export default function Library({ onBack }) {
               }
             : undefined
         }
-        onDrop=
-          {sortMode !== 'title' && sortMode !== 'date'
+        onDrop={
+          sortMode !== 'title' && sortMode !== 'date'
             ? (e) => {
                 if (e.dataTransfer.files?.length) {
                   handleDrop(e);
                   return;
                 }
                 e.preventDefault();
-                const from = dragIndex.current;
-                if (from == null || from === index) {
-                  resetDrag();
-                  return;
+                if (draggedId && draggedId !== img.id) {
+                  moveImage(draggedId, img.id);
                 }
-                const targetColor = images[index].color;
-                const updated = [...images];
-                const [moved] = updated.splice(from, 1);
-                if (sortMode === 'color') {
-                  moved.color = targetColor;
-                  moved.title = hexToName(targetColor);
-                }
-                updated.splice(index, 0, moved);
-                saveImages(updated);
-                dragIndex.current = null;
-                resetDrag();
+                setDraggedId(null);
               }
-            : undefined}
-        onDragEnd=
-          {sortMode !== 'title' && sortMode !== 'date'
-            ? () => {
-                dragIndex.current = null;
-                resetDrag();
-              }
-            : undefined}
+            : undefined
+        }
+        onDragEnd={
+          sortMode !== 'title' && sortMode !== 'date'
+            ? () => setDraggedId(null)
+            : undefined
+        }
       >
         <img
           draggable={false}
@@ -669,6 +615,12 @@ export default function Library({ onBack }) {
             {img.title}
           </h3>
         </div>
+        {sortMode !== 'title' && sortMode !== 'date' && (
+          <div
+            className="resize-handle"
+            onMouseDown={(e) => startResize(img.id, span, e)}
+          ></div>
+        )}
       </div>
     );
   };
@@ -833,27 +785,24 @@ export default function Library({ onBack }) {
                           return;
                         }
                         e.preventDefault();
-                        const from = dragIndex.current;
-                        if (from == null) {
-                          resetDrag();
-                          return;
+                        if (draggedId) {
+                          const updated = images.filter(
+                            (img) => img.id !== draggedId
+                          );
+                          const moved = images.find(
+                            (img) => img.id === draggedId
+                          );
+                          if (moved) {
+                            moved.color = c;
+                            moved.title = hexToName(c);
+                            updated.push(moved);
+                            saveImages(updated);
+                          }
+                          setDraggedId(null);
                         }
-                        const updated = [...images];
-                        const [moved] = updated.splice(from, 1);
-                        moved.color = c;
-                        moved.title = hexToName(c);
-                        updated.push(moved);
-                        saveImages(updated);
-                        dragIndex.current = null;
-                        resetDrag();
                       }}
                     >
-                      {groupImgs.map((img) =>
-                        renderImageCard(
-                          img,
-                          images.findIndex((i) => i.id === img.id)
-                        )
-                      )}
+                      {groupImgs.map((img) => renderImageCard(img))}
                       {activeTab === 'all' &&
                         groupSounds.map((s) => renderSoundCard(s))}
                     </div>
@@ -906,17 +855,18 @@ export default function Library({ onBack }) {
                         return;
                       }
                       e.preventDefault();
-                      const from = dragIndex.current;
-                      if (from == null) {
-                        resetDrag();
-                        return;
+                      if (draggedId) {
+                        const fromIndex = images.findIndex(
+                          (img) => img.id === draggedId
+                        );
+                        if (fromIndex !== -1) {
+                          const updated = [...images];
+                          const [moved] = updated.splice(fromIndex, 1);
+                          updated.push(moved);
+                          saveImages(updated);
+                        }
+                        setDraggedId(null);
                       }
-                      const updated = [...images];
-                      const [moved] = updated.splice(from, 1);
-                      updated.push(moved);
-                      saveImages(updated);
-                      dragIndex.current = null;
-                      resetDrag();
                     }
                   : undefined
               }
@@ -928,13 +878,10 @@ export default function Library({ onBack }) {
                         .sort((a, b) => a.item.id - b.item.id)
                         .map(({ type, item }) =>
                           type === 'image'
-                            ? renderImageCard(
-                                item,
-                                images.findIndex((i) => i.id === item.id)
-                              )
+                            ? renderImageCard(item)
                             : renderSoundCard(item)
                         )
-                    : images.map((img, index) => renderImageCard(img, index))
+                    : images.map((img) => renderImageCard(img))
                 )}
               </div>
           )
