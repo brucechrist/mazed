@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
@@ -64,7 +64,6 @@ export default function Library({ onBack }) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
-  const gridRef = useRef(null);
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -79,38 +78,7 @@ export default function Library({ onBack }) {
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
-  const calcSpan = (el) => {
-    if (!el) return;
-    const grid = gridRef.current || el.parentNode;
-    if (!grid) return;
-    const styles = getComputedStyle(grid);
-    const rowHeight = parseInt(styles.getPropertyValue('grid-auto-rows')) || 1;
-    const rowGap = parseInt(styles.getPropertyValue('row-gap')) || 0;
-    if (!rowHeight) return;
-
-    const img = el.querySelector('img, .sound-placeholder');
-    if (!img) return;
-
-    let height;
-    if (img.tagName === 'IMG' && img.naturalWidth) {
-      const width = el.clientWidth || img.naturalWidth;
-      height = (img.naturalHeight / img.naturalWidth) * width;
-    } else {
-      const width = el.clientWidth;
-      height = width; // assume square for non-image placeholders
-    }
-
-    const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
-    el.style.gridRowEnd = `span ${span}`;
-  };
-
-  const recalcSpans = () => {
-    document
-      .querySelectorAll('.image-grid')
-      .forEach((grid) =>
-        Array.from(grid.children).forEach((child) => calcSpan(child))
-      );
-  };
+  // Masonry span calculations removed to keep thumbnails uniformly sized.
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -118,11 +86,11 @@ export default function Library({ onBack }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setImages(
-          Array.isArray(parsed)
-            ? parsed.map((img) => ({ span: img.span || 1, ...img }))
-            : []
-        );
+          setImages(
+            Array.isArray(parsed)
+              ? parsed.map((img) => ({ ...img, span: 1 }))
+              : []
+          );
       } catch (e) {
         console.error('Failed to parse saved images', e);
       }
@@ -165,13 +133,10 @@ export default function Library({ onBack }) {
   };
 
   useEffect(() => {
-    recalcSpans();
-  }, [images, sounds]);
+    localStorage.setItem('libraryZoom', zoom);
+  }, [zoom]);
 
-  useEffect(() => {
-    window.addEventListener('resize', recalcSpans);
-    return () => window.removeEventListener('resize', recalcSpans);
-  }, []);
+    // Removed masonry recalculation hooks.
 
   useEffect(() => {
     if (lightbox) {
@@ -206,7 +171,9 @@ export default function Library({ onBack }) {
     return () => window.removeEventListener('click', close);
   }, []);
 
-    const deleteImage = (id) => {
+    // Removed masonry recalculation effect.
+
+  const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
     saveImages(updated);
   };
@@ -226,10 +193,39 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
-    const updateImage = (id, updates) => {
-      const updated = images.map((img) =>
-        img.id === id ? { ...img, ...updates } : img
-      );
+  const resizeImage = (id, span) => {
+    const updated = images.map((img) =>
+      img.id === id ? { ...img, span } : img
+    );
+    saveImages(updated);
+  };
+
+  const startResize = (id, startSpan, e) => {
+    e.stopPropagation();
+    const startX = e.clientX;
+    const baseWidth = 250 * zoom;
+    const onMove = (ev) => {
+      ev.preventDefault();
+      const diff = ev.clientX - startX;
+      const rawSpan = startSpan + diff / baseWidth;
+      const img = images.find((i) => i.id === id);
+      const maxSpan = Math.max(1, Math.ceil(img.width / baseWidth));
+        const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
+        resizeImage(id, newSpan);
+      };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const updateImage = (id, updates) => {
+    const updated = images.map((img) =>
+      img.id === id ? { ...img, ...updates } : img
+    );
+
     saveImages(updated);
     const next = updated.find((i) => i.id === id);
     if (next) setLightbox(next);
@@ -512,27 +508,39 @@ export default function Library({ onBack }) {
         <div
           key={img.id}
           className="image-card"
-          style={{ gridColumnEnd: `span ${span}` }}
+          style={{
+            width: colWidth * span,
+            height: colWidth * span,
+            gridColumnEnd: `span ${span}`,
+          }}
           draggable={sortMode !== 'title' && sortMode !== 'date'}
           onContextMenu={(e) => {
             e.preventDefault();
             setMenu({ id: img.id, x: e.clientX, y: e.clientY });
           }}
           onClick={() => setLightbox(img)}
-          ref={calcSpan}
           onDragStart={
-            sortMode !== 'title' && sortMode !== 'date'
-              ? () => setDraggedId(img.id)
-              : undefined
-          }
-          onDragOver={
-            sortMode !== 'title' && sortMode !== 'date'
-              ? (e) => {
-                  if (e.dataTransfer.files?.length) {
-                    handleDragOver(e);
-                  } else {
-                    e.preventDefault();
-                  }
+          sortMode !== 'title' && sortMode !== 'date'
+            ? () => setDraggedId(img.id)
+            : undefined
+        }
+        onDragOver={
+          sortMode !== 'title' && sortMode !== 'date'
+            ? (e) => {
+                if (e.dataTransfer.files?.length) {
+                  handleDragOver(e);
+                } else {
+                  e.preventDefault();
+                }
+              }
+            : undefined
+        }
+        onDrop={
+          sortMode !== 'title' && sortMode !== 'date'
+            ? (e) => {
+                if (e.dataTransfer.files?.length) {
+                  handleDrop(e);
+                  return;
                 }
               : undefined
           }
@@ -549,38 +557,39 @@ export default function Library({ onBack }) {
                   }
                   setDraggedId(null);
                 }
-              : undefined
-          }
-          onDragEnd={
-            sortMode !== 'title' && sortMode !== 'date'
-              ? () => setDraggedId(null)
-              : undefined
-          }
-        >
-        <img
-          draggable={false}
-          src={img.dataUrl}
-          alt={img.title}
-          onLoad={(e) => {
-            const w = e.target.naturalWidth;
-            const h = e.target.naturalHeight;
-            if (w !== img.width || h !== img.height) {
-              const updated = images.map((i) =>
-                i.id === img.id ? { ...i, width: w, height: h } : i
-              );
-              saveImages(updated);
-              if (lightbox && lightbox.id === img.id) {
-                setLightbox((l) => ({ ...l, width: w, height: h }));
+                setDraggedId(null);
               }
-            }
-            calcSpan(e.target.parentNode);
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-          }}
-          onClick={() => setLightbox(img)}
-        />
+            : undefined
+        }
+        onDragEnd={
+          sortMode !== 'title' && sortMode !== 'date'
+            ? () => setDraggedId(null)
+            : undefined
+        }
+      >
+          <img
+            draggable={false}
+            src={img.dataUrl}
+            alt={img.title}
+            onLoad={(e) => {
+              const w = e.target.naturalWidth;
+              const h = e.target.naturalHeight;
+              if (w !== img.width || h !== img.height) {
+                const updated = images.map((i) =>
+                  i.id === img.id ? { ...i, width: w, height: h } : i
+                );
+                saveImages(updated);
+                if (lightbox && lightbox.id === img.id) {
+                  setLightbox((l) => ({ ...l, width: w, height: h }));
+                }
+              }
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+            }}
+            onClick={() => setLightbox(img)}
+          />
         <div className="image-overlay">
           <h3>
             <span
@@ -595,14 +604,13 @@ export default function Library({ onBack }) {
     };
 
   const renderSoundCard = (snd) => (
-    <div
-      key={snd.id}
-      className="image-card sound-card"
-      ref={calcSpan}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
-      }}
+      <div
+        key={snd.id}
+        className="image-card sound-card"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+        }}
     >
       {snd.thumbnail ? (
         <img src={snd.thumbnail} alt={snd.title} draggable={false} />
@@ -793,21 +801,41 @@ export default function Library({ onBack }) {
               )}
             </div>
           ) : (
-                <div style={{ width: '100%', overflow: 'hidden' }}>
-                  <div
-                    ref={gridRef}
-                    className="image-grid"
-                    style={{
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                    }}
-                    onDragOver={
-                    sortMode !== 'title' && sortMode !== 'date'
-                      ? (e) => {
-                          if (e.dataTransfer.files?.length) {
-                            handleDragOver(e);
-                          } else {
-                            e.preventDefault();
-                          }
+            <div
+              className="image-grid"
+              style={{
+                gridTemplateColumns: `repeat(auto-fill, minmax(${
+                  250 * zoom
+                }px, 1fr))`,
+              }}
+              onDragOver={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => {
+                      if (e.dataTransfer.files?.length) {
+                        handleDragOver(e);
+                      } else {
+                        e.preventDefault();
+                      }
+                    }
+                  : undefined
+              }
+              onDrop={
+                sortMode !== 'title' && sortMode !== 'date'
+                  ? (e) => {
+                      if (e.dataTransfer.files?.length) {
+                        handleDrop(e);
+                        return;
+                      }
+                      e.preventDefault();
+                      if (draggedId) {
+                        const fromIndex = images.findIndex(
+                          (img) => img.id === draggedId
+                        );
+                        if (fromIndex !== -1) {
+                          const updated = [...images];
+                          const [moved] = updated.splice(fromIndex, 1);
+                          updated.push(moved);
+                          saveImages(updated);
                         }
                       : undefined
                   }
