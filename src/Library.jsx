@@ -565,13 +565,12 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img) => {
-    const colWidth = 250 * zoom;
     const span = img.span || 1;
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: colWidth * span, gridColumnEnd: `span ${span}` }}
+        style={{ gridColumnEnd: `span ${span}` }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -799,46 +798,45 @@ export default function Library({ onBack }) {
                     <h3 className="color-title" style={{ color: c }}>
                       {hexToName(c)}
                     </h3>
-                    <div
-                      className="image-grid"
-                      style={{
-                        gridTemplateColumns: `repeat(auto-fill, minmax(${
-                          250 * zoom
-                        }px, 1fr))`,
-                      }}
-                      onDragOver={(e) => {
-                        if (e.dataTransfer.files?.length) {
-                          handleDragOver(e);
-                        } else {
-                          e.preventDefault();
-                        }
-                      }}
-                      onDrop={(e) => {
-                        if (e.dataTransfer.files?.length) {
-                          handleDrop(e);
-                          return;
-                        }
-                        e.preventDefault();
-                        if (draggedId) {
-                          const updated = images.filter(
-                            (img) => img.id !== draggedId
-                          );
-                          const moved = images.find(
-                            (img) => img.id === draggedId
-                          );
-                          if (moved) {
-                            moved.color = c;
-                            moved.title = hexToName(c);
-                            updated.push(moved);
-                            saveImages(updated);
+                    <div style={{ width: '100%', overflow: 'hidden' }}>
+                      <div
+                        className="image-grid"
+                        style={{
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                          transform: `scale(${zoom})`,
+                          transformOrigin: 'top left',
+                          width: `${100 / zoom}%`,
+                        }}
+                        onDragOver={(e) => {
+                          if (e.dataTransfer.files?.length) {
+                            handleDragOver(e);
+                          } else {
+                            e.preventDefault();
                           }
-                          setDraggedId(null);
-                        }
-                      }}
-                    >
-                      {groupImgs.map((img) => renderImageCard(img))}
-                      {activeTab === 'all' &&
-                        groupSounds.map((s) => renderSoundCard(s))}
+                        }}
+                        onDrop={(e) => {
+                          if (e.dataTransfer.files?.length) {
+                            handleDrop(e);
+                            return;
+                          }
+                          e.preventDefault();
+                          if (draggedId) {
+                            const updated = images.filter((img) => img.id !== draggedId);
+                            const moved = images.find((img) => img.id === draggedId);
+                            if (moved) {
+                              moved.color = c;
+                              moved.title = hexToName(c);
+                              updated.push(moved);
+                              saveImages(updated);
+                            }
+                            setDraggedId(null);
+                          }
+                        }}
+                      >
+                        {groupImgs.map((img) => renderImageCard(img))}
+                        {activeTab === 'all' &&
+                          groupSounds.map((s) => renderSoundCard(s))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -848,75 +846,81 @@ export default function Library({ onBack }) {
                   <h3 className="color-title" style={{ color: '#fff' }}>
                     Sounds
                   </h3>
-                  <div
-                    className="image-grid"
-                    style={{
-                      gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
-                    }}
-                  >
-                    {sounds.map((s, i) =>
-                      renderSoundCard(s, images.length + i)
-                    )}
-                  </div>
+                    <div style={{ width: '100%', overflow: 'hidden' }}>
+                      <div
+                        className="image-grid"
+                        style={{
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(800px, 1fr))',
+                          transform: `scale(${zoom})`,
+                          transformOrigin: 'top left',
+                          width: `${100 / zoom}%`,
+                        }}
+                      >
+                        {sounds.map((s, i) => renderSoundCard(s, images.length + i))}
+                      </div>
+                    </div>
                 </div>
               )}
             </div>
           ) : (
-            <div
-              ref={gridRef}
-              className="image-grid"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${
-                  250 * zoom
-                }px, 1fr))`,
-              }}
-              onDragOver={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => {
-                      if (e.dataTransfer.files?.length) {
-                        handleDragOver(e);
-                      } else {
-                        e.preventDefault();
-                      }
-                    }
-                  : undefined
-              }
-              onDrop={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => {
-                      if (e.dataTransfer.files?.length) {
-                        handleDrop(e);
-                        return;
-                      }
-                      e.preventDefault();
-                      if (draggedId) {
-                        const fromIndex = images.findIndex(
-                          (img) => img.id === draggedId
-                        );
-                        if (fromIndex !== -1) {
-                          const updated = [...images];
-                          const [moved] = updated.splice(fromIndex, 1);
-                          updated.push(moved);
-                          saveImages(updated);
+              <div style={{ width: '100%', overflow: 'hidden' }}>
+                <div
+                  ref={gridRef}
+                  className="image-grid"
+                  style={{
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    transform: `scale(${zoom})`,
+                    transformOrigin: 'top left',
+                    width: `${100 / zoom}%`,
+                  }}
+                  onDragOver={
+                    sortMode !== 'title' && sortMode !== 'date'
+                      ? (e) => {
+                          if (e.dataTransfer.files?.length) {
+                            handleDragOver(e);
+                          } else {
+                            e.preventDefault();
+                          }
                         }
-                        setDraggedId(null);
-                      }
-                    }
-                  : undefined
-              }
-              >
-                {(
-                  activeTab === 'all'
-                    ? [...images.map((img) => ({ type: 'image', item: img })),
-                      ...sounds.map((s) => ({ type: 'sound', item: s }))]
+                      : undefined
+                  }
+                  onDrop={
+                    sortMode !== 'title' && sortMode !== 'date'
+                      ? (e) => {
+                          if (e.dataTransfer.files?.length) {
+                            handleDrop(e);
+                            return;
+                          }
+                          e.preventDefault();
+                          if (draggedId) {
+                            const fromIndex = images.findIndex(
+                              (img) => img.id === draggedId
+                            );
+                            if (fromIndex !== -1) {
+                              const updated = [...images];
+                              const [moved] = updated.splice(fromIndex, 1);
+                              updated.push(moved);
+                              saveImages(updated);
+                            }
+                            setDraggedId(null);
+                          }
+                        }
+                      : undefined
+                  }
+                >
+                  {(
+                    activeTab === 'all'
+                      ? [...images.map((img) => ({ type: 'image', item: img })),
+                        ...sounds.map((s) => ({ type: 'sound', item: s }))]
                         .sort((a, b) => a.item.id - b.item.id)
                         .map(({ type, item }) =>
                           type === 'image'
                             ? renderImageCard(item)
                             : renderSoundCard(item)
                         )
-                    : images.map((img) => renderImageCard(img))
-                )}
+                      : images.map((img) => renderImageCard(img))
+                  )}
+                </div>
               </div>
           )
         )}
@@ -942,16 +946,19 @@ export default function Library({ onBack }) {
         )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
-            <div
-              className="image-grid"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${
-                  250 * zoom
-                }px, 1fr))`,
-              }}
-            >
-              {sounds.map((s) => renderSoundCard(s))}
-            </div>
+              <div style={{ width: '100%', overflow: 'hidden' }}>
+                <div
+                  className="image-grid"
+                  style={{
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    transform: `scale(${zoom})`,
+                    transformOrigin: 'top left',
+                    width: `${100 / zoom}%`,
+                  }}
+                >
+                  {sounds.map((s) => renderSoundCard(s))}
+                </div>
+              </div>
           </div>
         )}
         {soundModal && (
