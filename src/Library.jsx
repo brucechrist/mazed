@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
@@ -13,6 +13,40 @@ const hexToName = (hex) => {
     return hex;
   }
 };
+
+const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
+
+function QuadrantPicker({ value = [], onChange }) {
+  const main = value[0];
+  const sub = value[1];
+  const handle = (outer, inner) => {
+    if (main === outer && sub === inner) {
+      onChange([]);
+    } else {
+      onChange([outer, inner]);
+    }
+  };
+  return (
+    <div className="quadrant-grid">
+      {QUADRANT_ORDER.map((outer) => (
+        <div
+          key={outer}
+          className={`quadrant-outer${main === outer ? ' selected' : ''}`}
+        >
+          {QUADRANT_ORDER.map((inner) => (
+            <div
+              key={outer + '-' + inner}
+              className={`quadrant-inner${
+                main === outer && sub === inner ? ' selected' : ''
+              }`}
+              onClick={() => handle(outer, inner)}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Library({ onBack }) {
   const [images, setImages] = useState([]);
@@ -33,7 +67,6 @@ export default function Library({ onBack }) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
-  const gridRef = useRef(null);
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -48,38 +81,7 @@ export default function Library({ onBack }) {
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
-  const calcSpan = (el) => {
-    if (!el) return;
-    const grid = gridRef.current || el.parentNode;
-    if (!grid) return;
-    const styles = getComputedStyle(grid);
-    const rowHeight = parseInt(styles.getPropertyValue('grid-auto-rows')) || 1;
-    const rowGap = parseInt(styles.getPropertyValue('row-gap')) || 0;
-    if (!rowHeight) return;
-
-    const img = el.querySelector('img, .sound-placeholder');
-    if (!img) return;
-
-    let height;
-    if (img.tagName === 'IMG' && img.naturalWidth) {
-      const width = el.clientWidth || img.naturalWidth;
-      height = (img.naturalHeight / img.naturalWidth) * width;
-    } else {
-      const width = el.clientWidth;
-      height = width; // assume square for non-image placeholders
-    }
-
-    const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
-    el.style.gridRowEnd = `span ${span}`;
-  };
-
-  const recalcSpans = () => {
-    document
-      .querySelectorAll('.image-grid')
-      .forEach((grid) =>
-        Array.from(grid.children).forEach((child) => calcSpan(child))
-      );
-  };
+  // Masonry span calculations removed to keep thumbnails uniformly sized.
 
   // Load saved images from localStorage on mount
   useEffect(() => {
@@ -87,11 +89,11 @@ export default function Library({ onBack }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setImages(
-          Array.isArray(parsed)
-            ? parsed.map((img) => ({ span: img.span || 1, ...img }))
-            : []
-        );
+          setImages(
+            Array.isArray(parsed)
+              ? parsed.map((img) => ({ ...img, span: 1 }))
+              : []
+          );
       } catch (e) {
         console.error('Failed to parse saved images', e);
       }
@@ -137,14 +139,7 @@ export default function Library({ onBack }) {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
 
-  useEffect(() => {
-    recalcSpans();
-  }, [images, sounds, zoom]);
-
-  useEffect(() => {
-    window.addEventListener('resize', recalcSpans);
-    return () => window.removeEventListener('resize', recalcSpans);
-  }, []);
+    // Removed masonry recalculation hooks.
 
   const maxZoom = 1; // max 100% of native size
 
@@ -195,11 +190,7 @@ export default function Library({ onBack }) {
     return () => window.removeEventListener('click', close);
   }, []);
 
-  useEffect(() => {
-    recalcSpans();
-    window.addEventListener('resize', recalcSpans);
-    return () => window.removeEventListener('resize', recalcSpans);
-  }, [images, sounds, zoom]);
+    // Removed masonry recalculation effect.
 
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
@@ -238,10 +229,9 @@ export default function Library({ onBack }) {
       const rawSpan = startSpan + diff / baseWidth;
       const img = images.find((i) => i.id === id);
       const maxSpan = Math.max(1, Math.ceil(img.width / baseWidth));
-      const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
-      resizeImage(id, newSpan);
-      recalcSpans();
-    };
+        const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
+        resizeImage(id, newSpan);
+      };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
@@ -534,18 +524,21 @@ export default function Library({ onBack }) {
     const colWidth = 250 * zoom;
     const span = img.span || 1;
     return (
-      <div
-        key={img.id}
-        className="image-card"
-        style={{ width: colWidth * span, gridColumnEnd: `span ${span}` }}
-        draggable={sortMode !== 'title' && sortMode !== 'date'}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-        }}
-        onClick={() => setLightbox(img)}
-        ref={calcSpan}
-        onDragStart={
+        <div
+          key={img.id}
+          className="image-card"
+          style={{
+            width: colWidth * span,
+            height: colWidth * span,
+            gridColumnEnd: `span ${span}`,
+          }}
+          draggable={sortMode !== 'title' && sortMode !== 'date'}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+          }}
+          onClick={() => setLightbox(img)}
+          onDragStart={
           sortMode !== 'title' && sortMode !== 'date'
             ? () => setDraggedId(img.id)
             : undefined
@@ -582,30 +575,29 @@ export default function Library({ onBack }) {
             : undefined
         }
       >
-        <img
-          draggable={false}
-          src={img.dataUrl}
-          alt={img.title}
-          onLoad={(e) => {
-            const w = e.target.naturalWidth;
-            const h = e.target.naturalHeight;
-            if (w !== img.width || h !== img.height) {
-              const updated = images.map((i) =>
-                i.id === img.id ? { ...i, width: w, height: h } : i
-              );
-              saveImages(updated);
-              if (lightbox && lightbox.id === img.id) {
-                setLightbox((l) => ({ ...l, width: w, height: h }));
+          <img
+            draggable={false}
+            src={img.dataUrl}
+            alt={img.title}
+            onLoad={(e) => {
+              const w = e.target.naturalWidth;
+              const h = e.target.naturalHeight;
+              if (w !== img.width || h !== img.height) {
+                const updated = images.map((i) =>
+                  i.id === img.id ? { ...i, width: w, height: h } : i
+                );
+                saveImages(updated);
+                if (lightbox && lightbox.id === img.id) {
+                  setLightbox((l) => ({ ...l, width: w, height: h }));
+                }
               }
-            }
-            calcSpan(e.target.parentNode);
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-          }}
-          onClick={() => setLightbox(img)}
-        />
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+            }}
+            onClick={() => setLightbox(img)}
+          />
         <div className="image-overlay">
           <h3>
             <span
@@ -626,14 +618,13 @@ export default function Library({ onBack }) {
   };
 
   const renderSoundCard = (snd) => (
-    <div
-      key={snd.id}
-      className="image-card sound-card"
-      ref={calcSpan}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
-      }}
+      <div
+        key={snd.id}
+        className="image-card sound-card"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+        }}
     >
       {snd.thumbnail ? (
         <img src={snd.thumbnail} alt={snd.title} draggable={false} />
@@ -829,7 +820,6 @@ export default function Library({ onBack }) {
             </div>
           ) : (
             <div
-              ref={gridRef}
               className="image-grid"
               style={{
                 gridTemplateColumns: `repeat(auto-fill, minmax(${
@@ -1096,69 +1086,28 @@ export default function Library({ onBack }) {
                     onBlur={() => updateImage(lightbox.id, { description: descInput })}
                   />
                   <div className="quad-section">
-                    <div className="quad-header">
-                      <h2>Quads</h2>
-                      {(lightbox.quadrants?.length || 0) < 2 && (
-                        <button
-                          className="add-quad-btn"
-                          onClick={() => {
-                            const nq = [...(lightbox.quadrants || []), ''];
-                            updateImage(lightbox.id, { quadrants: nq });
-                          }}
-                        >
-                          +
-                        </button>
-                      )}
-                    </div>
-                    <div className="quad-list">
-                      {(lightbox.quadrants && lightbox.quadrants.length > 0
-                        ? lightbox.quadrants
-                        : ['']
-                      ).map((q, idx) => (
-                        <select
-                          key={idx}
-                          value={q}
-                          className={`quad-select ${q ? 'quad-' + q : ''}`}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            let nq = [...(lightbox.quadrants || [])];
-                            if (val === '') {
-                              nq.splice(idx, 1);
-                            } else {
-                              nq[idx] = val;
-                            }
-                            updateImage(lightbox.id, { quadrants: nq });
-                          }}
-                        >
-                          <option value=""></option>
-                          <option value="II">II</option>
-                          <option value="IE">IE</option>
-                          <option value="EI">EI</option>
-                          <option value="EE">EE</option>
-                        </select>
-                      ))}
-                    </div>
+                    <QuadrantPicker
+                      value={lightbox.quadrants || []}
+                      onChange={(q) => updateImage(lightbox.id, { quadrants: q })}
+                    />
                   </div>
                   <div className="color-section">
-                    <h2>Colors</h2>
                     <div className="color-list">
                       {palette.map((c, idx) => (
-                        <div key={idx} className="color-entry">
-                          <button
-                            className={`color-circle${
-                              lightbox.color === c ? ' selected' : ''
-                            }`}
-                            style={{ background: c }}
-                            title={hexToName(c)}
-                            onClick={() => {
-                              const nc = lightbox.color === c ? '' : c;
-                              const updates = { color: nc };
-                              if (nc) updates.title = hexToName(nc);
-                              updateImage(lightbox.id, updates);
-                            }}
-                          />
-                          <span className="color-label">{hexToName(c)}</span>
-                        </div>
+                        <button
+                          key={idx}
+                          className={`color-circle${
+                            lightbox.color === c ? ' selected' : ''
+                          }`}
+                          style={{ background: c }}
+                          title={hexToName(c)}
+                          onClick={() => {
+                            const nc = lightbox.color === c ? '' : c;
+                            const updates = { color: nc };
+                            if (nc) updates.title = hexToName(nc);
+                            updateImage(lightbox.id, updates);
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -1190,14 +1139,13 @@ export default function Library({ onBack }) {
                     />
                   </div>
                 </div>
-              </div>
-              <div className="zoom-indicator">
-                {Math.round(lightboxZoom * 100)}%
+                <div className="zoom-indicator">
+                  {Math.round(lightboxZoom * 100)}%
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
