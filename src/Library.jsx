@@ -55,9 +55,6 @@ export default function Library({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(
-    () => Number(localStorage.getItem('libraryZoom')) || 0.35
-  );
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [descInput, setDescInput] = useState('');
@@ -168,33 +165,13 @@ export default function Library({ onBack }) {
   };
 
   useEffect(() => {
-    localStorage.setItem('libraryZoom', zoom);
-  }, [zoom]);
-
-  useEffect(() => {
     recalcSpans();
-  }, [images, sounds, zoom]);
+  }, [images, sounds]);
 
   useEffect(() => {
     window.addEventListener('resize', recalcSpans);
     return () => window.removeEventListener('resize', recalcSpans);
   }, []);
-
-  const maxZoom = 1; // max 100% of native size
-
-  useEffect(() => {
-    const handleWheel = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        setZoom((z) => {
-          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-          return Math.min(maxZoom, Math.max(0.1, next));
-        });
-      }
-    };
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
-  }, [maxZoom]);
 
   useEffect(() => {
     if (lightbox) {
@@ -229,13 +206,7 @@ export default function Library({ onBack }) {
     return () => window.removeEventListener('click', close);
   }, []);
 
-  useEffect(() => {
-    recalcSpans();
-    window.addEventListener('resize', recalcSpans);
-    return () => window.removeEventListener('resize', recalcSpans);
-  }, [images, sounds, zoom]);
-
-  const deleteImage = (id) => {
+    const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
     saveImages(updated);
   };
@@ -255,39 +226,10 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
-  const resizeImage = (id, span) => {
-    const updated = images.map((img) =>
-      img.id === id ? { ...img, span } : img
-    );
-    saveImages(updated);
-  };
-
-  const startResize = (id, startSpan, e) => {
-    e.stopPropagation();
-    const startX = e.clientX;
-    const baseWidth = 250 * zoom;
-    const onMove = (ev) => {
-      ev.preventDefault();
-      const diff = ev.clientX - startX;
-      const rawSpan = startSpan + diff / baseWidth;
-      const img = images.find((i) => i.id === id);
-      const maxSpan = Math.max(1, Math.ceil(img.width / baseWidth));
-      const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
-      resizeImage(id, newSpan);
-      recalcSpans();
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
-  const updateImage = (id, updates) => {
-    const updated = images.map((img) =>
-      img.id === id ? { ...img, ...updates } : img
-    );
+    const updateImage = (id, updates) => {
+      const updated = images.map((img) =>
+        img.id === id ? { ...img, ...updates } : img
+      );
     saveImages(updated);
     const next = updated.find((i) => i.id === id);
     if (next) setLightbox(next);
@@ -567,54 +509,54 @@ export default function Library({ onBack }) {
   const renderImageCard = (img) => {
     const span = img.span || 1;
     return (
-      <div
-        key={img.id}
-        className="image-card"
-        style={{ gridColumnEnd: `span ${span}` }}
-        draggable={sortMode !== 'title' && sortMode !== 'date'}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-        }}
-        onClick={() => setLightbox(img)}
-        ref={calcSpan}
-        onDragStart={
-          sortMode !== 'title' && sortMode !== 'date'
-            ? () => setDraggedId(img.id)
-            : undefined
-        }
-        onDragOver={
-          sortMode !== 'title' && sortMode !== 'date'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDragOver(e);
-                } else {
+        <div
+          key={img.id}
+          className="image-card"
+          style={{ gridColumnEnd: `span ${span}` }}
+          draggable={sortMode !== 'title' && sortMode !== 'date'}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+          }}
+          onClick={() => setLightbox(img)}
+          ref={calcSpan}
+          onDragStart={
+            sortMode !== 'title' && sortMode !== 'date'
+              ? () => setDraggedId(img.id)
+              : undefined
+          }
+          onDragOver={
+            sortMode !== 'title' && sortMode !== 'date'
+              ? (e) => {
+                  if (e.dataTransfer.files?.length) {
+                    handleDragOver(e);
+                  } else {
+                    e.preventDefault();
+                  }
+                }
+              : undefined
+          }
+          onDrop={
+            sortMode !== 'title' && sortMode !== 'date'
+              ? (e) => {
+                  if (e.dataTransfer.files?.length) {
+                    handleDrop(e);
+                    return;
+                  }
                   e.preventDefault();
+                  if (draggedId && draggedId !== img.id) {
+                    moveImage(draggedId, img.id);
+                  }
+                  setDraggedId(null);
                 }
-              }
-            : undefined
-        }
-        onDrop={
-          sortMode !== 'title' && sortMode !== 'date'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDrop(e);
-                  return;
-                }
-                e.preventDefault();
-                if (draggedId && draggedId !== img.id) {
-                  moveImage(draggedId, img.id);
-                }
-                setDraggedId(null);
-              }
-            : undefined
-        }
-        onDragEnd={
-          sortMode !== 'title' && sortMode !== 'date'
-            ? () => setDraggedId(null)
-            : undefined
-        }
-      >
+              : undefined
+          }
+          onDragEnd={
+            sortMode !== 'title' && sortMode !== 'date'
+              ? () => setDraggedId(null)
+              : undefined
+          }
+        >
         <img
           draggable={false}
           src={img.dataUrl}
@@ -648,15 +590,9 @@ export default function Library({ onBack }) {
             {img.title}
           </h3>
         </div>
-        {sortMode !== 'title' && sortMode !== 'date' && (
-          <div
-            className="resize-handle"
-            onMouseDown={(e) => startResize(img.id, span, e)}
-          ></div>
-        )}
-      </div>
-    );
-  };
+        </div>
+      );
+    };
 
   const renderSoundCard = (snd) => (
     <div
@@ -798,16 +734,13 @@ export default function Library({ onBack }) {
                     <h3 className="color-title" style={{ color: c }}>
                       {hexToName(c)}
                     </h3>
-                    <div style={{ width: '100%', overflow: 'hidden' }}>
-                      <div
-                        className="image-grid"
-                        style={{
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                          transform: `scale(${zoom})`,
-                          transformOrigin: 'top left',
-                          width: `${100 / zoom}%`,
-                        }}
-                        onDragOver={(e) => {
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div
+                          className="image-grid"
+                          style={{
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                          }}
+                          onDragOver={(e) => {
                           if (e.dataTransfer.files?.length) {
                             handleDragOver(e);
                           } else {
@@ -846,16 +779,13 @@ export default function Library({ onBack }) {
                   <h3 className="color-title" style={{ color: '#fff' }}>
                     Sounds
                   </h3>
-                    <div style={{ width: '100%', overflow: 'hidden' }}>
-                      <div
-                        className="image-grid"
-                        style={{
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(800px, 1fr))',
-                          transform: `scale(${zoom})`,
-                          transformOrigin: 'top left',
-                          width: `${100 / zoom}%`,
-                        }}
-                      >
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div
+                          className="image-grid"
+                          style={{
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(800px, 1fr))',
+                          }}
+                        >
                         {sounds.map((s, i) => renderSoundCard(s, images.length + i))}
                       </div>
                     </div>
@@ -863,17 +793,14 @@ export default function Library({ onBack }) {
               )}
             </div>
           ) : (
-              <div style={{ width: '100%', overflow: 'hidden' }}>
-                <div
-                  ref={gridRef}
-                  className="image-grid"
-                  style={{
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                    transform: `scale(${zoom})`,
-                    transformOrigin: 'top left',
-                    width: `${100 / zoom}%`,
-                  }}
-                  onDragOver={
+                <div style={{ width: '100%', overflow: 'hidden' }}>
+                  <div
+                    ref={gridRef}
+                    className="image-grid"
+                    style={{
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                    }}
+                    onDragOver={
                     sortMode !== 'title' && sortMode !== 'date'
                       ? (e) => {
                           if (e.dataTransfer.files?.length) {
@@ -951,9 +878,6 @@ export default function Library({ onBack }) {
                   className="image-grid"
                   style={{
                     gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                    transform: `scale(${zoom})`,
-                    transformOrigin: 'top left',
-                    width: `${100 / zoom}%`,
                   }}
                 >
                   {sounds.map((s) => renderSoundCard(s))}
@@ -1078,9 +1002,6 @@ export default function Library({ onBack }) {
               Delete
             </button>
           </div>
-        )}
-        {!lightbox && (
-          <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
         )}
         {lightbox && (
           <div className="lightbox" onClick={() => setLightbox(null)}>
