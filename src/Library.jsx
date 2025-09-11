@@ -138,6 +138,22 @@ export default function Library({ onBack }) {
 
     // Removed masonry recalculation hooks.
 
+  const maxZoom = 1; // max 100% of native size
+
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom((z) => {
+          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+          return Math.min(maxZoom, Math.max(0.1, next));
+        });
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [maxZoom]);
+
   useEffect(() => {
     if (lightbox) {
       setLightboxZoom(1);
@@ -1139,14 +1155,13 @@ export default function Library({ onBack }) {
                     />
                   </div>
                 </div>
-              </div>
-              <div className="zoom-indicator">
-                {Math.round(lightboxZoom * 100)}%
+                <div className="zoom-indicator">
+                  {Math.round(lightboxZoom * 100)}%
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
