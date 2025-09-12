@@ -39,10 +39,10 @@ function QuadrantPicker({ value = [], onChange }) {
               className={`quadrant-inner${
                 main === outer && sub === inner ? ' selected' : ''
               }`}
-              onClick={() => handle(outer, inner)}
-            />
-          ))}
-        </div>
+                onClick={() => handle(outer, inner)}
+              />
+            ))}
+          </div>
       ))}
     </div>
   );
@@ -65,6 +65,10 @@ export default function Library({ onBack }) {
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
 
+  const [zoom, setZoom] = useState(
+    () => parseFloat(localStorage.getItem('libraryZoom')) || 0.5
+  );
+
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
   const [sounds, setSounds] = useState([]);
@@ -80,17 +84,16 @@ export default function Library({ onBack }) {
 
   // Masonry span calculations removed to keep thumbnails uniformly sized.
 
-  // Load saved images from localStorage on mount
+  // Load saved images from localStorage on mount and normalize spans
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-          setImages(
-            Array.isArray(parsed)
-              ? parsed.map((img) => ({ ...img, span: 1 }))
-              : []
-          );
+        const normalized = Array.isArray(parsed)
+          ? parsed.map((img) => ({ ...img, span: 1 }))
+          : [];
+        saveImages(normalized);
       } catch (e) {
         console.error('Failed to parse saved images', e);
       }
@@ -139,6 +142,7 @@ export default function Library({ onBack }) {
     // Removed masonry recalculation hooks.
 
   const maxZoom = 1; // max 100% of native size
+  const colWidth = 250 * zoom;
 
   useEffect(() => {
     const handleWheel = (e) => {
@@ -551,15 +555,6 @@ export default function Library({ onBack }) {
               }
             : undefined
         }
-        onDrop={
-          sortMode !== 'title' && sortMode !== 'date'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDrop(e);
-                  return;
-                }
-              : undefined
-          }
           onDrop={
             sortMode !== 'title' && sortMode !== 'date'
               ? (e) => {
@@ -573,10 +568,8 @@ export default function Library({ onBack }) {
                   }
                   setDraggedId(null);
                 }
-                setDraggedId(null);
-              }
-            : undefined
-        }
+              : undefined
+          }
         onDragEnd={
           sortMode !== 'title' && sortMode !== 'date'
             ? () => setDraggedId(null)
@@ -716,8 +709,8 @@ export default function Library({ onBack }) {
                 >
                   Color
                 </button>
-              </div>
-            )}
+                </div>
+                )}
           </div>
         </div>
         <div className="library-tabs">
@@ -835,49 +828,29 @@ export default function Library({ onBack }) {
                     }
                   : undefined
               }
-              onDrop={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => {
-                      if (e.dataTransfer.files?.length) {
-                        handleDrop(e);
-                        return;
+                onDrop={
+                  sortMode !== 'title' && sortMode !== 'date'
+                    ? (e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDrop(e);
+                          return;
+                        }
+                        e.preventDefault();
+                        if (draggedId) {
+                          const fromIndex = images.findIndex(
+                            (img) => img.id === draggedId
+                          );
+                          if (fromIndex !== -1) {
+                            const updated = [...images];
+                            const [moved] = updated.splice(fromIndex, 1);
+                            updated.push(moved);
+                            saveImages(updated);
+                          }
+                          setDraggedId(null);
+                        }
                       }
-                      e.preventDefault();
-                      if (draggedId) {
-                        const fromIndex = images.findIndex(
-                          (img) => img.id === draggedId
-                        );
-                        if (fromIndex !== -1) {
-                          const updated = [...images];
-                          const [moved] = updated.splice(fromIndex, 1);
-                          updated.push(moved);
-                          saveImages(updated);
-                        }
-                      : undefined
-                  }
-                  onDrop={
-                    sortMode !== 'title' && sortMode !== 'date'
-                      ? (e) => {
-                          if (e.dataTransfer.files?.length) {
-                            handleDrop(e);
-                            return;
-                          }
-                          e.preventDefault();
-                          if (draggedId) {
-                            const fromIndex = images.findIndex(
-                              (img) => img.id === draggedId
-                            );
-                            if (fromIndex !== -1) {
-                              const updated = [...images];
-                              const [moved] = updated.splice(fromIndex, 1);
-                              updated.push(moved);
-                              saveImages(updated);
-                            }
-                            setDraggedId(null);
-                          }
-                        }
-                      : undefined
-                  }
+                    : undefined
+                }
                 >
                   {(
                     activeTab === 'all'
@@ -892,10 +865,8 @@ export default function Library({ onBack }) {
                       : images.map((img) => renderImageCard(img))
                   )}
                 </div>
-              </div>
-          )
-        )}
-        {(activeTab === 'all' || activeTab === 'words') && (
+            ))}
+          {(activeTab === 'all' || activeTab === 'words') && (
           <div className="word-section">
             {activeTab === 'words' && (
               <form onSubmit={handleAddWord} className="word-form">
@@ -942,13 +913,13 @@ export default function Library({ onBack }) {
                 onChange={(e) => setSoundTitle(e.target.value)}
                 placeholder="Title"
               />
-              {soundThumbPreview && (
-                <img
-                  src={soundThumbPreview}
-                  alt="Thumbnail preview"
-                  className="sound-thumb-preview"
-                />
-              )}
+                {soundThumbPreview && (
+                  <img
+                    src={soundThumbPreview}
+                    alt="Thumbnail preview"
+                    className="sound-thumb-preview"
+                  />
+                )}
               <input
                 type="file"
                 accept="image/*"
@@ -1127,20 +1098,20 @@ export default function Library({ onBack }) {
                       ))}
                     </div>
                   </div>
-                  <div className="tag-list">
-                    {lightbox.tags?.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="tag"
-                        onClick={() => {
-                          const nt = lightbox.tags.filter((_, i) => i !== idx);
-                          updateImage(lightbox.id, { tags: nt });
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    <input
+                    <div className="tag-list">
+                      {lightbox.tags?.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="tag"
+                          onClick={() => {
+                            const nt = lightbox.tags.filter((_, i) => i !== idx);
+                            updateImage(lightbox.id, { tags: nt });
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      <input
                       type="text"
                       value={tagInput}
                       placeholder="Add tag"
