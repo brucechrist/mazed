@@ -39,10 +39,10 @@ function QuadrantPicker({ value = [], onChange }) {
               className={`quadrant-inner${
                 main === outer && sub === inner ? ' selected' : ''
               }`}
-              onClick={() => handle(outer, inner)}
-            />
-          ))}
-        </div>
+                onClick={() => handle(outer, inner)}
+              />
+            ))}
+          </div>
       ))}
     </div>
   );
@@ -65,6 +65,10 @@ export default function Library({ onBack }) {
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
 
+  const [zoom, setZoom] = useState(
+    () => parseFloat(localStorage.getItem('libraryZoom')) || 0.5
+  );
+
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
   const [sounds, setSounds] = useState([]);
@@ -78,19 +82,29 @@ export default function Library({ onBack }) {
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
-  // Masonry span calculations removed to keep thumbnails uniformly sized.
-
-  // Load saved images from localStorage on mount
+  // Restore masonry spans by normalizing stored images to their natural size
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-          setImages(
-            Array.isArray(parsed)
-              ? parsed.map((img) => ({ ...img, span: 1 }))
-              : []
-          );
+        if (Array.isArray(parsed)) {
+          Promise.all(
+            parsed.map(
+              (img) =>
+                new Promise((resolve) => {
+                  const i = new Image();
+                  i.onload = () =>
+                    resolve({
+                      ...img,
+                      width: i.naturalWidth,
+                      height: i.naturalHeight,
+                    });
+                  i.src = img.dataUrl;
+                })
+            )
+          ).then(saveImages);
+        }
       } catch (e) {
         console.error('Failed to parse saved images', e);
       }
@@ -136,9 +150,9 @@ export default function Library({ onBack }) {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
 
-    // Removed masonry recalculation hooks.
-
-  const maxZoom = 1; // max 100% of native size
+    const maxZoom = 1; // max 100% of native size
+    const colWidth = 250 * zoom;
+    const rowHeight = 10; // base row height for masonry grid
 
   useEffect(() => {
     const handleWheel = (e) => {
@@ -187,8 +201,6 @@ export default function Library({ onBack }) {
     return () => window.removeEventListener('click', close);
   }, []);
 
-    // Removed masonry recalculation effect.
-
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
     saveImages(updated);
@@ -207,34 +219,6 @@ export default function Library({ onBack }) {
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
     saveImages(updated);
-  };
-
-  const resizeImage = (id, span) => {
-    const updated = images.map((img) =>
-      img.id === id ? { ...img, span } : img
-    );
-    saveImages(updated);
-  };
-
-  const startResize = (id, startSpan, e) => {
-    e.stopPropagation();
-    const startX = e.clientX;
-    const baseWidth = 250 * zoom;
-    const onMove = (ev) => {
-      ev.preventDefault();
-      const diff = ev.clientX - startX;
-      const rawSpan = startSpan + diff / baseWidth;
-      const img = images.find((i) => i.id === id);
-      const maxSpan = Math.max(1, Math.ceil(img.width / baseWidth));
-        const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
-        resizeImage(id, newSpan);
-      };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
   };
 
   const updateImage = (id, updates) => {
@@ -382,7 +366,6 @@ export default function Library({ onBack }) {
           dataUrl: result,
           width: imgEl.width,
           height: imgEl.height,
-          span: 1,
         };
         const updated = [...images, newImage];
         saveImages(updated);
@@ -519,23 +502,25 @@ export default function Library({ onBack }) {
   };
 
   const renderImageCard = (img) => {
-    const span = img.span || 1;
+    const span =
+      img.width && img.height
+        ? Math.max(
+            1,
+            Math.ceil((img.height / img.width) * colWidth / rowHeight)
+          )
+        : 1;
     return (
-        <div
-          key={img.id}
-          className="image-card"
-          style={{
-            width: colWidth * span,
-            height: colWidth * span,
-            gridColumnEnd: `span ${span}`,
-          }}
-          draggable={sortMode !== 'title' && sortMode !== 'date'}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-          }}
-          onClick={() => setLightbox(img)}
-          onDragStart={
+      <div
+        key={img.id}
+        className="image-card"
+        style={{ gridRowEnd: `span ${span}` }}
+        draggable={sortMode !== 'title' && sortMode !== 'date'}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+        }}
+        onClick={() => setLightbox(img)}
+        onDragStart={
           sortMode !== 'title' && sortMode !== 'date'
             ? () => setDraggedId(img.id)
             : undefined
@@ -558,20 +543,9 @@ export default function Library({ onBack }) {
                   handleDrop(e);
                   return;
                 }
-              : undefined
-          }
-          onDrop={
-            sortMode !== 'title' && sortMode !== 'date'
-              ? (e) => {
-                  if (e.dataTransfer.files?.length) {
-                    handleDrop(e);
-                    return;
-                  }
-                  e.preventDefault();
-                  if (draggedId && draggedId !== img.id) {
-                    moveImage(draggedId, img.id);
-                  }
-                  setDraggedId(null);
+                e.preventDefault();
+                if (draggedId && draggedId !== img.id) {
+                  moveImage(draggedId, img.id);
                 }
                 setDraggedId(null);
               }
@@ -583,29 +557,29 @@ export default function Library({ onBack }) {
             : undefined
         }
       >
-          <img
-            draggable={false}
-            src={img.dataUrl}
-            alt={img.title}
-            onLoad={(e) => {
-              const w = e.target.naturalWidth;
-              const h = e.target.naturalHeight;
-              if (w !== img.width || h !== img.height) {
-                const updated = images.map((i) =>
-                  i.id === img.id ? { ...i, width: w, height: h } : i
-                );
-                saveImages(updated);
-                if (lightbox && lightbox.id === img.id) {
-                  setLightbox((l) => ({ ...l, width: w, height: h }));
-                }
+        <img
+          draggable={false}
+          src={img.dataUrl}
+          alt={img.title}
+          onLoad={(e) => {
+            const w = e.target.naturalWidth;
+            const h = e.target.naturalHeight;
+            if (w !== img.width || h !== img.height) {
+              const updated = images.map((i) =>
+                i.id === img.id ? { ...i, width: w, height: h } : i
+              );
+              saveImages(updated);
+              if (lightbox && lightbox.id === img.id) {
+                setLightbox((l) => ({ ...l, width: w, height: h }));
               }
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-            }}
-            onClick={() => setLightbox(img)}
-          />
+            }
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+          }}
+          onClick={() => setLightbox(img)}
+        />
         <div className="image-overlay">
           <h3>
             <span
@@ -615,43 +589,47 @@ export default function Library({ onBack }) {
             {img.title}
           </h3>
         </div>
-        </div>
-      );
-    };
+      </div>
+    );
+  };
 
-  const renderSoundCard = (snd) => (
+  const renderSoundCard = (snd, width = colWidth) => {
+    const span = Math.ceil(width / rowHeight);
+    return (
       <div
         key={snd.id}
         className="image-card sound-card"
+        style={{ gridRowEnd: `span ${span}` }}
         onContextMenu={(e) => {
           e.preventDefault();
           setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
         }}
-    >
-      {snd.thumbnail ? (
-        <img src={snd.thumbnail} alt={snd.title} draggable={false} />
-      ) : (
-        <div className="sound-placeholder">♪</div>
-      )}
-      <div className="image-overlay">
-        <h3>
-          {snd.color && (
-            <span
-              className="color-dot"
-              style={{ background: snd.color }}
-            ></span>
-          )}
-          {snd.title}
-        </h3>
-        {snd.tag && <span className="tag">{snd.tag}</span>}
-        <audio
-          controls
-          src={snd.dataUrl}
-          className="sound-player"
-        ></audio>
+      >
+        {snd.thumbnail ? (
+          <img src={snd.thumbnail} alt={snd.title} draggable={false} />
+        ) : (
+          <div className="sound-placeholder">♪</div>
+        )}
+        <div className="image-overlay">
+          <h3>
+            {snd.color && (
+              <span
+                className="color-dot"
+                style={{ background: snd.color }}
+              ></span>
+            )}
+            {snd.title}
+          </h3>
+          {snd.tag && <span className="tag">{snd.tag}</span>}
+          <audio
+            controls
+            src={snd.dataUrl}
+            className="sound-player"
+          ></audio>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div
@@ -716,8 +694,8 @@ export default function Library({ onBack }) {
                 >
                   Color
                 </button>
-              </div>
-            )}
+                </div>
+                )}
           </div>
         </div>
         <div className="library-tabs">
@@ -762,7 +740,8 @@ export default function Library({ onBack }) {
                         <div
                           className="image-grid"
                           style={{
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                            gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                            gridAutoRows: `${rowHeight}px`,
                           }}
                           onDragOver={(e) => {
                           if (e.dataTransfer.files?.length) {
@@ -807,10 +786,11 @@ export default function Library({ onBack }) {
                         <div
                           className="image-grid"
                           style={{
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(800px, 1fr))',
+                            gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                            gridAutoRows: `${rowHeight}px`,
                           }}
                         >
-                        {sounds.map((s, i) => renderSoundCard(s, images.length + i))}
+                        {sounds.map((s) => renderSoundCard(s))}
                       </div>
                     </div>
                 </div>
@@ -820,9 +800,8 @@ export default function Library({ onBack }) {
             <div
               className="image-grid"
               style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${
-                  250 * zoom
-                }px, 1fr))`,
+                gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                gridAutoRows: `${rowHeight}px`,
               }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
@@ -835,49 +814,29 @@ export default function Library({ onBack }) {
                     }
                   : undefined
               }
-              onDrop={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => {
-                      if (e.dataTransfer.files?.length) {
-                        handleDrop(e);
-                        return;
+                onDrop={
+                  sortMode !== 'title' && sortMode !== 'date'
+                    ? (e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDrop(e);
+                          return;
+                        }
+                        e.preventDefault();
+                        if (draggedId) {
+                          const fromIndex = images.findIndex(
+                            (img) => img.id === draggedId
+                          );
+                          if (fromIndex !== -1) {
+                            const updated = [...images];
+                            const [moved] = updated.splice(fromIndex, 1);
+                            updated.push(moved);
+                            saveImages(updated);
+                          }
+                          setDraggedId(null);
+                        }
                       }
-                      e.preventDefault();
-                      if (draggedId) {
-                        const fromIndex = images.findIndex(
-                          (img) => img.id === draggedId
-                        );
-                        if (fromIndex !== -1) {
-                          const updated = [...images];
-                          const [moved] = updated.splice(fromIndex, 1);
-                          updated.push(moved);
-                          saveImages(updated);
-                        }
-                      : undefined
-                  }
-                  onDrop={
-                    sortMode !== 'title' && sortMode !== 'date'
-                      ? (e) => {
-                          if (e.dataTransfer.files?.length) {
-                            handleDrop(e);
-                            return;
-                          }
-                          e.preventDefault();
-                          if (draggedId) {
-                            const fromIndex = images.findIndex(
-                              (img) => img.id === draggedId
-                            );
-                            if (fromIndex !== -1) {
-                              const updated = [...images];
-                              const [moved] = updated.splice(fromIndex, 1);
-                              updated.push(moved);
-                              saveImages(updated);
-                            }
-                            setDraggedId(null);
-                          }
-                        }
-                      : undefined
-                  }
+                    : undefined
+                }
                 >
                   {(
                     activeTab === 'all'
@@ -892,10 +851,8 @@ export default function Library({ onBack }) {
                       : images.map((img) => renderImageCard(img))
                   )}
                 </div>
-              </div>
-          )
-        )}
-        {(activeTab === 'all' || activeTab === 'words') && (
+            ))}
+          {(activeTab === 'all' || activeTab === 'words') && (
           <div className="word-section">
             {activeTab === 'words' && (
               <form onSubmit={handleAddWord} className="word-form">
@@ -917,16 +874,17 @@ export default function Library({ onBack }) {
         )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
-              <div style={{ width: '100%', overflow: 'hidden' }}>
-                <div
-                  className="image-grid"
-                  style={{
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                  }}
-                >
-                  {sounds.map((s) => renderSoundCard(s))}
+                <div style={{ width: '100%', overflow: 'hidden' }}>
+                  <div
+                    className="image-grid"
+                    style={{
+                      gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                      gridAutoRows: `${rowHeight}px`,
+                    }}
+                  >
+                    {sounds.map((s) => renderSoundCard(s))}
+                  </div>
                 </div>
-              </div>
           </div>
         )}
         {soundModal && (
@@ -942,13 +900,13 @@ export default function Library({ onBack }) {
                 onChange={(e) => setSoundTitle(e.target.value)}
                 placeholder="Title"
               />
-              {soundThumbPreview && (
-                <img
-                  src={soundThumbPreview}
-                  alt="Thumbnail preview"
-                  className="sound-thumb-preview"
-                />
-              )}
+                {soundThumbPreview && (
+                  <img
+                    src={soundThumbPreview}
+                    alt="Thumbnail preview"
+                    className="sound-thumb-preview"
+                  />
+                )}
               <input
                 type="file"
                 accept="image/*"
@@ -1127,20 +1085,20 @@ export default function Library({ onBack }) {
                       ))}
                     </div>
                   </div>
-                  <div className="tag-list">
-                    {lightbox.tags?.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="tag"
-                        onClick={() => {
-                          const nt = lightbox.tags.filter((_, i) => i !== idx);
-                          updateImage(lightbox.id, { tags: nt });
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    <input
+                    <div className="tag-list">
+                      {lightbox.tags?.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="tag"
+                          onClick={() => {
+                            const nt = lightbox.tags.filter((_, i) => i !== idx);
+                            updateImage(lightbox.id, { tags: nt });
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      <input
                       type="text"
                       value={tagInput}
                       placeholder="Add tag"
