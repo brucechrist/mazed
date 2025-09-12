@@ -364,8 +364,8 @@ export default function Library({ onBack }) {
           quadrants: [],
           color: hex,
           dataUrl: result,
-          width: imgEl.width,
-          height: imgEl.height,
+          width: imgEl.naturalWidth,
+          height: imgEl.naturalHeight,
         };
         const updated = [...images, newImage];
         saveImages(updated);
