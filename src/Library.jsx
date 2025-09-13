@@ -547,6 +547,7 @@ export default function Library({ onBack }) {
                 if (draggedId && draggedId !== img.id) {
                   moveImage(draggedId, img.id);
                 }
+              }
               : undefined
           }
         onDragEnd={
