@@ -739,7 +739,7 @@ export default function Library({ onBack }) {
                         <div
                           className="image-grid"
                           style={{
-                            gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                             gridAutoRows: `${rowHeight}px`,
                           }}
                           onDragOver={(e) => {
@@ -785,7 +785,7 @@ export default function Library({ onBack }) {
                         <div
                           className="image-grid"
                           style={{
-                            gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                             gridAutoRows: `${rowHeight}px`,
                           }}
                         >
@@ -799,7 +799,7 @@ export default function Library({ onBack }) {
             <div
               className="image-grid"
               style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                 gridAutoRows: `${rowHeight}px`,
               }}
               onDragOver={
@@ -877,7 +877,7 @@ export default function Library({ onBack }) {
                   <div
                     className="image-grid"
                     style={{
-                      gridTemplateColumns: `repeat(auto-fill, minmax(${colWidth}px, 1fr))`,
+                      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                       gridAutoRows: `${rowHeight}px`,
                     }}
                   >
