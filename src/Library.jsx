@@ -149,10 +149,10 @@ export default function Library({ onBack }) {
   useEffect(() => {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
-
-    const maxZoom = 1; // max 100% of native size
-    const colWidth = 250 * zoom;
-    const rowHeight = 1; // finer base row height for masonry grid
+  const maxZoom = 1; // max 100% of native size
+  const colWidth = 250 * zoom;
+  const rowHeight = 1; // finer base row height for masonry grid
+  const gridGap = 20; // keep in sync with .image-grid gap in CSS
 
   useEffect(() => {
     const handleWheel = (e) => {
@@ -501,14 +501,20 @@ export default function Library({ onBack }) {
     }
   };
 
+  const getMasonrySpan = (targetHeight) => {
+    if (!targetHeight || Number.isNaN(targetHeight)) return 1;
+    return Math.max(
+      1,
+      Math.ceil((targetHeight + gridGap) / (rowHeight + gridGap))
+    );
+  };
+
   const renderImageCard = (img) => {
-    const span =
+    const scaledHeight =
       img.width && img.height
-        ? Math.max(
-            1,
-            Math.round((img.height / img.width) * colWidth / rowHeight)
-          )
-        : 1;
+        ? (img.height / img.width) * colWidth
+        : colWidth;
+    const span = getMasonrySpan(scaledHeight);
     return (
       <div
         key={img.id}
@@ -593,7 +599,7 @@ export default function Library({ onBack }) {
   };
 
   const renderSoundCard = (snd, width = colWidth) => {
-    const span = Math.ceil(width / rowHeight);
+    const span = getMasonrySpan(width);
     return (
       <div
         key={snd.id}
@@ -728,8 +734,8 @@ export default function Library({ onBack }) {
             <div className="color-groups">
               {palette.map((c) => {
                 const groupImgs = images.filter((img) => img.color === c);
-                  const groupSounds = sounds.filter((s) => s.color === c);
-                  if (!groupImgs.length && !groupSounds.length) return null;
+                const groupSounds = sounds.filter((s) => s.color === c);
+                if (!groupImgs.length && !groupSounds.length) return null;
                 return (
                   <div key={c} className="color-group">
                     <h3 className="color-title" style={{ color: c }}>
@@ -741,6 +747,7 @@ export default function Library({ onBack }) {
                           style={{
                             gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                             gridAutoRows: `${rowHeight}px`,
+                            gap: `${gridGap}px`,
                           }}
                           onDragOver={(e) => {
                           if (e.dataTransfer.files?.length) {
@@ -787,6 +794,7 @@ export default function Library({ onBack }) {
                           style={{
                             gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                             gridAutoRows: `${rowHeight}px`,
+                            gap: `${gridGap}px`,
                           }}
                         >
                         {sounds.map((s) => renderSoundCard(s))}
@@ -801,6 +809,7 @@ export default function Library({ onBack }) {
               style={{
                 gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
                 gridAutoRows: `${rowHeight}px`,
+                gap: `${gridGap}px`,
               }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
@@ -873,17 +882,18 @@ export default function Library({ onBack }) {
         )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
-                <div style={{ width: '100%', overflow: 'hidden' }}>
-                  <div
-                    className="image-grid"
-                    style={{
-                      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
-                      gridAutoRows: `${rowHeight}px`,
-                    }}
-                  >
-                    {sounds.map((s) => renderSoundCard(s))}
-                  </div>
-                </div>
+            <div style={{ width: '100%', overflow: 'hidden' }}>
+              <div
+                className="image-grid"
+                style={{
+                  gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                  gridAutoRows: `${rowHeight}px`,
+                  gap: `${gridGap}px`,
+                }}
+              >
+                {sounds.map((s) => renderSoundCard(s))}
+              </div>
+            </div>
           </div>
         )}
         {soundModal && (
