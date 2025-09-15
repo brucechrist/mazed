@@ -506,7 +506,7 @@ export default function Library({ onBack }) {
       img.width && img.height
         ? Math.max(
             1,
-            Math.ceil((img.height / img.width) * colWidth / rowHeight)
+            Math.round((img.height / img.width) * colWidth / rowHeight)
           )
         : 1;
     return (
