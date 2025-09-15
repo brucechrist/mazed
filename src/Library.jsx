@@ -152,7 +152,7 @@ export default function Library({ onBack }) {
 
     const maxZoom = 1; // max 100% of native size
     const colWidth = 250 * zoom;
-    const rowHeight = 10; // base row height for masonry grid
+    const rowHeight = 1; // finer base row height for masonry grid
 
   useEffect(() => {
     const handleWheel = (e) => {
@@ -506,7 +506,7 @@ export default function Library({ onBack }) {
       img.width && img.height
         ? Math.max(
             1,
-            Math.ceil((img.height / img.width) * colWidth / rowHeight)
+            Math.round((img.height / img.width) * colWidth / rowHeight)
           )
         : 1;
     return (
