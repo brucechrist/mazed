@@ -62,6 +62,22 @@ export default function Library({ onBack }) {
   const [palette, setPalette] = useState(DEFAULT_COLORS);
   const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [libraryTheme, setLibraryTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedTheme = localStorage.getItem('libraryTheme');
+      if (storedTheme === 'light' || storedTheme === 'dark') {
+        return storedTheme;
+      }
+      if (
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: light)').matches
+      ) {
+        return 'light';
+      }
+    }
+    return 'dark';
+  });
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
 
@@ -146,9 +162,21 @@ export default function Library({ onBack }) {
     localStorage.setItem('mazedSounds', JSON.stringify(s));
   };
 
+  const handleThemeChange = (nextTheme) => {
+    setLibraryTheme(nextTheme);
+    setSettingsOpen(false);
+    setSortMenuOpen(false);
+  };
+
   useEffect(() => {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('libraryTheme', libraryTheme);
+    }
+  }, [libraryTheme]);
   const maxZoom = 1; // max 100% of native size
   const colWidth = 250 * zoom;
   const rowHeight = 1; // finer base row height for masonry grid
@@ -196,6 +224,7 @@ export default function Library({ onBack }) {
       setMenu(null);
       setSoundMenu(null);
       setSortMenuOpen(false);
+      setSettingsOpen(false);
     };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
@@ -638,7 +667,9 @@ export default function Library({ onBack }) {
 
   return (
     <div
-      className={`library-container ${isDragging ? 'dragging' : ''}`}
+      className={`library-container ${
+        isDragging ? 'dragging' : ''
+      } ${libraryTheme === 'light' ? 'light-mode' : 'dark-mode'}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -648,59 +679,136 @@ export default function Library({ onBack }) {
       {uploading && <div className="upload-status">Uploading…</div>}
       <div className="library-manager">
         <div className="library-header">
-          <button onClick={onBack} className="back-button">
+          <button onClick={onBack} className="back-button" type="button">
             Back
           </button>
           <h2>Library</h2>
-          <div className="sort-dropdown">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSortMenuOpen((o) => !o);
-              }}
-              className="sort-button"
-            >
-              Order
-            </button>
-            {sortMenuOpen && (
-              <div
-                className="sort-menu"
-                onClick={(e) => e.stopPropagation()}
+          <div className="library-actions">
+            <div className="library-settings">
+              <button
+                type="button"
+                className={`library-settings-button${
+                  settingsOpen ? ' open' : ''
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSettingsOpen((open) => !open);
+                  setSortMenuOpen(false);
+                }}
+                aria-label="Library settings"
               >
-                <button
-                  onClick={() => {
-                    resetSort();
-                    setSortMenuOpen(false);
-                  }}
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                  className="library-settings-icon"
                 >
-                  Original
-                </button>
-                <button
-                  onClick={() => {
-                    sortByTitle();
-                    setSortMenuOpen(false);
-                  }}
+                  <path
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.532-.918 3.31.86 2.392 2.392a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.918 1.532-.86 3.31-2.392 2.392a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.532.918-3.31-.86-2.392-2.392a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.918-1.532.86-3.31 2.392-2.392a1.724 1.724 0 0 0 2.573-1.066Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </button>
+              {settingsOpen && (
+                <div
+                  className="library-settings-menu"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Title
-                </button>
-                <button
-                  onClick={() => {
-                    sortByDate();
-                    setSortMenuOpen(false);
-                  }}
-                >
-                  Date Added
-                </button>
-                <button
-                  onClick={() => {
-                    autoSortByColor();
-                    setSortMenuOpen(false);
-                  }}
-                >
-                  Color
-                </button>
+                  <button
+                    type="button"
+                    className={libraryTheme === 'light' ? 'active' : ''}
+                    onClick={() => handleThemeChange('light')}
+                  >
+                    <span>Light mode</span>
+                    {libraryTheme === 'light' && (
+                      <span
+                        className="library-settings-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryTheme === 'dark' ? 'active' : ''}
+                    onClick={() => handleThemeChange('dark')}
+                  >
+                    <span>Dark mode</span>
+                    {libraryTheme === 'dark' && (
+                      <span
+                        className="library-settings-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
                 </div>
-                )}
+              )}
+            </div>
+            <div className="sort-dropdown">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortMenuOpen((o) => !o);
+                  setSettingsOpen(false);
+                }}
+                className="sort-button"
+                type="button"
+              >
+                Order
+              </button>
+              {sortMenuOpen && (
+                <div
+                  className="sort-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      resetSort();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Original
+                  </button>
+                  <button
+                    onClick={() => {
+                      sortByTitle();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Title
+                  </button>
+                  <button
+                    onClick={() => {
+                      sortByDate();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Date Added
+                  </button>
+                  <button
+                    onClick={() => {
+                      autoSortByColor();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Color
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="library-tabs">
