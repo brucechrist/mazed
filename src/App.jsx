@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
@@ -155,6 +155,12 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [sidebarIndex, setSidebarIndex] = useState(() =>
     tabs.findIndex((t) => t.label === (initialTab || tabs[0].label))
   );
+  const [floorAnimation, setFloorAnimation] = useState({
+    direction: null,
+    active: false,
+  });
+  const prevLayerRef = useRef(activeLayer);
+  const animationTimeoutRef = useRef(null);
 
   const anyAppOpen =
     showJournal ||
@@ -258,6 +264,40 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       setShowToolsBlog(false);
     }
   }, [activeLayer]);
+
+  useEffect(() => {
+    const previousLayer = prevLayerRef.current;
+    if (previousLayer !== activeLayer) {
+      const previousIndex = layers.findIndex((layer) => layer.label === previousLayer);
+      const nextIndex = layers.findIndex((layer) => layer.label === activeLayer);
+
+      if (previousIndex !== -1 && nextIndex !== -1) {
+        const direction = nextIndex < previousIndex ? 'up' : 'down';
+        setFloorAnimation({ direction, active: true });
+
+        if (animationTimeoutRef.current) {
+          clearTimeout(animationTimeoutRef.current);
+        }
+
+        animationTimeoutRef.current = setTimeout(() => {
+          setFloorAnimation({ direction: null, active: false });
+          animationTimeoutRef.current = null;
+        }, 700);
+      }
+    }
+
+    prevLayerRef.current = activeLayer;
+  }, [activeLayer]);
+
+  useEffect(
+    () => () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+        animationTimeoutRef.current = null;
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -468,10 +508,15 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     );
   }
 
+  const elevatorClass =
+    floorAnimation.active && floorAnimation.direction
+      ? ` elevator-${floorAnimation.direction}`
+      : '';
+
   return (
     <QuestProvider>
       <ActivityLogger enabled={autoLog} />
-      <div className="app-container">
+      <div className={`app-container${elevatorClass}`}>
         <aside className="sidebar">
           <div className="layer-buttons">
             {layers.map((layer) => (
