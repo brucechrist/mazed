@@ -215,6 +215,23 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowSettings(false);
   };
 
+  const toolsTabIndex = tabs.findIndex((tab) => tab.label === 'Tools');
+
+  const openToolsHome = () => {
+    setActiveTab('Tools');
+    setSidebarIndex(toolsTabIndex);
+    closeOpenApp();
+    setSelectedAppIndex(-1);
+  };
+
+  const openToolsBlog = () => {
+    setActiveTab('Tools');
+    setSidebarIndex(toolsTabIndex);
+    closeOpenApp();
+    setSelectedAppIndex(-1);
+    setShowBlog(true);
+  };
+
   useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
@@ -463,6 +480,31 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                 onDrop={(e) => handleDropOnLayer(e, layer.label)}
               />
             ))}
+          </div>
+          <div className="sidebar-middle-buttons">
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#ff4d4f' }}
+              title="Coming soon"
+              aria-label="Coming soon"
+            />
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#2196f3' }}
+              onClick={openToolsHome}
+              title="Open training apps"
+              aria-label="Open training apps"
+            />
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#4caf50' }}
+              onClick={openToolsBlog}
+              title="Open Tools Blog"
+              aria-label="Open Tools Blog"
+            />
           </div>
           <div className="bottom-buttons">
           <div
