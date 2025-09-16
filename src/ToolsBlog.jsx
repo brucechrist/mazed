@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './tools-blog.css';
 
 const THEMES = [
@@ -53,8 +53,12 @@ export default function ToolsBlog({ onBack }) {
   );
   const [editingPostId, setEditingPostId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
+  const [openMenuPostId, setOpenMenuPostId] = useState(null);
+
+  const closeActionMenu = () => setOpenMenuPostId(null);
 
   const startEditing = (post) => {
+    closeActionMenu();
     setEditingPostId(post.id);
     setEditDraft({
       title: post.title,
@@ -85,10 +89,17 @@ export default function ToolsBlog({ onBack }) {
   };
 
   const removePost = (postId) => {
+    closeActionMenu();
     setPosts((previousPosts) => previousPosts.filter((post) => post.id !== postId));
     if (editingPostId === postId) {
       cancelEditing();
     }
+  };
+
+  const toggleActionMenu = (postId) => {
+    setOpenMenuPostId((currentPostId) =>
+      currentPostId === postId ? null : postId
+    );
   };
 
   const updateDraftField = (field) => (event) => {
@@ -98,6 +109,48 @@ export default function ToolsBlog({ onBack }) {
       [field]: value,
     }));
   };
+
+  useEffect(() => {
+    if (openMenuPostId == null) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (typeof Element === 'undefined') {
+        setOpenMenuPostId(null);
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        setOpenMenuPostId(null);
+        return;
+      }
+
+      const menuElement = target.closest('[data-action-menu]');
+      const menuPostId = menuElement?.getAttribute('data-post-id');
+
+      if (menuPostId !== String(openMenuPostId)) {
+        setOpenMenuPostId(null);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setOpenMenuPostId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenuPostId]);
 
   return (
     <div className="tools-blog">
@@ -146,21 +199,46 @@ export default function ToolsBlog({ onBack }) {
                   <span className="blog-card-index">{displayIndex}</span>
                 </div>
                 {!isEditing && (
-                  <div className="blog-card-actions">
+                  <div
+                    className="blog-card-actions"
+                    data-action-menu
+                    data-post-id={String(post.id)}
+                  >
                     <button
                       type="button"
-                      className="blog-card-button"
-                      onClick={() => startEditing(post)}
+                      className="blog-card-icon-button"
+                      aria-haspopup="menu"
+                      aria-expanded={openMenuPostId === post.id}
+                      aria-controls={`blog-card-menu-${post.id}`}
+                      aria-label={`Open actions for ${post.title}`}
+                      onClick={() => toggleActionMenu(post.id)}
                     >
-                      Modify
+                      <span aria-hidden="true">⋯</span>
                     </button>
-                    <button
-                      type="button"
-                      className="blog-card-button blog-card-button--danger"
-                      onClick={() => removePost(post.id)}
-                    >
-                      Remove
-                    </button>
+                    {openMenuPostId === post.id && (
+                      <div
+                        id={`blog-card-menu-${post.id}`}
+                        className="blog-card-action-dropdown"
+                        role="menu"
+                      >
+                        <button
+                          type="button"
+                          className="blog-card-menu-button"
+                          role="menuitem"
+                          onClick={() => startEditing(post)}
+                        >
+                          Modify
+                        </button>
+                        <button
+                          type="button"
+                          className="blog-card-menu-button blog-card-menu-button--danger"
+                          role="menuitem"
+                          onClick={() => removePost(post.id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
