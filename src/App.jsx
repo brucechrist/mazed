@@ -220,6 +220,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const openToolsHome = () => {
     setActiveTab('Tools');
     setSidebarIndex(toolsTabIndex);
+    setActiveLayer('Form');
     closeOpenApp();
     setSelectedAppIndex(-1);
   };
@@ -227,9 +228,13 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const openToolsBlog = () => {
     setActiveTab('Tools');
     setSidebarIndex(toolsTabIndex);
+    setActiveLayer('Semi-Formless');
     closeOpenApp();
     setSelectedAppIndex(-1);
-    setShowBlog(true);
+    window.postMessage(
+      { type: 'NAVIGATE_PAGE', page: 'blog' },
+      '*'
+    );
   };
 
   useEffect(() => {
@@ -489,22 +494,22 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               title="Coming soon"
               aria-label="Coming soon"
             />
-            <button
-              type="button"
-              className="sidebar-quick-button"
-              style={{ backgroundColor: '#2196f3' }}
-              onClick={openToolsHome}
-              title="Open training apps"
-              aria-label="Open training apps"
-            />
-            <button
-              type="button"
-              className="sidebar-quick-button"
-              style={{ backgroundColor: '#4caf50' }}
-              onClick={openToolsBlog}
-              title="Open Tools Blog"
-              aria-label="Open Tools Blog"
-            />
+          <button
+            type="button"
+            className="sidebar-quick-button"
+            style={{ backgroundColor: '#2196f3' }}
+            onClick={openToolsBlog}
+            title="Open blog layer (Layer 2)"
+            aria-label="Open blog layer (Layer 2)"
+          />
+          <button
+            type="button"
+            className="sidebar-quick-button"
+            style={{ backgroundColor: '#4caf50' }}
+            onClick={openToolsHome}
+            title="Return to training layer (Layer 1)"
+            aria-label="Return to training layer (Layer 1)"
+          />
           </div>
           <div className="bottom-buttons">
           <div
