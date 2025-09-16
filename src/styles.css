@@ -47,6 +47,7 @@ body.character-page {
   width: 70px;
   background-color: rgba(128, 128, 128, 0.6);
   padding: 20px 0;
+  position: relative;
 }
 
 .layer-buttons {
@@ -58,6 +59,38 @@ body.character-page {
   flex-direction: row;
   gap: 15px;
   z-index: 1000;
+}
+
+.sidebar-middle-buttons {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+}
+
+.sidebar-quick-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sidebar-quick-button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.sidebar-quick-button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 .layer-button {
