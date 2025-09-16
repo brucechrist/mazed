@@ -277,7 +277,6 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
 
   useEffect(() => {
     const previousLayer = prevLayerRef.current;
-
     if (previousLayer !== activeLayer) {
       const previousIndex = layers.findIndex((layer) => layer.label === previousLayer);
       const nextIndex = layers.findIndex((layer) => layer.label === activeLayer);
