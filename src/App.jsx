@@ -253,6 +253,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     );
   };
 
+  const openCollectiveLayer = () => {
+    setActiveTab('Tools');
+    setSidebarIndex(toolsTabIndex);
+    triggerElevatorToLayer('Formless');
+    closeOpenApp();
+    setSelectedAppIndex(-1);
+    window.postMessage(
+      { type: 'NAVIGATE_PAGE', page: 'collective' },
+      '*'
+    );
+  };
+
   useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');
     localStorage.setItem('theme', theme);
@@ -562,25 +574,28 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               type="button"
               className="sidebar-quick-button"
               style={{ backgroundColor: '#ff4d4f' }}
-              title="Coming soon"
-              aria-label="Coming soon"
+              onClick={openCollectiveLayer}
+              title="Open Collective layer (Layer 3)"
+              aria-label="Open Collective layer (Layer 3)"
+            >
+              🤝
+            </button>
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#2196f3' }}
+              onClick={openToolsBlog}
+              title="Open blog layer (Layer 2)"
+              aria-label="Open blog layer (Layer 2)"
             />
-          <button
-            type="button"
-            className="sidebar-quick-button"
-            style={{ backgroundColor: '#2196f3' }}
-            onClick={openToolsBlog}
-            title="Open blog layer (Layer 2)"
-            aria-label="Open blog layer (Layer 2)"
-          />
-          <button
-            type="button"
-            className="sidebar-quick-button"
-            style={{ backgroundColor: '#4caf50' }}
-            onClick={openToolsHome}
-            title="Return to training layer (Layer 1)"
-            aria-label="Return to training layer (Layer 1)"
-          />
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#4caf50' }}
+              onClick={openToolsHome}
+              title="Return to training layer (Layer 1)"
+              aria-label="Return to training layer (Layer 1)"
+            />
           </div>
           <div className="bottom-buttons">
           <div
