@@ -110,11 +110,15 @@ export default function PageRouter() {
       if (e.data?.type === 'OPEN_SPLIT') {
         setDockApp(e.data.appId);
         setIsDocked(true);
+      } else if (e.data?.type === 'NAVIGATE_PAGE' && typeof e.data.page === 'string') {
+        setIsDocked(false);
+        setDockApp(null);
+        navigate(e.data.page);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [navigate]);
 
   const goBack = useCallback(() => {
     if (isDocked) {
