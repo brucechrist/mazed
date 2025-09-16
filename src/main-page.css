@@ -58,7 +58,31 @@ body {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(90vw, 780px);
+  padding: 0 20px;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+.bottom-menu-section {
+  display: flex;
+  align-items: center;
   gap: 15px;
+  flex: 0 0 auto;
+}
+
+.bottom-menu-section.bottom-menu-right {
+  justify-content: flex-end;
+}
+
+.bottom-menu-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  flex: 1 1 auto;
 }
 
 .side-button {
