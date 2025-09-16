@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
@@ -14,6 +14,40 @@ const hexToName = (hex) => {
   }
 };
 
+const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
+
+function QuadrantPicker({ value = [], onChange }) {
+  const main = value[0];
+  const sub = value[1];
+  const handle = (outer, inner) => {
+    if (main === outer && sub === inner) {
+      onChange([]);
+    } else {
+      onChange([outer, inner]);
+    }
+  };
+  return (
+    <div className="quadrant-grid">
+      {QUADRANT_ORDER.map((outer) => (
+        <div
+          key={outer}
+          className={`quadrant-outer${main === outer ? ' selected' : ''}`}
+        >
+          {QUADRANT_ORDER.map((inner) => (
+            <div
+              key={outer + '-' + inner}
+              className={`quadrant-inner${
+                main === outer && sub === inner ? ' selected' : ''
+              }`}
+                onClick={() => handle(outer, inner)}
+              />
+            ))}
+          </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Library({ onBack }) {
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -21,9 +55,6 @@ export default function Library({ onBack }) {
   const [menu, setMenu] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
-  const [zoom, setZoom] = useState(
-    () => Number(localStorage.getItem('libraryZoom')) || 0.35
-  );
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [descInput, setDescInput] = useState('');
@@ -33,7 +64,10 @@ export default function Library({ onBack }) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
-  const gridRef = useRef(null);
+
+  const [zoom, setZoom] = useState(
+    () => parseFloat(localStorage.getItem('libraryZoom')) || 0.5
+  );
 
   const [words, setWords] = useState([]);
   const [wordInput, setWordInput] = useState('');
@@ -48,50 +82,29 @@ export default function Library({ onBack }) {
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
 
-  const calcSpan = (el) => {
-    if (!el) return;
-    const grid = gridRef.current || el.parentNode;
-    if (!grid) return;
-    const styles = getComputedStyle(grid);
-    const rowHeight = parseInt(styles.getPropertyValue('grid-auto-rows')) || 1;
-    const rowGap = parseInt(styles.getPropertyValue('row-gap')) || 0;
-    if (!rowHeight) return;
-
-    const img = el.querySelector('img, .sound-placeholder');
-    if (!img) return;
-
-    let height;
-    if (img.tagName === 'IMG' && img.naturalWidth) {
-      const width = el.clientWidth || img.naturalWidth;
-      height = (img.naturalHeight / img.naturalWidth) * width;
-    } else {
-      const width = el.clientWidth;
-      height = width; // assume square for non-image placeholders
-    }
-
-    const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
-    el.style.gridRowEnd = `span ${span}`;
-  };
-
-  const recalcSpans = () => {
-    document
-      .querySelectorAll('.image-grid')
-      .forEach((grid) =>
-        Array.from(grid.children).forEach((child) => calcSpan(child))
-      );
-  };
-
-  // Load saved images from localStorage on mount
+  // Restore masonry spans by normalizing stored images to their natural size
   useEffect(() => {
     const saved = localStorage.getItem('mazedImages');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setImages(
-          Array.isArray(parsed)
-            ? parsed.map((img) => ({ span: img.span || 1, ...img }))
-            : []
-        );
+        if (Array.isArray(parsed)) {
+          Promise.all(
+            parsed.map(
+              (img) =>
+                new Promise((resolve) => {
+                  const i = new Image();
+                  i.onload = () =>
+                    resolve({
+                      ...img,
+                      width: i.naturalWidth,
+                      height: i.naturalHeight,
+                    });
+                  i.src = img.dataUrl;
+                })
+            )
+          ).then(saveImages);
+        }
       } catch (e) {
         console.error('Failed to parse saved images', e);
       }
@@ -136,17 +149,10 @@ export default function Library({ onBack }) {
   useEffect(() => {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
-
-  useEffect(() => {
-    recalcSpans();
-  }, [images, sounds, zoom]);
-
-  useEffect(() => {
-    window.addEventListener('resize', recalcSpans);
-    return () => window.removeEventListener('resize', recalcSpans);
-  }, []);
-
   const maxZoom = 1; // max 100% of native size
+  const colWidth = 250 * zoom;
+  const rowHeight = 1; // finer base row height for masonry grid
+  const gridGap = 20; // keep in sync with .image-grid gap in CSS
 
   useEffect(() => {
     const handleWheel = (e) => {
@@ -195,12 +201,6 @@ export default function Library({ onBack }) {
     return () => window.removeEventListener('click', close);
   }, []);
 
-  useEffect(() => {
-    recalcSpans();
-    window.addEventListener('resize', recalcSpans);
-    return () => window.removeEventListener('resize', recalcSpans);
-  }, [images, sounds, zoom]);
-
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
     saveImages(updated);
@@ -221,39 +221,11 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
-  const resizeImage = (id, span) => {
-    const updated = images.map((img) =>
-      img.id === id ? { ...img, span } : img
-    );
-    saveImages(updated);
-  };
-
-  const startResize = (id, startSpan, e) => {
-    e.stopPropagation();
-    const startX = e.clientX;
-    const baseWidth = 250 * zoom;
-    const onMove = (ev) => {
-      ev.preventDefault();
-      const diff = ev.clientX - startX;
-      const rawSpan = startSpan + diff / baseWidth;
-      const img = images.find((i) => i.id === id);
-      const maxSpan = Math.max(1, Math.ceil(img.width / baseWidth));
-      const newSpan = Math.min(maxSpan, Math.max(1, Math.round(rawSpan)));
-      resizeImage(id, newSpan);
-      recalcSpans();
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
   const updateImage = (id, updates) => {
     const updated = images.map((img) =>
       img.id === id ? { ...img, ...updates } : img
     );
+
     saveImages(updated);
     const next = updated.find((i) => i.id === id);
     if (next) setLightbox(next);
@@ -392,9 +364,8 @@ export default function Library({ onBack }) {
           quadrants: [],
           color: hex,
           dataUrl: result,
-          width: imgEl.width,
-          height: imgEl.height,
-          span: 1,
+          width: imgEl.naturalWidth,
+          height: imgEl.naturalHeight,
         };
         const updated = [...images, newImage];
         saveImages(updated);
@@ -530,21 +501,31 @@ export default function Library({ onBack }) {
     }
   };
 
+  const getMasonrySpan = (targetHeight) => {
+    if (!targetHeight || Number.isNaN(targetHeight)) return 1;
+    return Math.max(
+      1,
+      Math.ceil((targetHeight + gridGap) / (rowHeight + gridGap))
+    );
+  };
+
   const renderImageCard = (img) => {
-    const colWidth = 250 * zoom;
-    const span = img.span || 1;
+    const scaledHeight =
+      img.width && img.height
+        ? (img.height / img.width) * colWidth
+        : colWidth;
+    const span = getMasonrySpan(scaledHeight);
     return (
       <div
         key={img.id}
         className="image-card"
-        style={{ width: colWidth * span, gridColumnEnd: `span ${span}` }}
+        style={{ gridRowEnd: `span ${span}` }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={() => setLightbox(img)}
-        ref={calcSpan}
         onDragStart={
           sortMode !== 'title' && sortMode !== 'date'
             ? () => setDraggedId(img.id)
@@ -572,10 +553,9 @@ export default function Library({ onBack }) {
                 if (draggedId && draggedId !== img.id) {
                   moveImage(draggedId, img.id);
                 }
-                setDraggedId(null);
               }
-            : undefined
-        }
+              : undefined
+          }
         onDragEnd={
           sortMode !== 'title' && sortMode !== 'date'
             ? () => setDraggedId(null)
@@ -598,7 +578,6 @@ export default function Library({ onBack }) {
                 setLightbox((l) => ({ ...l, width: w, height: h }));
               }
             }
-            calcSpan(e.target.parentNode);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -615,50 +594,47 @@ export default function Library({ onBack }) {
             {img.title}
           </h3>
         </div>
-        {sortMode !== 'title' && sortMode !== 'date' && (
-          <div
-            className="resize-handle"
-            onMouseDown={(e) => startResize(img.id, span, e)}
-          ></div>
-        )}
       </div>
     );
   };
 
-  const renderSoundCard = (snd) => (
-    <div
-      key={snd.id}
-      className="image-card sound-card"
-      ref={calcSpan}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
-      }}
-    >
-      {snd.thumbnail ? (
-        <img src={snd.thumbnail} alt={snd.title} draggable={false} />
-      ) : (
-        <div className="sound-placeholder">♪</div>
-      )}
-      <div className="image-overlay">
-        <h3>
-          {snd.color && (
-            <span
-              className="color-dot"
-              style={{ background: snd.color }}
-            ></span>
-          )}
-          {snd.title}
-        </h3>
-        {snd.tag && <span className="tag">{snd.tag}</span>}
-        <audio
-          controls
-          src={snd.dataUrl}
-          className="sound-player"
-        ></audio>
+  const renderSoundCard = (snd, width = colWidth) => {
+    const span = getMasonrySpan(width);
+    return (
+      <div
+        key={snd.id}
+        className="image-card sound-card"
+        style={{ gridRowEnd: `span ${span}` }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+        }}
+      >
+        {snd.thumbnail ? (
+          <img src={snd.thumbnail} alt={snd.title} draggable={false} />
+        ) : (
+          <div className="sound-placeholder">♪</div>
+        )}
+        <div className="image-overlay">
+          <h3>
+            {snd.color && (
+              <span
+                className="color-dot"
+                style={{ background: snd.color }}
+              ></span>
+            )}
+            {snd.title}
+          </h3>
+          {snd.tag && <span className="tag">{snd.tag}</span>}
+          <audio
+            controls
+            src={snd.dataUrl}
+            className="sound-player"
+          ></audio>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div
@@ -723,8 +699,8 @@ export default function Library({ onBack }) {
                 >
                   Color
                 </button>
-              </div>
-            )}
+                </div>
+                )}
           </div>
         </div>
         <div className="library-tabs">
@@ -758,53 +734,51 @@ export default function Library({ onBack }) {
             <div className="color-groups">
               {palette.map((c) => {
                 const groupImgs = images.filter((img) => img.color === c);
-                  const groupSounds = sounds.filter((s) => s.color === c);
-                  if (!groupImgs.length && !groupSounds.length) return null;
+                const groupSounds = sounds.filter((s) => s.color === c);
+                if (!groupImgs.length && !groupSounds.length) return null;
                 return (
                   <div key={c} className="color-group">
                     <h3 className="color-title" style={{ color: c }}>
                       {hexToName(c)}
                     </h3>
-                    <div
-                      className="image-grid"
-                      style={{
-                        gridTemplateColumns: `repeat(auto-fill, minmax(${
-                          250 * zoom
-                        }px, 1fr))`,
-                      }}
-                      onDragOver={(e) => {
-                        if (e.dataTransfer.files?.length) {
-                          handleDragOver(e);
-                        } else {
-                          e.preventDefault();
-                        }
-                      }}
-                      onDrop={(e) => {
-                        if (e.dataTransfer.files?.length) {
-                          handleDrop(e);
-                          return;
-                        }
-                        e.preventDefault();
-                        if (draggedId) {
-                          const updated = images.filter(
-                            (img) => img.id !== draggedId
-                          );
-                          const moved = images.find(
-                            (img) => img.id === draggedId
-                          );
-                          if (moved) {
-                            moved.color = c;
-                            moved.title = hexToName(c);
-                            updated.push(moved);
-                            saveImages(updated);
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div
+                          className="image-grid"
+                          style={{
+                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                            gridAutoRows: `${rowHeight}px`,
+                            gap: `${gridGap}px`,
+                          }}
+                          onDragOver={(e) => {
+                          if (e.dataTransfer.files?.length) {
+                            handleDragOver(e);
+                          } else {
+                            e.preventDefault();
                           }
-                          setDraggedId(null);
-                        }
-                      }}
-                    >
-                      {groupImgs.map((img) => renderImageCard(img))}
-                      {activeTab === 'all' &&
-                        groupSounds.map((s) => renderSoundCard(s))}
+                        }}
+                        onDrop={(e) => {
+                          if (e.dataTransfer.files?.length) {
+                            handleDrop(e);
+                            return;
+                          }
+                          e.preventDefault();
+                          if (draggedId) {
+                            const updated = images.filter((img) => img.id !== draggedId);
+                            const moved = images.find((img) => img.id === draggedId);
+                            if (moved) {
+                              moved.color = c;
+                              moved.title = hexToName(c);
+                              updated.push(moved);
+                              saveImages(updated);
+                            }
+                            setDraggedId(null);
+                          }
+                        }}
+                      >
+                        {groupImgs.map((img) => renderImageCard(img))}
+                        {activeTab === 'all' &&
+                          groupSounds.map((s) => renderSoundCard(s))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -814,27 +788,28 @@ export default function Library({ onBack }) {
                   <h3 className="color-title" style={{ color: '#fff' }}>
                     Sounds
                   </h3>
-                  <div
-                    className="image-grid"
-                    style={{
-                      gridTemplateColumns: `repeat(auto-fill, minmax(${800 * zoom}px, 1fr))`,
-                    }}
-                  >
-                    {sounds.map((s, i) =>
-                      renderSoundCard(s, images.length + i)
-                    )}
-                  </div>
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div
+                          className="image-grid"
+                          style={{
+                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                            gridAutoRows: `${rowHeight}px`,
+                            gap: `${gridGap}px`,
+                          }}
+                        >
+                        {sounds.map((s) => renderSoundCard(s))}
+                      </div>
+                    </div>
                 </div>
               )}
             </div>
           ) : (
             <div
-              ref={gridRef}
               className="image-grid"
               style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${
-                  250 * zoom
-                }px, 1fr))`,
+                gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                gridAutoRows: `${rowHeight}px`,
+                gap: `${gridGap}px`,
               }}
               onDragOver={
                 sortMode !== 'title' && sortMode !== 'date'
@@ -847,46 +822,45 @@ export default function Library({ onBack }) {
                     }
                   : undefined
               }
-              onDrop={
-                sortMode !== 'title' && sortMode !== 'date'
-                  ? (e) => {
-                      if (e.dataTransfer.files?.length) {
-                        handleDrop(e);
-                        return;
-                      }
-                      e.preventDefault();
-                      if (draggedId) {
-                        const fromIndex = images.findIndex(
-                          (img) => img.id === draggedId
-                        );
-                        if (fromIndex !== -1) {
-                          const updated = [...images];
-                          const [moved] = updated.splice(fromIndex, 1);
-                          updated.push(moved);
-                          saveImages(updated);
+                onDrop={
+                  sortMode !== 'title' && sortMode !== 'date'
+                    ? (e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDrop(e);
+                          return;
                         }
-                        setDraggedId(null);
+                        e.preventDefault();
+                        if (draggedId) {
+                          const fromIndex = images.findIndex(
+                            (img) => img.id === draggedId
+                          );
+                          if (fromIndex !== -1) {
+                            const updated = [...images];
+                            const [moved] = updated.splice(fromIndex, 1);
+                            updated.push(moved);
+                            saveImages(updated);
+                          }
+                          setDraggedId(null);
+                        }
                       }
-                    }
-                  : undefined
-              }
-              >
-                {(
-                  activeTab === 'all'
-                    ? [...images.map((img) => ({ type: 'image', item: img })),
-                      ...sounds.map((s) => ({ type: 'sound', item: s }))]
+                    : undefined
+                }
+                >
+                  {(
+                    activeTab === 'all'
+                      ? [...images.map((img) => ({ type: 'image', item: img })),
+                        ...sounds.map((s) => ({ type: 'sound', item: s }))]
                         .sort((a, b) => a.item.id - b.item.id)
                         .map(({ type, item }) =>
                           type === 'image'
                             ? renderImageCard(item)
                             : renderSoundCard(item)
                         )
-                    : images.map((img) => renderImageCard(img))
-                )}
-              </div>
-          )
-        )}
-        {(activeTab === 'all' || activeTab === 'words') && (
+                      : images.map((img) => renderImageCard(img))
+                  )}
+                </div>
+            ))}
+          {(activeTab === 'all' || activeTab === 'words') && (
           <div className="word-section">
             {activeTab === 'words' && (
               <form onSubmit={handleAddWord} className="word-form">
@@ -908,15 +882,17 @@ export default function Library({ onBack }) {
         )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
-            <div
-              className="image-grid"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, minmax(${
-                  250 * zoom
-                }px, 1fr))`,
-              }}
-            >
-              {sounds.map((s) => renderSoundCard(s))}
+            <div style={{ width: '100%', overflow: 'hidden' }}>
+              <div
+                className="image-grid"
+                style={{
+                  gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                  gridAutoRows: `${rowHeight}px`,
+                  gap: `${gridGap}px`,
+                }}
+              >
+                {sounds.map((s) => renderSoundCard(s))}
+              </div>
             </div>
           </div>
         )}
@@ -933,13 +909,13 @@ export default function Library({ onBack }) {
                 onChange={(e) => setSoundTitle(e.target.value)}
                 placeholder="Title"
               />
-              {soundThumbPreview && (
-                <img
-                  src={soundThumbPreview}
-                  alt="Thumbnail preview"
-                  className="sound-thumb-preview"
-                />
-              )}
+                {soundThumbPreview && (
+                  <img
+                    src={soundThumbPreview}
+                    alt="Thumbnail preview"
+                    className="sound-thumb-preview"
+                  />
+                )}
               <input
                 type="file"
                 accept="image/*"
@@ -1038,9 +1014,6 @@ export default function Library({ onBack }) {
             </button>
           </div>
         )}
-        {!lightbox && (
-          <div className="zoom-indicator">{Math.round(zoom * 100)}%</div>
-        )}
         {lightbox && (
           <div className="lightbox" onClick={() => setLightbox(null)}>
             <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
@@ -1096,86 +1069,45 @@ export default function Library({ onBack }) {
                     onBlur={() => updateImage(lightbox.id, { description: descInput })}
                   />
                   <div className="quad-section">
-                    <div className="quad-header">
-                      <h2>Quads</h2>
-                      {(lightbox.quadrants?.length || 0) < 2 && (
-                        <button
-                          className="add-quad-btn"
-                          onClick={() => {
-                            const nq = [...(lightbox.quadrants || []), ''];
-                            updateImage(lightbox.id, { quadrants: nq });
-                          }}
-                        >
-                          +
-                        </button>
-                      )}
-                    </div>
-                    <div className="quad-list">
-                      {(lightbox.quadrants && lightbox.quadrants.length > 0
-                        ? lightbox.quadrants
-                        : ['']
-                      ).map((q, idx) => (
-                        <select
-                          key={idx}
-                          value={q}
-                          className={`quad-select ${q ? 'quad-' + q : ''}`}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            let nq = [...(lightbox.quadrants || [])];
-                            if (val === '') {
-                              nq.splice(idx, 1);
-                            } else {
-                              nq[idx] = val;
-                            }
-                            updateImage(lightbox.id, { quadrants: nq });
-                          }}
-                        >
-                          <option value=""></option>
-                          <option value="II">II</option>
-                          <option value="IE">IE</option>
-                          <option value="EI">EI</option>
-                          <option value="EE">EE</option>
-                        </select>
-                      ))}
-                    </div>
+                    <QuadrantPicker
+                      value={lightbox.quadrants || []}
+                      onChange={(q) => updateImage(lightbox.id, { quadrants: q })}
+                    />
                   </div>
                   <div className="color-section">
-                    <h2>Colors</h2>
                     <div className="color-list">
                       {palette.map((c, idx) => (
-                        <div key={idx} className="color-entry">
-                          <button
-                            className={`color-circle${
-                              lightbox.color === c ? ' selected' : ''
-                            }`}
-                            style={{ background: c }}
-                            title={hexToName(c)}
-                            onClick={() => {
-                              const nc = lightbox.color === c ? '' : c;
-                              const updates = { color: nc };
-                              if (nc) updates.title = hexToName(nc);
-                              updateImage(lightbox.id, updates);
-                            }}
-                          />
-                          <span className="color-label">{hexToName(c)}</span>
-                        </div>
+                        <button
+                          key={idx}
+                          className={`color-circle${
+                            lightbox.color === c ? ' selected' : ''
+                          }`}
+                          style={{ background: c }}
+                          title={hexToName(c)}
+                          onClick={() => {
+                            const nc = lightbox.color === c ? '' : c;
+                            const updates = { color: nc };
+                            if (nc) updates.title = hexToName(nc);
+                            updateImage(lightbox.id, updates);
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
-                  <div className="tag-list">
-                    {lightbox.tags?.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="tag"
-                        onClick={() => {
-                          const nt = lightbox.tags.filter((_, i) => i !== idx);
-                          updateImage(lightbox.id, { tags: nt });
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    <input
+                    <div className="tag-list">
+                      {lightbox.tags?.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="tag"
+                          onClick={() => {
+                            const nt = lightbox.tags.filter((_, i) => i !== idx);
+                            updateImage(lightbox.id, { tags: nt });
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      <input
                       type="text"
                       value={tagInput}
                       placeholder="Add tag"
@@ -1190,14 +1122,13 @@ export default function Library({ onBack }) {
                     />
                   </div>
                 </div>
-              </div>
-              <div className="zoom-indicator">
-                {Math.round(lightboxZoom * 100)}%
+                <div className="zoom-indicator">
+                  {Math.round(lightboxZoom * 100)}%
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
-    </div>
-  );
-}
+      </div>
+    );
+  }
