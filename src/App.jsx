@@ -161,6 +161,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   });
   const prevLayerRef = useRef(activeLayer);
   const animationTimeoutRef = useRef(null);
+  const elevatorTriggerRef = useRef(false);
 
   const anyAppOpen =
     showJournal ||
@@ -223,10 +224,19 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
 
   const toolsTabIndex = tabs.findIndex((tab) => tab.label === 'Tools');
 
+  const triggerElevatorToLayer = (layerLabel) => {
+    const willChange = layerLabel !== activeLayer;
+    if (willChange) {
+      elevatorTriggerRef.current = true;
+      setActiveLayer(layerLabel);
+    }
+    return willChange;
+  };
+
   const openToolsHome = () => {
     setActiveTab('Tools');
     setSidebarIndex(toolsTabIndex);
-    setActiveLayer('Form');
+    triggerElevatorToLayer('Form');
     closeOpenApp();
     setSelectedAppIndex(-1);
   };
@@ -234,7 +244,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const openToolsBlog = () => {
     setActiveTab('Tools');
     setSidebarIndex(toolsTabIndex);
-    setActiveLayer('Semi-Formless');
+    triggerElevatorToLayer('Semi-Formless');
     closeOpenApp();
     setSelectedAppIndex(-1);
     window.postMessage(
@@ -270,8 +280,15 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     if (previousLayer !== activeLayer) {
       const previousIndex = layers.findIndex((layer) => layer.label === previousLayer);
       const nextIndex = layers.findIndex((layer) => layer.label === activeLayer);
+      const shouldAnimate = elevatorTriggerRef.current;
+      elevatorTriggerRef.current = false;
 
-      if (previousIndex !== -1 && nextIndex !== -1) {
+      if (
+        shouldAnimate &&
+        previousIndex !== -1 &&
+        nextIndex !== -1 &&
+        previousIndex !== nextIndex
+      ) {
         const direction = nextIndex < previousIndex ? 'up' : 'down';
         setFloorAnimation({ direction, active: true });
 
@@ -283,6 +300,15 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           setFloorAnimation({ direction: null, active: false });
           animationTimeoutRef.current = null;
         }, 700);
+      } else {
+        if (animationTimeoutRef.current) {
+          clearTimeout(animationTimeoutRef.current);
+          animationTimeoutRef.current = null;
+        }
+
+        setFloorAnimation((prev) =>
+          prev.active || prev.direction ? { direction: null, active: false } : prev
+        );
       }
     }
 
