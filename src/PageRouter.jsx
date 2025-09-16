@@ -35,6 +35,7 @@ import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import Orb from './Orb.jsx';
 import Watchdog from './Watchdog.jsx';
+import Collective from './Collective.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -252,6 +253,9 @@ export default function PageRouter() {
       break;
     case 'blog':
       leftContent = <ToolsBlog onBack={() => navigate('5th')} />;
+      break;
+    case 'collective':
+      leftContent = <Collective onBack={() => navigate('5th')} />;
       break;
     default:
       leftContent = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
