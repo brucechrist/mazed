@@ -38,7 +38,7 @@
 }
 
 .library-container.light-mode {
-  --library-bg: #f4f6ff;
+  --library-bg: #f7f6f5;
   --library-text: #1d1f2f;
   --library-accent: #5a60ff;
   --library-accent-contrast: #ffffff;
