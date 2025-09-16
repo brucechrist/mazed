@@ -27,6 +27,68 @@ body.menu-page {
   }
 }
 
+@keyframes elevator-up-motion {
+  0% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+  30% {
+    transform: translateY(-40px);
+    filter: brightness(1.05);
+  }
+  55% {
+    transform: translateY(-56px);
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes elevator-down-motion {
+  0% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+  30% {
+    transform: translateY(40px);
+    filter: brightness(0.97);
+  }
+  55% {
+    transform: translateY(56px);
+    filter: brightness(0.93);
+  }
+  100% {
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+}
+
+@keyframes elevator-up-light {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes elevator-down-light {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 body.character-page {
   background: var(--char-bg-url) no-repeat center center fixed;
   background-size: cover;
@@ -37,6 +99,43 @@ body.character-page {
 .app-container {
   display: flex;
   height: 100vh;
+  position: relative;
+  overflow: hidden;
+  filter: none;
+  will-change: transform, filter;
+}
+
+.app-container.elevator-up,
+.app-container.elevator-down {
+  animation-duration: 0.7s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-container.elevator-up {
+  animation-name: elevator-up-motion;
+}
+
+.app-container.elevator-down {
+  animation-name: elevator-down-motion;
+}
+
+.app-container.elevator-up::after,
+.app-container.elevator-down::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-container.elevator-up::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+  animation: elevator-up-light 0.7s ease-in-out forwards;
+}
+
+.app-container.elevator-down::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.4));
+  animation: elevator-down-light 0.7s ease-in-out forwards;
 }
 
 .sidebar {
