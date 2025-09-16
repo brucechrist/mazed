@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './note-modal.css';
+import { getAppDefinition } from './config/appRegistry.js';
 
 export default function AkashicRecords({ onBack }) {
   const [items, setItems] = useState([]);
@@ -14,14 +15,23 @@ export default function AkashicRecords({ onBack }) {
     }
   }, []);
 
+  const enhancedItems = useMemo(
+    () =>
+      items.map((item) => ({
+        ...item,
+        title: getAppDefinition(item.id)?.title ?? item.id,
+      })),
+    [items]
+  );
+
   return (
     <div className="modal-overlay" onClick={onBack}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Akashic Records</h2>
         <ul className="notes-list">
-          {items.map((item) => (
+          {enhancedItems.map((item) => (
             <li key={item.id}>
-              {item.id} - {item.layer}
+              {item.title} - {item.layer}
             </li>
           ))}
         </ul>

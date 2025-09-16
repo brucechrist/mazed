@@ -11,30 +11,8 @@ import ExitVideo from './ExitVideo.jsx';
 import Library from './Library.jsx';
 import LoadingScreen from './LoadingScreen.jsx';
 import DockLayout from './DockLayout.jsx';
-import NofapCalendar from './NofapCalendar.jsx';
-import QuestJournal from './QuestJournal.jsx';
-import VersionRating from './VersionRating.jsx';
-import WhoAmI from './WhoAmI.jsx';
-import MusicSearch from './MusicSearch.jsx';
-import Singing from './Singing.jsx';
-import ShadowWork from './ShadowWork.jsx';
-import Calendar from './Calendar.jsx';
-import Timeline from './Timeline.jsx';
-import Typomancy from './Typomancy.jsx';
-import Moodtracker from './Moodtracker.jsx';
-import MomentoMori from './MomentoMori.jsx';
-import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
-import Anima from './Anima.jsx';
 import ToolsBlog from './ToolsBlog.jsx';
-import TodoGoals from './TodoGoals.jsx';
-import ActivityApp from './ActivityApp.jsx';
-import CharacterEvolve from './CharacterEvolve.jsx';
-import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
-import FormlessCharacter from './FormlessCharacter.jsx';
-import IdeaBoard from './IdeaBoard.jsx';
-import ImplementationIdeas from './ImplementationIdeas.jsx';
-import Orb from './Orb.jsx';
-import Watchdog from './Watchdog.jsx';
+import { getAppDefinition } from './config/appRegistry.js';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -199,37 +177,24 @@ export default function PageRouter() {
     );
   }
 
+  const renderDockApp = useCallback(
+    (id) => {
+      if (!id) return null;
+      const definition = getAppDefinition(id);
+      return definition ? definition.render({ onClose: goBack }) : null;
+    },
+    [goBack]
+  );
+
+  const renderInlineApp = useCallback(
+    (id, onClose) => {
+      const definition = getAppDefinition(id);
+      return definition ? definition.render({ onClose }) : null;
+    },
+    []
+  );
+
   let leftContent;
-  const renderDockApp = (id) => {
-    const props = { onBack: goBack };
-    const mapping = {
-      journal: <QuestJournal {...props} />,
-      nofap: <NofapCalendar {...props} />,
-      ratings: <VersionRating {...props} />,
-      whoami: <WhoAmI {...props} />,
-      music: <MusicSearch {...props} />,
-      singing: <Singing {...props} />,
-      shadow: <ShadowWork {...props} />,
-      calendar: <Calendar {...props} />,
-      timeline: <Timeline {...props} />,
-      typomancy: <Typomancy {...props} />,
-      moodtracker: <Moodtracker {...props} />,
-      momentoMori: <MomentoMori {...props} />,
-      quadrantComb: <QuadrantCombinaisons onBack={goBack} />,
-      anima: <Anima onBack={goBack} />,
-      blog: <ToolsBlog onBack={goBack} />,
-      todoGoals: <TodoGoals onBack={goBack} />,
-      activity: <ActivityApp onBack={goBack} />,
-      characterEvolve: <CharacterEvolve onBack={goBack} />,
-      semiCharacter: <SemiFormlessCharacter onBack={goBack} />,
-      formlessCharacter: <FormlessCharacter onBack={goBack} />,
-      ideaBoard: <IdeaBoard onBack={goBack} />,
-      implementationIdeas: <ImplementationIdeas onBack={goBack} />,
-      orb: <Orb onBack={goBack} />,
-      watchdog: <Watchdog onBack={goBack} />,
-    };
-    return mapping[id] || null;
-  };
   switch (page) {
     case 'II':
       leftContent = <IImain menuBg={menuBg} onChangeMenuBg={setMenuBg} />;
@@ -247,7 +212,10 @@ export default function PageRouter() {
       leftContent = <Library onBack={() => navigate('5th')} />;
       break;
     case 'blog':
-      leftContent = <ToolsBlog onBack={() => navigate('5th')} />;
+      leftContent =
+        renderInlineApp('blog', () => navigate('5th')) ?? (
+          <ToolsBlog onBack={() => navigate('5th')} />
+        );
       break;
     default:
       leftContent = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
