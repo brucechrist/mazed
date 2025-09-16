@@ -246,6 +246,9 @@ export default function PageRouter() {
     case 'library':
       leftContent = <Library onBack={() => navigate('5th')} />;
       break;
+    case 'blog':
+      leftContent = <ToolsBlog onBack={() => navigate('5th')} />;
+      break;
     default:
       leftContent = <FifthMain onSelectQuadrant={(label) => navigate(label)} />;
   }
