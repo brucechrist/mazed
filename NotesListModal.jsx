@@ -411,26 +411,6 @@ export default function NotesListModal({ onClose }) {
               <button type="button" className="toolbar-button" onClick={handleToggleSort}>
                 {sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
               </button>
-            )}
-          </div>
-
-          <div className="notes-filters">
-            <div className="notes-filter">
-              <span>Quadrant</span>
-              <div className="tag-options tag-options--filters">
-                {TAG_FILTERS.map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    data-tag={filter}
-                    className={`tag-chip ${tagFilter === filter ? 'is-active' : ''}`}
-                    style={{ '--tag-color': getTagColor(filter) }}
-                    onClick={() => setTagFilter(filter)}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
         </div>
