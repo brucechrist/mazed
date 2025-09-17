@@ -11,7 +11,7 @@ const TAG_COLORS = {
   EE: '#c084fc',
 };
 
-const VALID_NOTE_TAGS = TAG_FILTERS.slice(1);
+const VALID_NOTE_TAGS = new Set(TAG_FILTERS.slice(1));
 
 const loadStoredNotes = () => {
   try {
@@ -102,28 +102,79 @@ const sanitiseTitle = (value) => {
   return String(value);
 };
 
-const sanitiseTag = (value) =>
-  typeof value === 'string' && VALID_NOTE_TAGS.includes(value) ? value : 'II';
-
-const sortByDateDesc = (first, second) =>
-  new Date(second.createdAt) - new Date(first.createdAt);
-
-const getTagColor = (tag) => TAG_COLORS[tag] || TAG_COLORS.ALL;
-
-const normaliseTimestamp = (note) => {
+const resolveTimestamp = (note, fallbackBase, index) => {
   if (note.createdAt) {
-    return { ...note, createdAt: note.createdAt };
-  }
-
-  if (typeof note.id === 'number') {
-    const derivedDate = new Date(note.id);
-    if (!Number.isNaN(derivedDate.getTime())) {
-      return { ...note, createdAt: derivedDate.toISOString() };
+    const fromStored = new Date(note.createdAt);
+    if (!Number.isNaN(fromStored.getTime())) {
+      return fromStored.toISOString();
     }
   }
 
-  return { ...note, createdAt: new Date().toISOString() };
+  if (typeof note.id === 'number') {
+    const fromId = new Date(note.id);
+    if (!Number.isNaN(fromId.getTime())) {
+      return fromId.toISOString();
+    }
+  }
+
+  const fallback = new Date(fallbackBase + index);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback.toISOString();
+  }
+
+  return new Date().toISOString();
 };
+
+const normaliseEntry = (entry, fallbackBase, index) => {
+  const base = entry && typeof entry === 'object' ? { ...entry } : { content: entry };
+  let mutated = !entry || typeof entry !== 'object';
+
+  if (base.id == null || base.id === '') {
+    base.id = `note-${fallbackBase}-${index}`;
+    mutated = true;
+  }
+
+  const safeTag = VALID_NOTE_TAGS.has(base.tag) ? base.tag : 'II';
+  if (safeTag !== base.tag) {
+    mutated = true;
+  }
+
+  const safeTitle = sanitiseTitle(base.title);
+  if (safeTitle !== base.title) {
+    mutated = true;
+  }
+
+  const safeContent = toPlainText(base.content);
+  if (safeContent !== base.content) {
+    mutated = true;
+  }
+
+  const createdAt = resolveTimestamp(base, fallbackBase, index);
+  if (createdAt !== base.createdAt) {
+    mutated = true;
+  }
+
+  const persistable = {
+    ...base,
+    id: base.id,
+    tag: safeTag,
+    title: safeTitle,
+    content: safeContent,
+    createdAt,
+  };
+
+  const display = {
+    id: persistable.id,
+    tag: persistable.tag,
+    title: persistable.title,
+    content: persistable.content,
+    createdAt: persistable.createdAt,
+  };
+
+  return { persistable, display, mutated };
+};
+
+const sortByDateDesc = (first, second) => new Date(second.createdAt) - new Date(first.createdAt);
 
 const formatTimestamp = (isoDate) => {
   if (!isoDate) {
@@ -161,6 +212,8 @@ const countWords = (content) => {
   return content.trim().split(/\s+/).length;
 };
 
+const getTagColor = (tag) => TAG_COLORS[tag] || TAG_COLORS.ALL;
+
 export default function NotesListModal({ onClose }) {
   const [notes, setNotes] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -172,81 +225,54 @@ export default function NotesListModal({ onClose }) {
   useEffect(() => {
     const stored = loadStoredNotes();
     const fallbackBase = Date.now();
-    let needsPersist = false;
     const persistableNotes = [];
     const displayNotes = [];
+    let shouldPersist = false;
 
-    stored.forEach((item, index) => {
-      const base =
-        item && typeof item === 'object' ? { ...item } : { content: item };
-
-      if (!item || typeof item !== 'object') {
-        needsPersist = true;
+    stored.forEach((entry, index) => {
+      const { persistable, display, mutated } = normaliseEntry(entry, fallbackBase, index);
+      persistableNotes.push(persistable);
+      displayNotes.push(display);
+      if (mutated) {
+        shouldPersist = true;
       }
-
-      if (base.id == null) {
-        base.id = `note-${fallbackBase}-${index}`;
-        needsPersist = true;
-      }
-
-      const withDate = normaliseTimestamp(base);
-      if (withDate.createdAt !== base.createdAt) {
-        needsPersist = true;
-      }
-
-      const safeTag = sanitiseTag(base.tag);
-      if (safeTag !== base.tag) {
-        needsPersist = true;
-      }
-
-      const storageNote = {
-        ...base,
-        tag: safeTag,
-        createdAt: withDate.createdAt,
-      };
-
-      persistableNotes.push(storageNote);
-
-      displayNotes.push({
-        ...storageNote,
-        title: sanitiseTitle(storageNote.title),
-        content: toPlainText(storageNote.content),
-      });
     });
 
+    persistableNotes.sort(sortByDateDesc);
     displayNotes.sort(sortByDateDesc);
+
     setNotes(displayNotes);
     setSelectedId(displayNotes[0]?.id ?? null);
 
-    if (needsPersist) {
-      persistableNotes.sort(sortByDateDesc);
+    if (shouldPersist) {
       localStorage.setItem('notes', JSON.stringify(persistableNotes));
     }
   }, []);
 
   const filteredNotes = useMemo(() => {
-    let result = [...notes];
+    const trimmedSearch = searchTerm.trim().toLowerCase();
+    let working = notes;
 
     if (tagFilter !== 'ALL') {
-      result = result.filter((note) => note.tag === tagFilter);
+      working = working.filter((note) => note.tag === tagFilter);
     }
 
-    if (searchTerm.trim()) {
-      const lowered = searchTerm.trim().toLowerCase();
-      result = result.filter((note) => {
+    if (trimmedSearch) {
+      working = working.filter((note) => {
         const title = note.title ? note.title.toLowerCase() : '';
         const content = note.content ? note.content.toLowerCase() : '';
-        return title.includes(lowered) || content.includes(lowered);
+        return title.includes(trimmedSearch) || content.includes(trimmedSearch);
       });
     }
 
-    result.sort((a, b) => {
-      const first = new Date(a.createdAt);
-      const second = new Date(b.createdAt);
-      return sortOrder === 'desc' ? second - first : first - second;
+    const sorted = [...working];
+    sorted.sort((first, second) => {
+      const firstDate = new Date(first.createdAt);
+      const secondDate = new Date(second.createdAt);
+      return sortOrder === 'desc' ? secondDate - firstDate : firstDate - secondDate;
     });
 
-    return result;
+    return sorted;
   }, [notes, searchTerm, tagFilter, sortOrder]);
 
   useEffect(() => {
@@ -255,10 +281,10 @@ export default function NotesListModal({ onClose }) {
 
   const totalPages = filteredNotes.length ? Math.ceil(filteredNotes.length / NOTES_PER_PAGE) : 1;
   const activePage = Math.min(currentPage, totalPages);
-  const displayPage = filteredNotes.length ? activePage : 1;
-  const displayTotalPages = filteredNotes.length ? totalPages : 1;
   const startIndex = (activePage - 1) * NOTES_PER_PAGE;
   const paginatedNotes = filteredNotes.slice(startIndex, startIndex + NOTES_PER_PAGE);
+  const displayPage = filteredNotes.length ? activePage : 1;
+  const displayTotalPages = filteredNotes.length ? totalPages : 1;
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -268,11 +294,14 @@ export default function NotesListModal({ onClose }) {
 
   useEffect(() => {
     if (!filteredNotes.length) {
-      setSelectedId(null);
+      if (selectedId !== null) {
+        setSelectedId(null);
+      }
       return;
     }
 
-    if (!paginatedNotes.some((note) => note.id === selectedId)) {
+    const hasSelected = filteredNotes.some((note) => note.id === selectedId);
+    if (!hasSelected) {
       const fallback = paginatedNotes[0] ?? filteredNotes[0];
       setSelectedId(fallback?.id ?? null);
     }
@@ -282,6 +311,9 @@ export default function NotesListModal({ onClose }) {
     () => filteredNotes.find((note) => note.id === selectedId) ?? null,
     [filteredNotes, selectedId],
   );
+
+  const selectedWordCount = selectedNote ? countWords(selectedNote.content) : 0;
+  const filtersActive = searchTerm || tagFilter !== 'ALL' || sortOrder !== 'desc';
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
@@ -295,6 +327,7 @@ export default function NotesListModal({ onClose }) {
     setSearchTerm('');
     setTagFilter('ALL');
     setSortOrder('desc');
+    setCurrentPage(1);
   };
 
   const handleOverlayClick = (event) => {
@@ -305,10 +338,16 @@ export default function NotesListModal({ onClose }) {
 
   return (
     <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className="modal notes-modal notes-list-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="modal notes-modal notes-list-modal"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notes-library-title"
+      >
         <header className="notes-header">
           <div>
-            <h3>Notes library</h3>
+            <h3 id="notes-library-title">Notes library</h3>
             <p className="notes-subtitle">
               {filteredNotes.length} {filteredNotes.length === 1 ? 'entry' : 'entries'} · {notes.length} total saved
             </p>
@@ -325,12 +364,15 @@ export default function NotesListModal({ onClose }) {
 
         <div className="notes-controls">
           <div className="notes-search">
-            <span className="notes-search__icon" aria-hidden="true">🔍</span>
+            <span className="notes-search__icon" aria-hidden="true">
+              🔍
+            </span>
             <input
               type="search"
               value={searchTerm}
               onChange={handleSearchChange}
               placeholder="Search notes by title or keywords"
+              aria-label="Search notes"
             />
             {searchTerm && (
               <button
@@ -356,6 +398,7 @@ export default function NotesListModal({ onClose }) {
                     className={`tag-chip ${tagFilter === filter ? 'is-active' : ''}`}
                     style={{ '--tag-color': getTagColor(filter) }}
                     onClick={() => setTagFilter(filter)}
+                    aria-pressed={tagFilter === filter}
                   >
                     {filter}
                   </button>
@@ -393,12 +436,12 @@ export default function NotesListModal({ onClose }) {
         </div>
 
         <div className="notes-body">
-          <div className="notes-grid">
+          <div className="notes-grid" aria-live="polite">
             {paginatedNotes.length === 0 ? (
               <div className="notes-empty">
                 <h4>No notes match your filters</h4>
                 <p>Try adjusting your search or quadrant filters to see more results.</p>
-                {(searchTerm || tagFilter !== 'ALL' || sortOrder !== 'desc') && (
+                {filtersActive && (
                   <button type="button" className="ghost-button" onClick={handleResetFilters}>
                     Reset filters
                   </button>
@@ -412,6 +455,7 @@ export default function NotesListModal({ onClose }) {
                   className={`notes-card ${selectedId === note.id ? 'is-selected' : ''}`}
                   style={{ '--tag-color': getTagColor(note.tag) }}
                   onClick={() => setSelectedId(note.id)}
+                  aria-pressed={selectedId === note.id}
                 >
                   <div className="notes-card__header">
                     <span className="note-card__tag" data-tag={note.tag}>
@@ -428,26 +472,30 @@ export default function NotesListModal({ onClose }) {
             )}
           </div>
 
-          <aside className="notes-detail">
+          <div className="notes-detail" aria-live="polite">
             {selectedNote ? (
-              <>
+              <React.Fragment>
                 <div className="notes-detail__header">
                   <span className="note-card__tag" data-tag={selectedNote.tag}>
                     {selectedNote.tag}
                   </span>
                   <span className="notes-detail__date">{formatTimestamp(selectedNote.createdAt)}</span>
-                  <span className="notes-detail__meta">{countWords(selectedNote.content)} words</span>
+                  <span className="notes-detail__meta">
+                    {selectedWordCount} {selectedWordCount === 1 ? 'word' : 'words'}
+                  </span>
                 </div>
                 <h4 className="notes-detail__title">{selectedNote.title || 'Untitled note'}</h4>
-                <pre className="note-view-content">{selectedNote.content || 'No additional context captured yet.'}</pre>
-              </>
+                <pre className="note-view-content">
+                  {selectedNote.content || 'No additional context captured yet.'}
+                </pre>
+              </React.Fragment>
             ) : (
               <div className="notes-empty-detail">
                 <h4>Select a note to read it</h4>
                 <p>Your detailed view will appear here once you choose a note on the left.</p>
               </div>
             )}
-          </aside>
+          </div>
         </div>
 
         <footer className="notes-footer">
