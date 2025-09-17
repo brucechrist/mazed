@@ -71,6 +71,8 @@ const MEDIA_BLUEPRINTS = [
   },
 ];
 
+const STORAGE_KEY = 'tools-blog-posts';
+
 const sanitizeImages = (images) =>
   Array.isArray(images)
     ? images
@@ -183,23 +185,98 @@ const PLACEHOLDER_POSTS = Array.from({ length: 48 }, (_, index) => {
   };
 });
 
+const sanitizePostRecord = (post) => {
+  if (post == null || typeof post !== 'object') {
+    return null;
+  }
+
+  const parsedId = Number(post.id);
+  if (!Number.isInteger(parsedId)) {
+    return null;
+  }
+
+  return {
+    id: parsedId,
+    title: typeof post.title === 'string' ? post.title : '',
+    status: typeof post.status === 'string' ? post.status : STATUSES[0],
+    excerpt: typeof post.excerpt === 'string' ? post.excerpt : '',
+    stream: typeof post.stream === 'string' ? post.stream : STREAMS[0],
+    mood: typeof post.mood === 'string' ? post.mood : MOODS[0],
+    images: sanitizeImages(post.images),
+    link: sanitizeLink(post.link),
+  };
+};
+
+const loadStoredPosts = () => {
+  if (typeof window === 'undefined' || !('localStorage' in window)) {
+    return { posts: [], hasStoredValue: false };
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(STORAGE_KEY);
+    if (storedValue == null) {
+      return { posts: [], hasStoredValue: false };
+    }
+
+    const parsedValue = JSON.parse(storedValue);
+
+    if (Array.isArray(parsedValue)) {
+      return { posts: parsedValue, hasStoredValue: true };
+    }
+
+    if (
+      parsedValue &&
+      typeof parsedValue === 'object' &&
+      Array.isArray(parsedValue.posts)
+    ) {
+      return { posts: parsedValue.posts, hasStoredValue: true };
+    }
+
+    return { posts: [], hasStoredValue: false };
+  } catch (error) {
+    return { posts: [], hasStoredValue: false };
+  }
+};
+
+const buildInitialPosts = () => {
+  const { posts: storedPosts, hasStoredValue } = loadStoredPosts();
+  const sanitizedStoredPosts = storedPosts
+    .map((post) => sanitizePostRecord(post))
+    .filter(Boolean);
+
+  if (hasStoredValue) {
+    return sanitizedStoredPosts;
+  }
+
+  return PLACEHOLDER_POSTS.map((post) => sanitizePostRecord(post)).filter(Boolean);
+};
+
 const VIEW_MODES = {
   LIST: 'list',
   GRID: 'grid',
 };
 
 export default function ToolsBlog({ onBack }) {
-  const [posts, setPosts] = useState(() =>
-    PLACEHOLDER_POSTS.map((post) => ({
-      ...post,
-      images: sanitizeImages(post.images),
-      link: sanitizeLink(post.link),
-    }))
-  );
+  const [posts, setPosts] = useState(buildInitialPosts);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [openMenuPostId, setOpenMenuPostId] = useState(null);
   const [viewMode, setViewMode] = useState(VIEW_MODES.LIST);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('localStorage' in window)) {
+      return;
+    }
+
+    try {
+      const sanitizedPosts = posts
+        .map((post) => sanitizePostRecord(post))
+        .filter(Boolean);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedPosts));
+    } catch (error) {
+      // Ignore persistence errors so the UI remains responsive even if storage is unavailable.
+    }
+  }, [posts]);
 
   const closeActionMenu = () => setOpenMenuPostId(null);
 
