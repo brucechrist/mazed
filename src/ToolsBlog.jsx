@@ -47,6 +47,11 @@ const PLACEHOLDER_POSTS = Array.from({ length: 48 }, (_, index) => {
   };
 });
 
+const VIEW_MODES = {
+  LIST: 'list',
+  GRID: 'grid',
+};
+
 export default function ToolsBlog({ onBack }) {
   const [posts, setPosts] = useState(() =>
     PLACEHOLDER_POSTS.map((post) => ({ ...post }))
@@ -54,6 +59,7 @@ export default function ToolsBlog({ onBack }) {
   const [editingPostId, setEditingPostId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [openMenuPostId, setOpenMenuPostId] = useState(null);
+  const [viewMode, setViewMode] = useState(VIEW_MODES.LIST);
 
   const closeActionMenu = () => setOpenMenuPostId(null);
 
@@ -99,6 +105,12 @@ export default function ToolsBlog({ onBack }) {
   const toggleActionMenu = (postId) => {
     setOpenMenuPostId((currentPostId) =>
       currentPostId === postId ? null : postId
+    );
+  };
+
+  const handleViewModeChange = (mode) => {
+    setViewMode((currentMode) =>
+      currentMode === mode ? currentMode : mode
     );
   };
 
@@ -177,6 +189,30 @@ export default function ToolsBlog({ onBack }) {
             <button type="button" className="blog-pill" disabled>
               Public toggle soon
             </button>
+            <div className="blog-view-toggle" role="group" aria-label="View mode">
+              <button
+                type="button"
+                className={`blog-view-button ${viewMode === VIEW_MODES.LIST ? 'blog-view-button--active' : ''}`}
+                onClick={() => handleViewModeChange(VIEW_MODES.LIST)}
+                aria-pressed={viewMode === VIEW_MODES.LIST}
+              >
+                <span className="blog-view-icon" aria-hidden="true">
+                  ☰
+                </span>
+                <span className="blog-view-label">List</span>
+              </button>
+              <button
+                type="button"
+                className={`blog-view-button ${viewMode === VIEW_MODES.GRID ? 'blog-view-button--active' : ''}`}
+                onClick={() => handleViewModeChange(VIEW_MODES.GRID)}
+                aria-pressed={viewMode === VIEW_MODES.GRID}
+              >
+                <span className="blog-view-icon" aria-hidden="true">
+                  ⧉
+                </span>
+                <span className="blog-view-label">Grid</span>
+              </button>
+            </div>
           </div>
         </div>
         <div className="blog-subcopy">
@@ -185,14 +221,21 @@ export default function ToolsBlog({ onBack }) {
         </div>
       </header>
 
-      <div className="blog-feed">
+      <div className={`blog-feed blog-feed--${viewMode}`}>
         {posts.map((post, index) => {
           const isEditing = editingPostId === post.id;
           const currentStatus = isEditing && editDraft ? editDraft.status : post.status;
           const displayIndex = `#${String(index + 1).padStart(2, '0')}`;
+          const articleClassName = [
+            'blog-card',
+            viewMode === VIEW_MODES.GRID ? 'blog-card--grid' : '',
+            isEditing ? 'blog-card--editing' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
 
           return (
-            <article key={post.id} className="blog-card">
+            <article key={post.id} className={articleClassName}>
               <div className="blog-card-header">
                 <div className="blog-card-meta">
                   <span className="blog-card-badge">{currentStatus}</span>
