@@ -209,29 +209,43 @@ const sanitizePostRecord = (post) => {
 
 const loadStoredPosts = () => {
   if (typeof window === 'undefined' || !('localStorage' in window)) {
-    return [];
+    return { posts: [], hasStoredValue: false };
   }
 
   try {
     const storedValue = window.localStorage.getItem(STORAGE_KEY);
-    if (!storedValue) {
-      return [];
+    if (storedValue == null) {
+      return { posts: [], hasStoredValue: false };
     }
 
     const parsedValue = JSON.parse(storedValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
+
+    if (Array.isArray(parsedValue)) {
+      return { posts: parsedValue, hasStoredValue: true };
+    }
+
+    if (
+      parsedValue &&
+      typeof parsedValue === 'object' &&
+      Array.isArray(parsedValue.posts)
+    ) {
+      return { posts: parsedValue.posts, hasStoredValue: true };
+    }
+
+    return { posts: [], hasStoredValue: false };
   } catch (error) {
-    return [];
+    return { posts: [], hasStoredValue: false };
   }
 };
 
 const buildInitialPosts = () => {
-  const storedPosts = loadStoredPosts()
+  const { posts: storedPosts, hasStoredValue } = loadStoredPosts();
+  const sanitizedStoredPosts = storedPosts
     .map((post) => sanitizePostRecord(post))
     .filter(Boolean);
 
-  if (storedPosts.length > 0) {
-    return storedPosts;
+  if (hasStoredValue) {
+    return sanitizedStoredPosts;
   }
 
   return PLACEHOLDER_POSTS.map((post) => sanitizePostRecord(post)).filter(Boolean);
