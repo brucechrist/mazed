@@ -11,6 +11,103 @@ const TAG_COLORS = {
   EE: '#c084fc',
 };
 
+const VALID_NOTE_TAGS = TAG_FILTERS.slice(1);
+
+const loadStoredNotes = () => {
+  try {
+    const raw = localStorage.getItem('notes');
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+
+    if (parsed && Array.isArray(parsed.notes)) {
+      return parsed.notes;
+    }
+  } catch (error) {
+    console.warn('Failed to parse stored notes', error);
+  }
+
+  return [];
+};
+
+const toPlainText = (value) => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value == null) {
+    return '';
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => toPlainText(item))
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  }
+
+  if (typeof value === 'object') {
+    if (typeof value.text === 'string') {
+      return value.text;
+    }
+
+    if (Array.isArray(value.ops)) {
+      return value.ops
+        .map((operation) => {
+          const insert = operation?.insert;
+          if (typeof insert === 'string') {
+            return insert;
+          }
+
+          if (insert && typeof insert === 'object') {
+            if (typeof insert.text === 'string') {
+              return insert.text;
+            }
+
+            if (Array.isArray(insert)) {
+              return toPlainText(insert);
+            }
+          }
+
+          return '';
+        })
+        .join('');
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(value);
+    }
+  }
+
+  return String(value);
+};
+
+const sanitiseTitle = (value) => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value == null) {
+    return '';
+  }
+
+  return String(value);
+};
+
+const sanitiseTag = (value) =>
+  typeof value === 'string' && VALID_NOTE_TAGS.includes(value) ? value : 'II';
+
+const sortByDateDesc = (first, second) =>
+  new Date(second.createdAt) - new Date(first.createdAt);
+
 const getTagColor = (tag) => TAG_COLORS[tag] || TAG_COLORS.ALL;
 
 const normaliseTimestamp = (note) => {
@@ -73,22 +170,57 @@ export default function NotesListModal({ onClose }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('notes') || '[]');
+    const stored = loadStoredNotes();
+    const fallbackBase = Date.now();
     let needsPersist = false;
-    const normalised = stored.map((note) => {
-      const withDate = normaliseTimestamp(note);
-      if (withDate.createdAt !== note.createdAt) {
+    const persistableNotes = [];
+    const displayNotes = [];
+
+    stored.forEach((item, index) => {
+      const base =
+        item && typeof item === 'object' ? { ...item } : { content: item };
+
+      if (!item || typeof item !== 'object') {
         needsPersist = true;
       }
-      return withDate;
+
+      if (base.id == null) {
+        base.id = `note-${fallbackBase}-${index}`;
+        needsPersist = true;
+      }
+
+      const withDate = normaliseTimestamp(base);
+      if (withDate.createdAt !== base.createdAt) {
+        needsPersist = true;
+      }
+
+      const safeTag = sanitiseTag(base.tag);
+      if (safeTag !== base.tag) {
+        needsPersist = true;
+      }
+
+      const storageNote = {
+        ...base,
+        tag: safeTag,
+        createdAt: withDate.createdAt,
+      };
+
+      persistableNotes.push(storageNote);
+
+      displayNotes.push({
+        ...storageNote,
+        title: sanitiseTitle(storageNote.title),
+        content: toPlainText(storageNote.content),
+      });
     });
 
-    normalised.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setNotes(normalised);
-    setSelectedId(normalised[0]?.id ?? null);
+    displayNotes.sort(sortByDateDesc);
+    setNotes(displayNotes);
+    setSelectedId(displayNotes[0]?.id ?? null);
 
     if (needsPersist) {
-      localStorage.setItem('notes', JSON.stringify(normalised));
+      persistableNotes.sort(sortByDateDesc);
+      localStorage.setItem('notes', JSON.stringify(persistableNotes));
     }
   }, []);
 
@@ -236,6 +368,26 @@ export default function NotesListModal({ onClose }) {
               <button type="button" className="toolbar-button" onClick={handleToggleSort}>
                 {sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
               </button>
+            )}
+          </div>
+
+          <div className="notes-filters">
+            <div className="notes-filter">
+              <span>Quadrant</span>
+              <div className="tag-options tag-options--filters">
+                {TAG_FILTERS.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    data-tag={filter}
+                    className={`tag-chip ${tagFilter === filter ? 'is-active' : ''}`}
+                    style={{ '--tag-color': getTagColor(filter) }}
+                    onClick={() => setTagFilter(filter)}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

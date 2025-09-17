@@ -9,6 +9,28 @@ const TAG_COLORS = {
   EE: '#c084fc',
 };
 
+const loadStoredNotes = () => {
+  try {
+    const raw = localStorage.getItem('notes');
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+
+    if (parsed && Array.isArray(parsed.notes)) {
+      return parsed.notes;
+    }
+  } catch (error) {
+    console.warn('Failed to parse stored notes', error);
+  }
+
+  return [];
+};
+
 export default function NoteModal({ onClose }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -17,7 +39,7 @@ export default function NoteModal({ onClose }) {
   const handleSave = () => {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
-    const notes = JSON.parse(localStorage.getItem('notes') || '[]');
+    const notes = loadStoredNotes();
 
     const newNote = {
       id: Date.now(),
@@ -27,8 +49,8 @@ export default function NoteModal({ onClose }) {
       createdAt: new Date().toISOString(),
     };
 
-    notes.push(newNote);
-    localStorage.setItem('notes', JSON.stringify(notes));
+    const updatedNotes = [...notes, newNote];
+    localStorage.setItem('notes', JSON.stringify(updatedNotes));
 
     setTitle('');
     setContent('');
