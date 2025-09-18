@@ -151,12 +151,18 @@
 }
 
 .notes-list-modal {
-  width: min(1400px, calc(100vw - 120px));
-  max-width: 100%;
-  max-height: min(900px, calc(100vh - 120px));
-  aspect-ratio: 16 / 10;
-  padding: 36px 40px;
-  gap: 28px;
+  width: clamp(960px, 94vw, 1880px);
+  max-width: calc(100vw - 32px);
+  max-height: min(1040px, calc(100vh - 64px));
+  padding: 40px 48px;
+  gap: 32px;
+}
+
+@media (min-height: 900px) {
+  .notes-list-modal {
+    aspect-ratio: 16 / 10;
+    min-height: clamp(640px, 72vh, 920px);
+  }
 }
 
 .modal-close-button {
@@ -647,15 +653,17 @@
 
 @media (max-width: 1440px) {
   .notes-list-modal {
-    width: min(1200px, calc(100vw - 80px));
+    width: clamp(880px, 94vw, 1440px);
+    padding: 36px 40px;
+    gap: 30px;
   }
 }
 
 @media (max-width: 1280px) {
   .notes-list-modal {
-    width: calc(100vw - 48px);
-    max-height: calc(100vh - 72px);
-    padding: 30px 32px;
+    width: calc(100vw - 40px);
+    max-height: calc(100vh - 60px);
+    padding: 32px 36px;
     aspect-ratio: auto;
   }
 
