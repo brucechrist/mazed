@@ -151,7 +151,7 @@
 }
 
 .notes-list-modal {
-  width: min(1080px, calc(100vw - 48px));
+  width: min(1320px, calc(100vw - 48px));
   gap: 24px;
 }
 
@@ -640,9 +640,9 @@
   text-transform: uppercase;
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1280px) {
   .notes-list-modal {
-    width: min(980px, calc(100vw - 32px));
+    width: min(1264px, calc(100vw - 32px));
   }
 }
 
