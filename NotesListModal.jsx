@@ -13,6 +13,237 @@ const TAG_COLORS = {
 
 const VALID_NOTE_TAGS = new Set(TAG_FILTERS.slice(1));
 
+const HAS_BIGINT_SUPPORT = typeof BigInt !== 'undefined';
+const BIGINT_MAX_SAFE = HAS_BIGINT_SUPPORT ? BigInt(Number.MAX_SAFE_INTEGER) : null;
+const BIGINT_MIN_SAFE = HAS_BIGINT_SUPPORT ? BigInt(Number.MIN_SAFE_INTEGER) : null;
+
+const safeNumberFromBigInt = (value) => {
+  if (!HAS_BIGINT_SUPPORT || typeof value !== 'bigint') {
+    return null;
+  }
+
+  if (value > BIGINT_MAX_SAFE || value < BIGINT_MIN_SAFE) {
+    return null;
+  }
+
+  return Number(value);
+};
+
+const isPlainObject = (value) => {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
+const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
+
+const coerceToDate = (value) => {
+  if (value == null) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return isValidDate(value) ? value : null;
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+
+    const fromNumber = new Date(value);
+    return isValidDate(fromNumber) ? fromNumber : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const fromString = new Date(trimmed);
+    if (isValidDate(fromString)) {
+      return fromString;
+    }
+
+    const numeric = Number(trimmed);
+    if (!Number.isNaN(numeric)) {
+      const fromNumeric = new Date(numeric);
+      if (isValidDate(fromNumeric)) {
+        return fromNumeric;
+      }
+    }
+
+    return null;
+  }
+
+  if (typeof value === 'bigint') {
+    const asNumber = safeNumberFromBigInt(value);
+    if (asNumber == null) {
+      return null;
+    }
+
+    const fromBigInt = new Date(asNumber);
+    return isValidDate(fromBigInt) ? fromBigInt : null;
+  }
+
+  if (isPlainObject(value)) {
+    if (typeof value.toDate === 'function') {
+      try {
+        return coerceToDate(value.toDate());
+      } catch {
+        // ignore conversion errors from toDate implementations
+      }
+    }
+
+    const secondsSource =
+      value.seconds ?? value._seconds ?? value.epochSeconds ?? value.value ?? null;
+    if (secondsSource != null) {
+      const seconds =
+        typeof secondsSource === 'bigint'
+          ? safeNumberFromBigInt(secondsSource)
+          : Number(secondsSource);
+
+      if (seconds != null && !Number.isNaN(seconds)) {
+        let milliseconds = seconds * 1000;
+
+        const nanosSource =
+          value.nanoseconds ?? value._nanoseconds ?? value.nanos ?? value.nanosecond ?? 0;
+        const nanos =
+          typeof nanosSource === 'bigint'
+            ? safeNumberFromBigInt(nanosSource)
+            : Number(nanosSource);
+
+        if (nanos != null && !Number.isNaN(nanos)) {
+          milliseconds += Math.floor(nanos / 1e6);
+        }
+
+        const fromSeconds = new Date(milliseconds);
+        if (isValidDate(fromSeconds)) {
+          return fromSeconds;
+        }
+      }
+    }
+
+    if (typeof value.valueOf === 'function') {
+      const primitive = value.valueOf();
+      if (primitive !== value) {
+        const fromPrimitive = coerceToDate(primitive);
+        if (fromPrimitive) {
+          return fromPrimitive;
+        }
+      }
+    }
+
+    try {
+      const fallback = new Date(value);
+      if (isValidDate(fallback)) {
+        return fallback;
+      }
+    } catch {
+      // ignore objects that cannot be converted directly
+    }
+  }
+
+  if (typeof value === 'boolean') {
+    const fromBoolean = new Date(value ? 1 : 0);
+    return isValidDate(fromBoolean) ? fromBoolean : null;
+  }
+
+  return null;
+};
+
+const toIsoTimestamp = (value) => {
+  const date = coerceToDate(value);
+  return date ? date.toISOString() : null;
+};
+
+const normaliseTimestamp = (note, fallbackBase, index) => {
+  const fromCreatedAt = toIsoTimestamp(note.createdAt);
+  if (fromCreatedAt) {
+    return { value: fromCreatedAt, mutated: fromCreatedAt !== note.createdAt };
+  }
+
+  const fromId = toIsoTimestamp(note.id);
+  if (fromId) {
+    return { value: fromId, mutated: fromId !== note.createdAt };
+  }
+
+  const fallback = new Date(fallbackBase + index).toISOString();
+  return { value: fallback, mutated: fallback !== note.createdAt };
+};
+
+const normaliseId = (value, fallbackBase, index) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed) {
+      return { value: trimmed, mutated: trimmed !== value };
+    }
+    return { value: `note-${fallbackBase}-${index}`, mutated: true };
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return { value: `note-${fallbackBase}-${index}`, mutated: true };
+    }
+    return { value: String(value), mutated: true };
+  }
+
+  if (typeof value === 'bigint') {
+    return { value: value.toString(), mutated: true };
+  }
+
+  if (typeof value === 'boolean') {
+    return { value: value ? 'true' : 'false', mutated: true };
+  }
+
+  if (value instanceof Date) {
+    return { value: String(value.getTime()), mutated: true };
+  }
+
+  if (isPlainObject(value)) {
+    if (typeof value.id === 'string') {
+      const trimmed = value.id.trim();
+      if (trimmed) {
+        return { value: trimmed, mutated: true };
+      }
+    }
+
+    if (typeof value.valueOf === 'function') {
+      const primitive = value.valueOf();
+      if (primitive !== value) {
+        const normalised = normaliseId(primitive, fallbackBase, index);
+        if (normalised) {
+          return { value: normalised.value, mutated: true };
+        }
+      }
+    }
+
+    if (typeof value.toString === 'function') {
+      const stringified = value.toString();
+      if (stringified && stringified !== '[object Object]') {
+        return { value: stringified, mutated: true };
+      }
+    }
+  }
+
+  if (typeof value === 'symbol') {
+    return { value: value.toString(), mutated: true };
+  }
+
+  if (value != null) {
+    const stringified = String(value);
+    if (stringified && stringified !== '[object Object]') {
+      return { value: stringified, mutated: true };
+    }
+  }
+
+  return { value: `note-${fallbackBase}-${index}`, mutated: true };
+};
+
 const loadStoredNotes = () => {
   try {
     const raw = localStorage.getItem('notes');
@@ -102,35 +333,13 @@ const sanitiseTitle = (value) => {
   return String(value);
 };
 
-const resolveTimestamp = (note, fallbackBase, index) => {
-  if (note.createdAt) {
-    const fromStored = new Date(note.createdAt);
-    if (!Number.isNaN(fromStored.getTime())) {
-      return fromStored.toISOString();
-    }
-  }
-
-  if (typeof note.id === 'number') {
-    const fromId = new Date(note.id);
-    if (!Number.isNaN(fromId.getTime())) {
-      return fromId.toISOString();
-    }
-  }
-
-  const fallback = new Date(fallbackBase + index);
-  if (!Number.isNaN(fallback.getTime())) {
-    return fallback.toISOString();
-  }
-
-  return new Date().toISOString();
-};
-
 const normaliseEntry = (entry, fallbackBase, index) => {
-  const base = entry && typeof entry === 'object' ? { ...entry } : { content: entry };
-  let mutated = !entry || typeof entry !== 'object';
+  const baseIsObject = isPlainObject(entry);
+  const base = baseIsObject ? { ...entry } : { content: entry };
+  let mutated = !baseIsObject;
 
-  if (base.id == null || base.id === '') {
-    base.id = `note-${fallbackBase}-${index}`;
+  const { value: safeId, mutated: idMutated } = normaliseId(base.id, fallbackBase, index);
+  if (idMutated) {
     mutated = true;
   }
 
@@ -149,14 +358,18 @@ const normaliseEntry = (entry, fallbackBase, index) => {
     mutated = true;
   }
 
-  const createdAt = resolveTimestamp(base, fallbackBase, index);
-  if (createdAt !== base.createdAt) {
+  const { value: createdAt, mutated: createdAtMutated } = normaliseTimestamp(
+    { ...base, id: safeId },
+    fallbackBase,
+    index,
+  );
+  if (createdAtMutated) {
     mutated = true;
   }
 
   const persistable = {
     ...base,
-    id: base.id,
+    id: safeId,
     tag: safeTag,
     title: safeTitle,
     content: safeContent,
@@ -164,11 +377,11 @@ const normaliseEntry = (entry, fallbackBase, index) => {
   };
 
   const display = {
-    id: persistable.id,
-    tag: persistable.tag,
-    title: persistable.title,
-    content: persistable.content,
-    createdAt: persistable.createdAt,
+    id: safeId,
+    tag: safeTag,
+    title: safeTitle,
+    content: safeContent,
+    createdAt,
   };
 
   return { persistable, display, mutated };
