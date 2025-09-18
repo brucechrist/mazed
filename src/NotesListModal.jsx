@@ -244,6 +244,17 @@ const normaliseId = (value, fallbackBase, index) => {
   return { value: `note-${fallbackBase}-${index}`, mutated: true };
 };
 
+const createFallbackEntry = (fallbackBase, index) => {
+  const createdAt = new Date(fallbackBase + index).toISOString();
+  return {
+    id: `note-fallback-${fallbackBase}-${index}`,
+    tag: 'II',
+    title: 'Recovered note',
+    content: 'Original entry could not be recovered.',
+    createdAt,
+  };
+};
+
 const loadStoredNotes = () => {
   try {
     const raw = localStorage.getItem('notes');
@@ -436,33 +447,53 @@ export default function NotesListModal({ onClose }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const stored = loadStoredNotes();
     const fallbackBase = Date.now();
     const persistableNotes = [];
     const displayNotes = [];
     let shouldPersist = false;
 
-    stored.forEach((entry, index) => {
-      const { persistable, display, mutated } = normaliseEntry(entry, fallbackBase, index);
-      persistableNotes.push(persistable);
-      displayNotes.push(display);
-      if (mutated) {
-        shouldPersist = true;
+    const pushFallbackEntry = (index) => {
+      const fallback = createFallbackEntry(fallbackBase, index);
+      persistableNotes.push(fallback);
+      displayNotes.push({ ...fallback });
+      shouldPersist = true;
+    };
+
+    try {
+      const stored = loadStoredNotes();
+      const entries = Array.isArray(stored) ? stored : [];
+
+      entries.forEach((entry, index) => {
+        try {
+          const { persistable, display, mutated } = normaliseEntry(entry, fallbackBase, index);
+          persistableNotes.push(persistable);
+          displayNotes.push(display);
+          if (mutated) {
+            shouldPersist = true;
+          }
+        } catch (error) {
+          console.warn(`Failed to normalise note entry at index ${index}`, error);
+          pushFallbackEntry(index);
+        }
+      });
+
+      persistableNotes.sort(sortByDateDesc);
+      displayNotes.sort(sortByDateDesc);
+
+      setNotes(displayNotes);
+      setSelectedId(displayNotes[0]?.id ?? null);
+
+      if (shouldPersist) {
+        try {
+          localStorage.setItem('notes', JSON.stringify(persistableNotes));
+        } catch (error) {
+          console.warn('Failed to update stored notes', error);
+        }
       }
-    });
-
-    persistableNotes.sort(sortByDateDesc);
-    displayNotes.sort(sortByDateDesc);
-
-    setNotes(displayNotes);
-    setSelectedId(displayNotes[0]?.id ?? null);
-
-    if (shouldPersist) {
-      try {
-        localStorage.setItem('notes', JSON.stringify(persistableNotes));
-      } catch (error) {
-        console.warn('Failed to update stored notes', error);
-      }
+    } catch (error) {
+      console.error('Failed to initialise notes library', error);
+      setNotes([]);
+      setSelectedId(null);
     }
   }, []);
 
