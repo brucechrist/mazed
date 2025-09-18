@@ -151,8 +151,8 @@
 }
 
 .notes-list-modal {
-  width: clamp(960px, 94vw, 1880px);
-  max-width: calc(100vw - 32px);
+  width: clamp(1440px, calc(100vw - 24px), 2880px);
+  max-width: calc(100vw - 24px);
   max-height: min(1040px, calc(100vh - 64px));
   padding: 40px 48px;
   gap: 32px;
@@ -653,7 +653,7 @@
 
 @media (max-width: 1440px) {
   .notes-list-modal {
-    width: clamp(880px, 94vw, 1440px);
+    width: clamp(1040px, calc(100vw - 24px), 1980px);
     padding: 36px 40px;
     gap: 30px;
   }
@@ -661,7 +661,7 @@
 
 @media (max-width: 1280px) {
   .notes-list-modal {
-    width: calc(100vw - 40px);
+    width: calc(100vw - 24px);
     max-height: calc(100vh - 60px);
     padding: 32px 36px;
     aspect-ratio: auto;
