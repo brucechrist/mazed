@@ -245,7 +245,11 @@ export default function NotesListModal({ onClose }) {
     setSelectedId(displayNotes[0]?.id ?? null);
 
     if (shouldPersist) {
-      localStorage.setItem('notes', JSON.stringify(persistableNotes));
+      try {
+        localStorage.setItem('notes', JSON.stringify(persistableNotes));
+      } catch (error) {
+        console.warn('Failed to update stored notes', error);
+      }
     }
   }, []);
 
