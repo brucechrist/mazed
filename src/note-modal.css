@@ -151,8 +151,18 @@
 }
 
 .notes-list-modal {
-  width: min(1680px, calc(100vw - 24px));
-  gap: 24px;
+  width: clamp(1440px, calc(100vw - 24px), 2880px);
+  max-width: calc(100vw - 24px);
+  max-height: min(1040px, calc(100vh - 64px));
+  padding: 40px 48px;
+  gap: 32px;
+}
+
+@media (min-height: 900px) {
+  .notes-list-modal {
+    aspect-ratio: 16 / 10;
+    min-height: clamp(640px, 72vh, 920px);
+  }
 }
 
 .modal-close-button {
@@ -439,17 +449,18 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: stretch;
 }
 
 .notes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
   align-content: flex-start;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 12px;
   min-height: 0;
 }
 
@@ -458,8 +469,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-  padding: 18px;
+  gap: 14px;
+  padding: 22px;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(15, 23, 42, 0.55);
@@ -467,7 +478,7 @@
   text-align: left;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  min-height: 180px;
+  min-height: 200px;
 }
 
 .notes-card:hover {
@@ -640,15 +651,42 @@
   text-transform: uppercase;
 }
 
+@media (max-width: 1440px) {
+  .notes-list-modal {
+    width: clamp(1040px, calc(100vw - 24px), 1980px);
+    padding: 36px 40px;
+    gap: 30px;
+  }
+}
+
 @media (max-width: 1280px) {
   .notes-list-modal {
     width: calc(100vw - 24px);
+    max-height: calc(100vh - 60px);
+    padding: 32px 36px;
+    aspect-ratio: auto;
+  }
+
+  .notes-body {
+    gap: 28px;
+  }
+
+  .notes-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    padding-right: 8px;
   }
 }
 
 @media (max-width: 960px) {
+  .notes-list-modal {
+    width: calc(100vw - 32px);
+    max-height: calc(100vh - 48px);
+    padding: 26px;
+  }
+
   .notes-body {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
 
   .notes-detail {
@@ -657,6 +695,8 @@
 
   .notes-grid {
     max-height: 45vh;
+    grid-template-columns: minmax(0, 1fr);
+    padding-right: 0;
   }
 }
 
@@ -696,6 +736,11 @@
   .notes-modal {
     padding: 20px;
     gap: 18px;
+  }
+
+  .notes-list-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 32px);
   }
 
   .notes-search {
