@@ -8,7 +8,7 @@ import {
   deleteSoundData,
   loadSoundData,
   storeSoundData,
-} from './soundStorage.js';
+} from '../soundStorage.js';
 
 const readFileAsDataURL = (file) =>
   new Promise((resolve, reject) => {
