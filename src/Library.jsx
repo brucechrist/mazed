@@ -4,6 +4,28 @@ import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
 import { colorDiff } from './colorUtils.js';
 import namer from 'color-namer';
+import {
+  deleteSoundData,
+  loadSoundData,
+  storeSoundData,
+} from './soundStorage.js';
+
+const readFileAsDataURL = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () =>
+      reject(reader.error || new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+
+const getSoundMetadata = (sound) => ({
+  id: sound.id,
+  title: sound.title || 'Untitled',
+  thumbnail: sound.thumbnail || null,
+  color: sound.color || '',
+  tag: sound.tag || '',
+});
 
 const hexToName = (hex) => {
   if (!hex) return '';
@@ -137,14 +159,69 @@ export default function Library({ onBack }) {
         console.error('Failed to parse saved words', e);
       }
     }
-    const savedSounds = localStorage.getItem('mazedSounds');
-    if (savedSounds) {
+
+    let cancelled = false;
+
+    const loadSavedSounds = async () => {
+      const savedSounds = localStorage.getItem('mazedSounds');
+      if (!savedSounds) return;
+      let parsed;
       try {
-        setSounds(JSON.parse(savedSounds));
+        parsed = JSON.parse(savedSounds);
       } catch (e) {
         console.error('Failed to parse saved sounds', e);
+        return;
       }
-    }
+      if (!Array.isArray(parsed)) return;
+
+      const loaded = [];
+      let metadataNeedsUpdate = false;
+
+      for (const entry of parsed) {
+        if (!entry || typeof entry.id === 'undefined') continue;
+        const base = getSoundMetadata(entry);
+        let dataUrl = entry.dataUrl;
+        let stored = true;
+
+        if (dataUrl) {
+          stored = await storeSoundData(entry.id, dataUrl);
+          if (stored) {
+            metadataNeedsUpdate = true;
+          }
+        } else {
+          dataUrl = await loadSoundData(entry.id);
+        }
+
+        if (!dataUrl && entry.dataUrl) {
+          dataUrl = entry.dataUrl;
+        }
+
+        if (!dataUrl) continue;
+
+        loaded.push({ base, dataUrl, stored });
+      }
+
+      if (cancelled) return;
+
+      setSounds(loaded.map(({ base, dataUrl }) => ({ ...base, dataUrl })));
+
+      if (metadataNeedsUpdate) {
+        const metadata = loaded.map(({ base, stored, dataUrl }) =>
+          stored ? base : { ...base, dataUrl }
+        );
+        try {
+          localStorage.setItem('mazedSounds', JSON.stringify(metadata));
+        } catch (err) {
+          console.error('Failed to update sound metadata', err);
+        }
+      }
+    };
+
+    loadSavedSounds();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const saveImages = (imgs) => {
@@ -157,9 +234,35 @@ export default function Library({ onBack }) {
     localStorage.setItem('mazedWords', JSON.stringify(w));
   };
 
-  const saveSounds = (s) => {
-    setSounds(s);
-    localStorage.setItem('mazedSounds', JSON.stringify(s));
+  const saveSounds = async (list) => {
+    const metadataOnly = list.map(getSoundMetadata);
+    const results = list.length
+      ? await Promise.all(
+          list.map((sound) => storeSoundData(sound.id, sound.dataUrl))
+        )
+      : [];
+
+    const payload =
+      list.length === 0
+        ? metadataOnly
+        : metadataOnly.map((meta, idx) => {
+            const stored = results[idx];
+            if (stored || typeof stored === 'undefined') {
+              return meta;
+            }
+            const dataUrl = list[idx]?.dataUrl;
+            return dataUrl ? { ...meta, dataUrl } : meta;
+          });
+
+    try {
+      localStorage.setItem('mazedSounds', JSON.stringify(payload));
+    } catch (err) {
+      console.error('Failed to save sounds', err);
+      throw err;
+    }
+
+    setSounds(list);
+    return results;
   };
 
   const handleThemeChange = (nextTheme) => {
@@ -235,9 +338,15 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
-  const deleteSound = (id) => {
+  const deleteSound = async (id) => {
     const updated = sounds.filter((s) => s.id !== id);
-    saveSounds(updated);
+    try {
+      await saveSounds(updated);
+    } catch (err) {
+      console.error('Failed to update sounds', err);
+      return;
+    }
+    await deleteSoundData(id);
   };
 
   const moveImage = (fromId, toId) => {
@@ -498,9 +607,13 @@ export default function Library({ onBack }) {
     setWordInput('');
   };
 
-  const saveDroppedSound = () => {
+  const saveDroppedSound = async () => {
     if (!soundModal) return;
-    const create = (thumbData) => {
+    try {
+      const thumbData = soundThumb
+        ? await readFileAsDataURL(soundThumb)
+        : soundThumbPreview;
+
       const newSound = {
         id: editingSoundId || Date.now(),
         title: soundTitle || 'Untitled',
@@ -512,7 +625,9 @@ export default function Library({ onBack }) {
       const updated = editingSoundId
         ? sounds.map((s) => (s.id === editingSoundId ? newSound : s))
         : [...sounds, newSound];
-      saveSounds(updated);
+
+      await saveSounds(updated);
+
       setSoundModal(null);
       setSoundTitle('');
       setSoundThumb(null);
@@ -520,13 +635,8 @@ export default function Library({ onBack }) {
       setSoundColor('');
       setSoundTag('');
       setEditingSoundId(null);
-    };
-    if (soundThumb) {
-      const reader2 = new FileReader();
-      reader2.onload = () => create(reader2.result);
-      reader2.readAsDataURL(soundThumb);
-    } else {
-      create(soundThumbPreview);
+    } catch (err) {
+      console.error('Failed to save sound', err);
     }
   };
 
@@ -1101,9 +1211,12 @@ export default function Library({ onBack }) {
               Edit
             </button>
             <button
-              onClick={() => {
-                deleteSound(soundMenu.id);
-                setSoundMenu(null);
+              onClick={async () => {
+                try {
+                  await deleteSound(soundMenu.id);
+                } finally {
+                  setSoundMenu(null);
+                }
               }}
             >
               Delete
