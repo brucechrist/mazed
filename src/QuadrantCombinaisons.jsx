@@ -16,23 +16,52 @@ export default function QuadrantCombinaisons({ onBack }) {
   const addCombo = (c) => setCombos([...combos, c]);
   const removeCombo = (id) => setCombos(combos.filter((c) => c.id !== id));
 
+  const formatValue = (value) => {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed ? trimmed : '—';
+    }
+    if (value === 0) {
+      return '0';
+    }
+    return value ? String(value) : '—';
+  };
+
   return (
     <div className="version-rating">
       <button className="back-button" onClick={onBack}>Back</button>
       <div className="rating-list">
+        {combos.length === 0 && (
+          <div className="empty-state">
+            Start capturing quadrant combinaisons to track how each energy shows up
+            across your projects.
+          </div>
+        )}
         {combos.map((c) => (
           <div key={c.id} className="version-card">
             <div className="version-header">
               <div className="version-name">{c.name}</div>
-              <button className="delete-button" onClick={() => removeCombo(c.id)}>
+              <button
+                className="delete-button"
+                onClick={() => removeCombo(c.id)}
+                aria-label={`Delete ${c.name}`}
+              >
                 ✖
               </button>
             </div>
             <div className="quadrant-notes">
-              <div><strong>II:</strong> {c.quadrants?.II}</div>
-              <div><strong>IE:</strong> {c.quadrants?.IE}</div>
-              <div><strong>EI:</strong> {c.quadrants?.EI}</div>
-              <div><strong>EE:</strong> {c.quadrants?.EE}</div>
+              <div>
+                <strong>II:</strong> {formatValue(c.quadrants?.II)}
+              </div>
+              <div>
+                <strong>IE:</strong> {formatValue(c.quadrants?.IE)}
+              </div>
+              <div>
+                <strong>EI:</strong> {formatValue(c.quadrants?.EI)}
+              </div>
+              <div>
+                <strong>EE:</strong> {formatValue(c.quadrants?.EE)}
+              </div>
             </div>
             {c.notes && <div className="extra-notes">{c.notes}</div>}
           </div>
