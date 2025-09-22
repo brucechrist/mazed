@@ -4,6 +4,28 @@ import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
 import { colorDiff } from './colorUtils.js';
 import namer from 'color-namer';
+import {
+  deleteSoundData,
+  loadSoundData,
+  storeSoundData,
+} from '../soundStorage.js';
+
+const readFileAsDataURL = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () =>
+      reject(reader.error || new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+
+const getSoundMetadata = (sound) => ({
+  id: sound.id,
+  title: sound.title || 'Untitled',
+  thumbnail: sound.thumbnail || null,
+  color: sound.color || '',
+  tag: sound.tag || '',
+});
 
 const hexToName = (hex) => {
   if (!hex) return '';
@@ -62,6 +84,22 @@ export default function Library({ onBack }) {
   const [palette, setPalette] = useState(DEFAULT_COLORS);
   const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [libraryTheme, setLibraryTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedTheme = localStorage.getItem('libraryTheme');
+      if (storedTheme === 'light' || storedTheme === 'dark') {
+        return storedTheme;
+      }
+      if (
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: light)').matches
+      ) {
+        return 'light';
+      }
+    }
+    return 'dark';
+  });
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
 
@@ -121,14 +159,69 @@ export default function Library({ onBack }) {
         console.error('Failed to parse saved words', e);
       }
     }
-    const savedSounds = localStorage.getItem('mazedSounds');
-    if (savedSounds) {
+
+    let cancelled = false;
+
+    const loadSavedSounds = async () => {
+      const savedSounds = localStorage.getItem('mazedSounds');
+      if (!savedSounds) return;
+      let parsed;
       try {
-        setSounds(JSON.parse(savedSounds));
+        parsed = JSON.parse(savedSounds);
       } catch (e) {
         console.error('Failed to parse saved sounds', e);
+        return;
       }
-    }
+      if (!Array.isArray(parsed)) return;
+
+      const loaded = [];
+      let metadataNeedsUpdate = false;
+
+      for (const entry of parsed) {
+        if (!entry || typeof entry.id === 'undefined') continue;
+        const base = getSoundMetadata(entry);
+        let dataUrl = entry.dataUrl;
+        let stored = true;
+
+        if (dataUrl) {
+          stored = await storeSoundData(entry.id, dataUrl);
+          if (stored) {
+            metadataNeedsUpdate = true;
+          }
+        } else {
+          dataUrl = await loadSoundData(entry.id);
+        }
+
+        if (!dataUrl && entry.dataUrl) {
+          dataUrl = entry.dataUrl;
+        }
+
+        if (!dataUrl) continue;
+
+        loaded.push({ base, dataUrl, stored });
+      }
+
+      if (cancelled) return;
+
+      setSounds(loaded.map(({ base, dataUrl }) => ({ ...base, dataUrl })));
+
+      if (metadataNeedsUpdate) {
+        const metadata = loaded.map(({ base, stored, dataUrl }) =>
+          stored ? base : { ...base, dataUrl }
+        );
+        try {
+          localStorage.setItem('mazedSounds', JSON.stringify(metadata));
+        } catch (err) {
+          console.error('Failed to update sound metadata', err);
+        }
+      }
+    };
+
+    loadSavedSounds();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const saveImages = (imgs) => {
@@ -141,14 +234,52 @@ export default function Library({ onBack }) {
     localStorage.setItem('mazedWords', JSON.stringify(w));
   };
 
-  const saveSounds = (s) => {
-    setSounds(s);
-    localStorage.setItem('mazedSounds', JSON.stringify(s));
+  const saveSounds = async (list) => {
+    const metadataOnly = list.map(getSoundMetadata);
+    const results = list.length
+      ? await Promise.all(
+          list.map((sound) => storeSoundData(sound.id, sound.dataUrl))
+        )
+      : [];
+
+    const payload =
+      list.length === 0
+        ? metadataOnly
+        : metadataOnly.map((meta, idx) => {
+            const stored = results[idx];
+            if (stored || typeof stored === 'undefined') {
+              return meta;
+            }
+            const dataUrl = list[idx]?.dataUrl;
+            return dataUrl ? { ...meta, dataUrl } : meta;
+          });
+
+    try {
+      localStorage.setItem('mazedSounds', JSON.stringify(payload));
+    } catch (err) {
+      console.error('Failed to save sounds', err);
+      throw err;
+    }
+
+    setSounds(list);
+    return results;
+  };
+
+  const handleThemeChange = (nextTheme) => {
+    setLibraryTheme(nextTheme);
+    setSettingsOpen(false);
+    setSortMenuOpen(false);
   };
 
   useEffect(() => {
     localStorage.setItem('libraryZoom', zoom);
   }, [zoom]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('libraryTheme', libraryTheme);
+    }
+  }, [libraryTheme]);
   const maxZoom = 1; // max 100% of native size
   const colWidth = 250 * zoom;
   const rowHeight = 1; // finer base row height for masonry grid
@@ -196,6 +327,7 @@ export default function Library({ onBack }) {
       setMenu(null);
       setSoundMenu(null);
       setSortMenuOpen(false);
+      setSettingsOpen(false);
     };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
@@ -206,9 +338,15 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
-  const deleteSound = (id) => {
+  const deleteSound = async (id) => {
     const updated = sounds.filter((s) => s.id !== id);
-    saveSounds(updated);
+    try {
+      await saveSounds(updated);
+    } catch (err) {
+      console.error('Failed to update sounds', err);
+      return;
+    }
+    await deleteSoundData(id);
   };
 
   const moveImage = (fromId, toId) => {
@@ -469,9 +607,13 @@ export default function Library({ onBack }) {
     setWordInput('');
   };
 
-  const saveDroppedSound = () => {
+  const saveDroppedSound = async () => {
     if (!soundModal) return;
-    const create = (thumbData) => {
+    try {
+      const thumbData = soundThumb
+        ? await readFileAsDataURL(soundThumb)
+        : soundThumbPreview;
+
       const newSound = {
         id: editingSoundId || Date.now(),
         title: soundTitle || 'Untitled',
@@ -483,7 +625,9 @@ export default function Library({ onBack }) {
       const updated = editingSoundId
         ? sounds.map((s) => (s.id === editingSoundId ? newSound : s))
         : [...sounds, newSound];
-      saveSounds(updated);
+
+      await saveSounds(updated);
+
       setSoundModal(null);
       setSoundTitle('');
       setSoundThumb(null);
@@ -491,13 +635,8 @@ export default function Library({ onBack }) {
       setSoundColor('');
       setSoundTag('');
       setEditingSoundId(null);
-    };
-    if (soundThumb) {
-      const reader2 = new FileReader();
-      reader2.onload = () => create(reader2.result);
-      reader2.readAsDataURL(soundThumb);
-    } else {
-      create(soundThumbPreview);
+    } catch (err) {
+      console.error('Failed to save sound', err);
     }
   };
 
@@ -638,7 +777,9 @@ export default function Library({ onBack }) {
 
   return (
     <div
-      className={`library-container ${isDragging ? 'dragging' : ''}`}
+      className={`library-container ${
+        isDragging ? 'dragging' : ''
+      } ${libraryTheme === 'light' ? 'light-mode' : 'dark-mode'}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -648,59 +789,136 @@ export default function Library({ onBack }) {
       {uploading && <div className="upload-status">Uploading…</div>}
       <div className="library-manager">
         <div className="library-header">
-          <button onClick={onBack} className="back-button">
+          <button onClick={onBack} className="back-button" type="button">
             Back
           </button>
           <h2>Library</h2>
-          <div className="sort-dropdown">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSortMenuOpen((o) => !o);
-              }}
-              className="sort-button"
-            >
-              Order
-            </button>
-            {sortMenuOpen && (
-              <div
-                className="sort-menu"
-                onClick={(e) => e.stopPropagation()}
+          <div className="library-actions">
+            <div className="library-settings">
+              <button
+                type="button"
+                className={`library-settings-button${
+                  settingsOpen ? ' open' : ''
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSettingsOpen((open) => !open);
+                  setSortMenuOpen(false);
+                }}
+                aria-label="Library settings"
               >
-                <button
-                  onClick={() => {
-                    resetSort();
-                    setSortMenuOpen(false);
-                  }}
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                  className="library-settings-icon"
                 >
-                  Original
-                </button>
-                <button
-                  onClick={() => {
-                    sortByTitle();
-                    setSortMenuOpen(false);
-                  }}
+                  <path
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.532-.918 3.31.86 2.392 2.392a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.918 1.532-.86 3.31-2.392 2.392a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.532.918-3.31-.86-2.392-2.392a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.918-1.532.86-3.31 2.392-2.392a1.724 1.724 0 0 0 2.573-1.066Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </button>
+              {settingsOpen && (
+                <div
+                  className="library-settings-menu"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Title
-                </button>
-                <button
-                  onClick={() => {
-                    sortByDate();
-                    setSortMenuOpen(false);
-                  }}
-                >
-                  Date Added
-                </button>
-                <button
-                  onClick={() => {
-                    autoSortByColor();
-                    setSortMenuOpen(false);
-                  }}
-                >
-                  Color
-                </button>
+                  <button
+                    type="button"
+                    className={libraryTheme === 'light' ? 'active' : ''}
+                    onClick={() => handleThemeChange('light')}
+                  >
+                    <span>Light mode</span>
+                    {libraryTheme === 'light' && (
+                      <span
+                        className="library-settings-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryTheme === 'dark' ? 'active' : ''}
+                    onClick={() => handleThemeChange('dark')}
+                  >
+                    <span>Dark mode</span>
+                    {libraryTheme === 'dark' && (
+                      <span
+                        className="library-settings-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
                 </div>
-                )}
+              )}
+            </div>
+            <div className="sort-dropdown">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortMenuOpen((o) => !o);
+                  setSettingsOpen(false);
+                }}
+                className="sort-button"
+                type="button"
+              >
+                Order
+              </button>
+              {sortMenuOpen && (
+                <div
+                  className="sort-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      resetSort();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Original
+                  </button>
+                  <button
+                    onClick={() => {
+                      sortByTitle();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Title
+                  </button>
+                  <button
+                    onClick={() => {
+                      sortByDate();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Date Added
+                  </button>
+                  <button
+                    onClick={() => {
+                      autoSortByColor();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Color
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="library-tabs">
@@ -993,9 +1211,12 @@ export default function Library({ onBack }) {
               Edit
             </button>
             <button
-              onClick={() => {
-                deleteSound(soundMenu.id);
-                setSoundMenu(null);
+              onClick={async () => {
+                try {
+                  await deleteSound(soundMenu.id);
+                } finally {
+                  setSoundMenu(null);
+                }
               }}
             >
               Delete

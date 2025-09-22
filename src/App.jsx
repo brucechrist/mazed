@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
@@ -155,6 +155,13 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [sidebarIndex, setSidebarIndex] = useState(() =>
     tabs.findIndex((t) => t.label === (initialTab || tabs[0].label))
   );
+  const [floorAnimation, setFloorAnimation] = useState({
+    direction: null,
+    active: false,
+  });
+  const prevLayerRef = useRef(activeLayer);
+  const animationTimeoutRef = useRef(null);
+  const elevatorTriggerRef = useRef(false);
 
   const anyAppOpen =
     showJournal ||
@@ -217,10 +224,19 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
 
   const toolsTabIndex = tabs.findIndex((tab) => tab.label === 'Tools');
 
+  const triggerElevatorToLayer = (layerLabel) => {
+    const willChange = layerLabel !== activeLayer;
+    if (willChange) {
+      elevatorTriggerRef.current = true;
+      setActiveLayer(layerLabel);
+    }
+    return willChange;
+  };
+
   const openToolsHome = () => {
     setActiveTab('Tools');
     setSidebarIndex(toolsTabIndex);
-    setActiveLayer('Form');
+    triggerElevatorToLayer('Form');
     closeOpenApp();
     setSelectedAppIndex(-1);
   };
@@ -228,11 +244,23 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const openToolsBlog = () => {
     setActiveTab('Tools');
     setSidebarIndex(toolsTabIndex);
-    setActiveLayer('Semi-Formless');
+    triggerElevatorToLayer('Semi-Formless');
     closeOpenApp();
     setSelectedAppIndex(-1);
     window.postMessage(
       { type: 'NAVIGATE_PAGE', page: 'blog' },
+      '*'
+    );
+  };
+
+  const openCollectiveLayer = () => {
+    setActiveTab('Tools');
+    setSidebarIndex(toolsTabIndex);
+    triggerElevatorToLayer('Formless');
+    closeOpenApp();
+    setSelectedAppIndex(-1);
+    window.postMessage(
+      { type: 'NAVIGATE_PAGE', page: 'collective' },
       '*'
     );
   };
@@ -258,6 +286,56 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       setShowToolsBlog(false);
     }
   }, [activeLayer]);
+
+  useEffect(() => {
+    const previousLayer = prevLayerRef.current;
+    if (previousLayer !== activeLayer) {
+      const previousIndex = layers.findIndex((layer) => layer.label === previousLayer);
+      const nextIndex = layers.findIndex((layer) => layer.label === activeLayer);
+      const shouldAnimate = elevatorTriggerRef.current;
+      elevatorTriggerRef.current = false;
+
+      if (
+        shouldAnimate &&
+        previousIndex !== -1 &&
+        nextIndex !== -1 &&
+        previousIndex !== nextIndex
+      ) {
+        const direction = nextIndex < previousIndex ? 'up' : 'down';
+        setFloorAnimation({ direction, active: true });
+
+        if (animationTimeoutRef.current) {
+          clearTimeout(animationTimeoutRef.current);
+        }
+
+        animationTimeoutRef.current = setTimeout(() => {
+          setFloorAnimation({ direction: null, active: false });
+          animationTimeoutRef.current = null;
+        }, 700);
+      } else {
+        if (animationTimeoutRef.current) {
+          clearTimeout(animationTimeoutRef.current);
+          animationTimeoutRef.current = null;
+        }
+
+        setFloorAnimation((prev) =>
+          prev.active || prev.direction ? { direction: null, active: false } : prev
+        );
+      }
+    }
+
+    prevLayerRef.current = activeLayer;
+  }, [activeLayer]);
+
+  useEffect(
+    () => () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+        animationTimeoutRef.current = null;
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     localStorage.setItem('appLayers', JSON.stringify(appLayers));
@@ -468,10 +546,15 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     );
   }
 
+  const elevatorClass =
+    floorAnimation.active && floorAnimation.direction
+      ? ` elevator-${floorAnimation.direction}`
+      : '';
+
   return (
     <QuestProvider>
       <ActivityLogger enabled={autoLog} />
-      <div className="app-container">
+      <div className={`app-container${elevatorClass}`}>
         <aside className="sidebar">
           <div className="layer-buttons">
             {layers.map((layer) => (
@@ -491,25 +574,28 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               type="button"
               className="sidebar-quick-button"
               style={{ backgroundColor: '#ff4d4f' }}
-              title="Coming soon"
-              aria-label="Coming soon"
+              onClick={openCollectiveLayer}
+              title="Open Collective layer (Layer 3)"
+              aria-label="Open Collective layer (Layer 3)"
+            >
+              🤝
+            </button>
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#2196f3' }}
+              onClick={openToolsBlog}
+              title="Open blog layer (Layer 2)"
+              aria-label="Open blog layer (Layer 2)"
             />
-          <button
-            type="button"
-            className="sidebar-quick-button"
-            style={{ backgroundColor: '#2196f3' }}
-            onClick={openToolsBlog}
-            title="Open blog layer (Layer 2)"
-            aria-label="Open blog layer (Layer 2)"
-          />
-          <button
-            type="button"
-            className="sidebar-quick-button"
-            style={{ backgroundColor: '#4caf50' }}
-            onClick={openToolsHome}
-            title="Return to training layer (Layer 1)"
-            aria-label="Return to training layer (Layer 1)"
-          />
+            <button
+              type="button"
+              className="sidebar-quick-button"
+              style={{ backgroundColor: '#4caf50' }}
+              onClick={openToolsHome}
+              title="Return to training layer (Layer 1)"
+              aria-label="Return to training layer (Layer 1)"
+            />
           </div>
           <div className="bottom-buttons">
           <div
