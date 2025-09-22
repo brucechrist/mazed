@@ -335,6 +335,10 @@
   justify-content: space-between;
 }
 
+.library-settings-hide-toggle span:first-child {
+  white-space: nowrap;
+}
+
 .image-grid {
   display: grid;
   grid-auto-flow: dense;
