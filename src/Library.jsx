@@ -38,6 +38,66 @@ const hexToName = (hex) => {
 
 const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
 
+const UP_TAG = 'UP';
+const DOWN_TAG = 'DOWN';
+const LEGACY_SHADOW_TAG = 'shadow';
+
+const sanitizeTag = (tag) => {
+  if (typeof tag !== 'string') return null;
+  const trimmed = tag.trim();
+  return trimmed ? trimmed : null;
+};
+
+const parseOrientationPreference = (value) => {
+  if (typeof value !== 'string') {
+    return DOWN_TAG;
+  }
+  const normalized = value.trim().toUpperCase();
+  return normalized === UP_TAG ? UP_TAG : DOWN_TAG;
+};
+
+const getOrientationTag = (tags) => {
+  if (!Array.isArray(tags)) return UP_TAG;
+  let orientation = UP_TAG;
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    if (lower === DOWN_TAG.toLowerCase() || lower === LEGACY_SHADOW_TAG) {
+      return DOWN_TAG;
+    }
+    if (lower === UP_TAG.toLowerCase()) {
+      orientation = UP_TAG;
+    }
+  }
+  return orientation;
+};
+
+const extractCustomTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const custom = [];
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    if (
+      lower === UP_TAG.toLowerCase() ||
+      lower === DOWN_TAG.toLowerCase() ||
+      lower === LEGACY_SHADOW_TAG
+    ) {
+      continue;
+    }
+    custom.push(tag);
+  }
+  return custom;
+};
+
+const normalizeImageTags = (tags) => {
+  const orientation = getOrientationTag(tags);
+  const custom = extractCustomTags(tags);
+  return [orientation, ...custom];
+};
+
 function QuadrantPicker({ value = [], onChange }) {
   const main = value[0];
   const sub = value[1];
@@ -119,6 +179,25 @@ export default function Library({ onBack }) {
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
+  const [hideShadowImages, setHideShadowImages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hideShadowImages') === 'true';
+    }
+    return false;
+  });
+  const [hiddenOrientation, setHiddenOrientation] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('hideShadowOrientation');
+      return parseOrientationPreference(stored);
+    }
+    return DOWN_TAG;
+  });
+
+  const filteredImages = hideShadowImages
+    ? images.filter(
+        (img) => getOrientationTag(img.tags) !== hiddenOrientation
+      )
+    : images;
 
   // Restore masonry spans by normalizing stored images to their natural size
   useEffect(() => {
@@ -225,8 +304,13 @@ export default function Library({ onBack }) {
   }, []);
 
   const saveImages = (imgs) => {
-    setImages(imgs);
-    localStorage.setItem('mazedImages', JSON.stringify(imgs));
+    const normalized = imgs.map((img) => ({
+      ...img,
+      tags: normalizeImageTags(img.tags),
+    }));
+    setImages(normalized);
+    localStorage.setItem('mazedImages', JSON.stringify(normalized));
+    return normalized;
   };
 
   const saveWords = (w) => {
@@ -310,6 +394,20 @@ export default function Library({ onBack }) {
   }, [lightbox?.id]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
+      localStorage.setItem('hideShadowOrientation', hiddenOrientation);
+    }
+    if (
+      hideShadowImages &&
+      lightbox &&
+      getOrientationTag(lightbox.tags) === hiddenOrientation
+    ) {
+      setLightbox(null);
+    }
+  }, [hideShadowImages, hiddenOrientation, lightbox]);
+
+  useEffect(() => {
     loadPalette().then(setPalette);
     const handler = () => {
       loadPalette().then(setPalette);
@@ -364,8 +462,8 @@ export default function Library({ onBack }) {
       img.id === id ? { ...img, ...updates } : img
     );
 
-    saveImages(updated);
-    const next = updated.find((i) => i.id === id);
+    const normalized = saveImages(updated);
+    const next = normalized.find((i) => i.id === id);
     if (next) setLightbox(next);
   };
 
@@ -498,7 +596,7 @@ export default function Library({ onBack }) {
           id: Date.now(),
           title: imgTitle || name,
           description: '',
-          tags: imgTags,
+          tags: normalizeImageTags(imgTags),
           quadrants: [],
           color: hex,
           dataUrl: result,
@@ -775,6 +873,10 @@ export default function Library({ onBack }) {
     );
   };
 
+  const lightboxOrientation = getOrientationTag(lightbox?.tags);
+  const lightboxCustomTags = extractCustomTags(lightbox?.tags);
+  const lightboxIsDown = lightboxOrientation === DOWN_TAG;
+
   return (
     <div
       className={`library-container ${
@@ -864,6 +966,49 @@ export default function Library({ onBack }) {
                       </span>
                     )}
                   </button>
+                  <div
+                    className={`library-settings-hide-row${
+                      hideShadowImages ? ' active' : ''
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className={`library-settings-orientation-toggle${
+                        hiddenOrientation === DOWN_TAG ? '' : ' flipped'
+                      }`}
+                      onClick={() =>
+                        setHiddenOrientation((prev) =>
+                          prev === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        )
+                      }
+                      aria-pressed={hiddenOrientation === UP_TAG}
+                      aria-label={`Switch to hiding ${
+                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                      } images`}
+                      title={`Switch to hiding ${
+                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                      } images`}
+                    >
+                      ⇄
+                    </button>
+                    <button
+                      type="button"
+                      className={`library-settings-hide-toggle${
+                        hideShadowImages ? ' active' : ''
+                      }`}
+                      onClick={() => setHideShadowImages((prev) => !prev)}
+                    >
+                      <span>{`Hide ${hiddenOrientation} images`}</span>
+                      {hideShadowImages && (
+                        <span
+                          className="library-settings-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -951,7 +1096,7 @@ export default function Library({ onBack }) {
           sortMode === 'color' ? (
             <div className="color-groups">
               {palette.map((c) => {
-                const groupImgs = images.filter((img) => img.color === c);
+                const groupImgs = filteredImages.filter((img) => img.color === c);
                 const groupSounds = sounds.filter((s) => s.color === c);
                 if (!groupImgs.length && !groupSounds.length) return null;
                 return (
@@ -1066,15 +1211,20 @@ export default function Library({ onBack }) {
                 >
                   {(
                     activeTab === 'all'
-                      ? [...images.map((img) => ({ type: 'image', item: img })),
-                        ...sounds.map((s) => ({ type: 'sound', item: s }))]
-                        .sort((a, b) => a.item.id - b.item.id)
-                        .map(({ type, item }) =>
-                          type === 'image'
-                            ? renderImageCard(item)
-                            : renderSoundCard(item)
-                        )
-                      : images.map((img) => renderImageCard(img))
+                      ? [
+                          ...filteredImages.map((img) => ({
+                            type: 'image',
+                            item: img,
+                          })),
+                          ...sounds.map((s) => ({ type: 'sound', item: s })),
+                        ]
+                          .sort((a, b) => a.item.id - b.item.id)
+                          .map(({ type, item }) =>
+                            type === 'image'
+                              ? renderImageCard(item)
+                              : renderSoundCard(item)
+                          )
+                      : filteredImages.map((img) => renderImageCard(img))
                   )}
                 </div>
             ))}
@@ -1315,28 +1465,61 @@ export default function Library({ onBack }) {
                       ))}
                     </div>
                   </div>
-                    <div className="tag-list">
-                      {lightbox.tags?.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="tag"
-                          onClick={() => {
-                            const nt = lightbox.tags.filter((_, i) => i !== idx);
-                            updateImage(lightbox.id, { tags: nt });
-                          }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      <input
+                  <div className="tag-list">
+                    {lightboxCustomTags.map((tag, idx) => (
+                      <span
+                        key={`${tag}-${idx}`}
+                        className="tag"
+                        onClick={() => {
+                          const nextCustom = lightboxCustomTags.filter(
+                            (_, i) => i !== idx
+                          );
+                          const nextTags = normalizeImageTags([
+                            lightboxOrientation,
+                            ...nextCustom,
+                          ]);
+                          updateImage(lightbox.id, { tags: nextTags });
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    <button
+                      type="button"
+                      className={`shadow-tag-button${
+                        lightboxIsDown ? ' active' : ''
+                      }`}
+                      aria-label={
+                        lightboxIsDown ? 'Mark image as UP' : 'Mark image as DOWN'
+                      }
+                      title={
+                        lightboxIsDown ? 'Mark image as UP' : 'Mark image as DOWN'
+                      }
+                      aria-pressed={lightboxIsDown}
+                      onClick={() => {
+                        const nextOrientation = lightboxIsDown ? UP_TAG : DOWN_TAG;
+                        const nextTags = normalizeImageTags([
+                          nextOrientation,
+                          ...lightboxCustomTags,
+                        ]);
+                        updateImage(lightbox.id, { tags: nextTags });
+                      }}
+                    >
+                      {lightboxIsDown ? 'DOWN' : 'UP'}
+                    </button>
+                    <input
                       type="text"
                       value={tagInput}
                       placeholder="Add tag"
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && tagInput.trim()) {
-                          const nt = [...(lightbox.tags || []), tagInput.trim()];
-                          updateImage(lightbox.id, { tags: nt });
+                          const nextTags = normalizeImageTags([
+                            lightboxOrientation,
+                            ...lightboxCustomTags,
+                            tagInput.trim(),
+                          ]);
+                          updateImage(lightbox.id, { tags: nextTags });
                           setTagInput('');
                         }
                       }}
