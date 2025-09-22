@@ -1378,6 +1378,13 @@ export default function Library({ onBack }) {
                       className={`shadow-tag-button${
                         lightboxHasShadow ? ' active' : ''
                       }`}
+                      aria-label={
+                        lightboxHasShadow ? 'Remove shadow tag' : 'Add shadow tag'
+                      }
+                      title={
+                        lightboxHasShadow ? 'Remove shadow tag' : 'Add shadow tag'
+                      }
+                      aria-pressed={lightboxHasShadow}
                       onClick={() => {
                         const currentTags = Array.isArray(lightbox.tags)
                           ? lightbox.tags
@@ -1395,7 +1402,7 @@ export default function Library({ onBack }) {
                         updateImage(lightbox.id, { tags: nextTags });
                       }}
                     >
-                      {lightboxHasShadow ? 'Shadow tag ✓' : 'Add "shadow" tag'}
+                      {lightboxHasShadow ? 'Shadow tag ✓' : '⮟'}
                     </button>
                     <input
                       type="text"
