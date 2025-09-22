@@ -38,6 +38,60 @@ const hexToName = (hex) => {
 
 const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
 
+const UP_TAG = 'UP';
+const DOWN_TAG = 'DOWN';
+const LEGACY_SHADOW_TAG = 'shadow';
+
+const sanitizeTag = (tag) => {
+  if (typeof tag !== 'string') return null;
+  const trimmed = tag.trim();
+  return trimmed ? trimmed : null;
+};
+
+const getOrientationTag = (tags) => {
+  if (!Array.isArray(tags)) return UP_TAG;
+  let orientation = UP_TAG;
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    if (lower === DOWN_TAG.toLowerCase() || lower === LEGACY_SHADOW_TAG) {
+      return DOWN_TAG;
+    }
+    if (lower === UP_TAG.toLowerCase()) {
+      orientation = UP_TAG;
+    }
+  }
+  return orientation;
+};
+
+const extractCustomTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const custom = [];
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    if (
+      lower === UP_TAG.toLowerCase() ||
+      lower === DOWN_TAG.toLowerCase() ||
+      lower === LEGACY_SHADOW_TAG
+    ) {
+      continue;
+    }
+    custom.push(tag);
+  }
+  return custom;
+};
+
+const normalizeImageTags = (tags) => {
+  const orientation = getOrientationTag(tags);
+  const custom = extractCustomTags(tags);
+  return [orientation, ...custom];
+};
+
+const hasDownTag = (tags) => getOrientationTag(tags) === DOWN_TAG;
+
 function QuadrantPicker({ value = [], onChange }) {
   const main = value[0];
   const sub = value[1];
@@ -126,12 +180,8 @@ export default function Library({ onBack }) {
     return false;
   });
 
-  const hasShadowTag = (tags) =>
-    Array.isArray(tags) &&
-    tags.some((tag) => typeof tag === 'string' && tag.toLowerCase() === 'shadow');
-
   const filteredImages = hideShadowImages
-    ? images.filter((img) => !hasShadowTag(img.tags))
+    ? images.filter((img) => !hasDownTag(img.tags))
     : images;
 
   // Restore masonry spans by normalizing stored images to their natural size
@@ -239,8 +289,13 @@ export default function Library({ onBack }) {
   }, []);
 
   const saveImages = (imgs) => {
-    setImages(imgs);
-    localStorage.setItem('mazedImages', JSON.stringify(imgs));
+    const normalized = imgs.map((img) => ({
+      ...img,
+      tags: normalizeImageTags(img.tags),
+    }));
+    setImages(normalized);
+    localStorage.setItem('mazedImages', JSON.stringify(normalized));
+    return normalized;
   };
 
   const saveWords = (w) => {
@@ -327,7 +382,7 @@ export default function Library({ onBack }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
     }
-    if (hideShadowImages && lightbox && hasShadowTag(lightbox.tags)) {
+    if (hideShadowImages && lightbox && hasDownTag(lightbox.tags)) {
       setLightbox(null);
     }
   }, [hideShadowImages, lightbox]);
@@ -387,8 +442,8 @@ export default function Library({ onBack }) {
       img.id === id ? { ...img, ...updates } : img
     );
 
-    saveImages(updated);
-    const next = updated.find((i) => i.id === id);
+    const normalized = saveImages(updated);
+    const next = normalized.find((i) => i.id === id);
     if (next) setLightbox(next);
   };
 
@@ -521,7 +576,7 @@ export default function Library({ onBack }) {
           id: Date.now(),
           title: imgTitle || name,
           description: '',
-          tags: imgTags,
+          tags: normalizeImageTags(imgTags),
           quadrants: [],
           color: hex,
           dataUrl: result,
@@ -798,7 +853,9 @@ export default function Library({ onBack }) {
     );
   };
 
-  const lightboxHasShadow = hasShadowTag(lightbox?.tags);
+  const lightboxOrientation = getOrientationTag(lightbox?.tags);
+  const lightboxCustomTags = extractCustomTags(lightbox?.tags);
+  const lightboxIsDown = lightboxOrientation === DOWN_TAG;
 
   return (
     <div
@@ -894,7 +951,7 @@ export default function Library({ onBack }) {
                     className={hideShadowImages ? 'active' : ''}
                     onClick={() => setHideShadowImages((prev) => !prev)}
                   >
-                    <span>Hide shadow images</span>
+                    <span>Hide DOWN images</span>
                     {hideShadowImages && (
                       <span
                         className="library-settings-check"
@@ -1361,13 +1418,19 @@ export default function Library({ onBack }) {
                     </div>
                   </div>
                   <div className="tag-list">
-                    {lightbox.tags?.map((tag, idx) => (
+                    {lightboxCustomTags.map((tag, idx) => (
                       <span
-                        key={idx}
+                        key={`${tag}-${idx}`}
                         className="tag"
                         onClick={() => {
-                          const nt = lightbox.tags.filter((_, i) => i !== idx);
-                          updateImage(lightbox.id, { tags: nt });
+                          const nextCustom = lightboxCustomTags.filter(
+                            (_, i) => i !== idx
+                          );
+                          const nextTags = normalizeImageTags([
+                            lightboxOrientation,
+                            ...nextCustom,
+                          ]);
+                          updateImage(lightbox.id, { tags: nextTags });
                         }}
                       >
                         {tag}
@@ -1376,33 +1439,25 @@ export default function Library({ onBack }) {
                     <button
                       type="button"
                       className={`shadow-tag-button${
-                        lightboxHasShadow ? ' active' : ''
+                        lightboxIsDown ? ' active' : ''
                       }`}
                       aria-label={
-                        lightboxHasShadow ? 'Remove shadow tag' : 'Add shadow tag'
+                        lightboxIsDown ? 'Mark image as UP' : 'Mark image as DOWN'
                       }
                       title={
-                        lightboxHasShadow ? 'Remove shadow tag' : 'Add shadow tag'
+                        lightboxIsDown ? 'Mark image as UP' : 'Mark image as DOWN'
                       }
-                      aria-pressed={lightboxHasShadow}
+                      aria-pressed={lightboxIsDown}
                       onClick={() => {
-                        const currentTags = Array.isArray(lightbox.tags)
-                          ? lightbox.tags
-                          : [];
-                        const withoutShadow = currentTags.filter(
-                          (tag) =>
-                            !(
-                              typeof tag === 'string' &&
-                              tag.toLowerCase() === 'shadow'
-                            )
-                        );
-                        const nextTags = lightboxHasShadow
-                          ? withoutShadow
-                          : [...withoutShadow, 'shadow'];
+                        const nextOrientation = lightboxIsDown ? UP_TAG : DOWN_TAG;
+                        const nextTags = normalizeImageTags([
+                          nextOrientation,
+                          ...lightboxCustomTags,
+                        ]);
                         updateImage(lightbox.id, { tags: nextTags });
                       }}
                     >
-                      {lightboxHasShadow ? 'Shadow tag ✓' : '⮟'}
+                      {lightboxIsDown ? 'DOWN' : 'UP'}
                     </button>
                     <input
                       type="text"
@@ -1411,8 +1466,12 @@ export default function Library({ onBack }) {
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && tagInput.trim()) {
-                          const nt = [...(lightbox.tags || []), tagInput.trim()];
-                          updateImage(lightbox.id, { tags: nt });
+                          const nextTags = normalizeImageTags([
+                            lightboxOrientation,
+                            ...lightboxCustomTags,
+                            tagInput.trim(),
+                          ]);
+                          updateImage(lightbox.id, { tags: nextTags });
                           setTagInput('');
                         }
                       }}
