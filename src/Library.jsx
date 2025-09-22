@@ -998,7 +998,7 @@ export default function Library({ onBack }) {
                       }`}
                       onClick={() => setHideShadowImages((prev) => !prev)}
                     >
-                      <span>{`Hide ${hiddenOrientation} images`}</span>
+                      <span>{`Hide ${hiddenOrientation}`}</span>
                       {hideShadowImages && (
                         <span
                           className="library-settings-check"

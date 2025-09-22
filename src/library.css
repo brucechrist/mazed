@@ -261,14 +261,26 @@
 .library-settings-hide-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   padding: 2px;
   border-radius: 28px;
+  background: var(--library-soft-highlight);
   transition: background 0.3s ease;
 }
 
 .library-settings-hide-row:hover {
-  background: var(--library-soft-highlight);
+  background: var(
+    --library-soft-highlight-strong,
+    var(--library-soft-highlight)
+  );
+}
+
+.library-settings-hide-row.active {
+  background: var(--library-accent);
+}
+
+.library-settings-hide-row.active:hover {
+  background: var(--library-accent);
 }
 
 .library-settings-hide-row.active .library-settings-orientation-toggle {
