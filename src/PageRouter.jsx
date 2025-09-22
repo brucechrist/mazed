@@ -24,6 +24,7 @@ import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import MomentoMori from './MomentoMori.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
+import Trinities from './Trinities.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './ToolsBlog.jsx';
 import TodoGoals from './TodoGoals.jsx';
@@ -221,6 +222,7 @@ export default function PageRouter() {
       moodtracker: <Moodtracker {...props} />,
       momentoMori: <MomentoMori {...props} />,
       quadrantComb: <QuadrantCombinaisons onBack={goBack} />,
+      trinities: <Trinities onBack={goBack} />,
       anima: <Anima onBack={goBack} />,
       blog: <ToolsBlog onBack={goBack} />,
       todoGoals: <TodoGoals onBack={goBack} />,

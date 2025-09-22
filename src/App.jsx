@@ -17,6 +17,7 @@ import ToolsBlog from './ToolsBlog.jsx';
 import MomentoMori from '../MomentoMori.jsx';
 import Watchdog from './Watchdog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
+import Trinities from './Trinities.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -76,6 +77,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
+  const [showTrinities, setShowTrinities] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showCharacterEvolve, setShowCharacterEvolve] = useState(false);
@@ -109,6 +111,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       moodtracker: 'Form',
       momentoMori: 'Form',
       quadrantComb: 'Form',
+      trinities: 'Form',
       anima: 'Form',
       blog: 'Form',
       todoGoals: 'Form',
@@ -177,6 +180,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showMoodtracker ||
     showMomentoMori ||
     showQuadrantComb ||
+    showTrinities ||
     showAnima ||
     showBlog ||
     showTodoGoals ||
@@ -206,6 +210,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowMoodtracker(false);
     setShowMomentoMori(false);
     setShowQuadrantComb(false);
+    setShowTrinities(false);
     setShowAnima(false);
     setShowBlog(false);
     setShowTodoGoals(false);
@@ -669,6 +674,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <MomentoMori onBack={() => setShowMomentoMori(false)} />
             ) : showQuadrantComb ? (
               <QuadrantCombinaisons onBack={() => setShowQuadrantComb(false)} />
+            ) : showTrinities ? (
+              <Trinities onBack={() => setShowTrinities(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : showBlog ? (
@@ -847,6 +854,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">🔀</div>
                     <span>Quadrant combinaisons</span>
+                  </div>
+                )}
+                {appLayers.trinities === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowTrinities(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'trinities')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'trinities')}
+                  >
+                    <div className="star-icon">🔺</div>
+                    <span>Trinities</span>
                   </div>
                 )}
                 {appLayers.anima === activeLayer && (
