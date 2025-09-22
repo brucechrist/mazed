@@ -48,6 +48,14 @@ const sanitizeTag = (tag) => {
   return trimmed ? trimmed : null;
 };
 
+const parseOrientationPreference = (value) => {
+  if (typeof value !== 'string') {
+    return DOWN_TAG;
+  }
+  const normalized = value.trim().toUpperCase();
+  return normalized === UP_TAG ? UP_TAG : DOWN_TAG;
+};
+
 const getOrientationTag = (tags) => {
   if (!Array.isArray(tags)) return UP_TAG;
   let orientation = UP_TAG;
@@ -89,8 +97,6 @@ const normalizeImageTags = (tags) => {
   const custom = extractCustomTags(tags);
   return [orientation, ...custom];
 };
-
-const hasDownTag = (tags) => getOrientationTag(tags) === DOWN_TAG;
 
 function QuadrantPicker({ value = [], onChange }) {
   const main = value[0];
@@ -179,9 +185,18 @@ export default function Library({ onBack }) {
     }
     return false;
   });
+  const [hiddenOrientation, setHiddenOrientation] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('hideShadowOrientation');
+      return parseOrientationPreference(stored);
+    }
+    return DOWN_TAG;
+  });
 
   const filteredImages = hideShadowImages
-    ? images.filter((img) => !hasDownTag(img.tags))
+    ? images.filter(
+        (img) => getOrientationTag(img.tags) !== hiddenOrientation
+      )
     : images;
 
   // Restore masonry spans by normalizing stored images to their natural size
@@ -381,11 +396,16 @@ export default function Library({ onBack }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
+      localStorage.setItem('hideShadowOrientation', hiddenOrientation);
     }
-    if (hideShadowImages && lightbox && hasDownTag(lightbox.tags)) {
+    if (
+      hideShadowImages &&
+      lightbox &&
+      getOrientationTag(lightbox.tags) === hiddenOrientation
+    ) {
       setLightbox(null);
     }
-  }, [hideShadowImages, lightbox]);
+  }, [hideShadowImages, hiddenOrientation, lightbox]);
 
   useEffect(() => {
     loadPalette().then(setPalette);
@@ -946,21 +966,49 @@ export default function Library({ onBack }) {
                       </span>
                     )}
                   </button>
-                  <button
-                    type="button"
-                    className={hideShadowImages ? 'active' : ''}
-                    onClick={() => setHideShadowImages((prev) => !prev)}
+                  <div
+                    className={`library-settings-hide-row${
+                      hideShadowImages ? ' active' : ''
+                    }`}
                   >
-                    <span>Hide DOWN images</span>
-                    {hideShadowImages && (
-                      <span
-                        className="library-settings-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      className={`library-settings-orientation-toggle${
+                        hiddenOrientation === DOWN_TAG ? '' : ' flipped'
+                      }`}
+                      onClick={() =>
+                        setHiddenOrientation((prev) =>
+                          prev === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        )
+                      }
+                      aria-pressed={hiddenOrientation === UP_TAG}
+                      aria-label={`Switch to hiding ${
+                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                      } images`}
+                      title={`Switch to hiding ${
+                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                      } images`}
+                    >
+                      ⇄
+                    </button>
+                    <button
+                      type="button"
+                      className={`library-settings-hide-toggle${
+                        hideShadowImages ? ' active' : ''
+                      }`}
+                      onClick={() => setHideShadowImages((prev) => !prev)}
+                    >
+                      <span>{`Hide ${hiddenOrientation} images`}</span>
+                      {hideShadowImages && (
+                        <span
+                          className="library-settings-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
