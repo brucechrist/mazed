@@ -119,6 +119,20 @@ export default function Library({ onBack }) {
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
+  const [hideShadowImages, setHideShadowImages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hideShadowImages') === 'true';
+    }
+    return false;
+  });
+
+  const hasShadowTag = (tags) =>
+    Array.isArray(tags) &&
+    tags.some((tag) => typeof tag === 'string' && tag.toLowerCase() === 'shadow');
+
+  const filteredImages = hideShadowImages
+    ? images.filter((img) => !hasShadowTag(img.tags))
+    : images;
 
   // Restore masonry spans by normalizing stored images to their natural size
   useEffect(() => {
@@ -308,6 +322,15 @@ export default function Library({ onBack }) {
       setEditingTitle(false);
     }
   }, [lightbox?.id]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
+    }
+    if (hideShadowImages && lightbox && hasShadowTag(lightbox.tags)) {
+      setLightbox(null);
+    }
+  }, [hideShadowImages, lightbox]);
 
   useEffect(() => {
     loadPalette().then(setPalette);
@@ -775,6 +798,8 @@ export default function Library({ onBack }) {
     );
   };
 
+  const lightboxHasShadow = hasShadowTag(lightbox?.tags);
+
   return (
     <div
       className={`library-container ${
@@ -856,6 +881,21 @@ export default function Library({ onBack }) {
                   >
                     <span>Dark mode</span>
                     {libraryTheme === 'dark' && (
+                      <span
+                        className="library-settings-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={hideShadowImages ? 'active' : ''}
+                    onClick={() => setHideShadowImages((prev) => !prev)}
+                  >
+                    <span>Hide shadow images</span>
+                    {hideShadowImages && (
                       <span
                         className="library-settings-check"
                         aria-hidden="true"
@@ -951,7 +991,7 @@ export default function Library({ onBack }) {
           sortMode === 'color' ? (
             <div className="color-groups">
               {palette.map((c) => {
-                const groupImgs = images.filter((img) => img.color === c);
+                const groupImgs = filteredImages.filter((img) => img.color === c);
                 const groupSounds = sounds.filter((s) => s.color === c);
                 if (!groupImgs.length && !groupSounds.length) return null;
                 return (
@@ -1066,15 +1106,20 @@ export default function Library({ onBack }) {
                 >
                   {(
                     activeTab === 'all'
-                      ? [...images.map((img) => ({ type: 'image', item: img })),
-                        ...sounds.map((s) => ({ type: 'sound', item: s }))]
-                        .sort((a, b) => a.item.id - b.item.id)
-                        .map(({ type, item }) =>
-                          type === 'image'
-                            ? renderImageCard(item)
-                            : renderSoundCard(item)
-                        )
-                      : images.map((img) => renderImageCard(img))
+                      ? [
+                          ...filteredImages.map((img) => ({
+                            type: 'image',
+                            item: img,
+                          })),
+                          ...sounds.map((s) => ({ type: 'sound', item: s })),
+                        ]
+                          .sort((a, b) => a.item.id - b.item.id)
+                          .map(({ type, item }) =>
+                            type === 'image'
+                              ? renderImageCard(item)
+                              : renderSoundCard(item)
+                          )
+                      : filteredImages.map((img) => renderImageCard(img))
                   )}
                 </div>
             ))}
@@ -1315,20 +1360,44 @@ export default function Library({ onBack }) {
                       ))}
                     </div>
                   </div>
-                    <div className="tag-list">
-                      {lightbox.tags?.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="tag"
-                          onClick={() => {
-                            const nt = lightbox.tags.filter((_, i) => i !== idx);
-                            updateImage(lightbox.id, { tags: nt });
-                          }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      <input
+                  <div className="tag-list">
+                    {lightbox.tags?.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="tag"
+                        onClick={() => {
+                          const nt = lightbox.tags.filter((_, i) => i !== idx);
+                          updateImage(lightbox.id, { tags: nt });
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    <button
+                      type="button"
+                      className={`shadow-tag-button${
+                        lightboxHasShadow ? ' active' : ''
+                      }`}
+                      onClick={() => {
+                        const currentTags = Array.isArray(lightbox.tags)
+                          ? lightbox.tags
+                          : [];
+                        const withoutShadow = currentTags.filter(
+                          (tag) =>
+                            !(
+                              typeof tag === 'string' &&
+                              tag.toLowerCase() === 'shadow'
+                            )
+                        );
+                        const nextTags = lightboxHasShadow
+                          ? withoutShadow
+                          : [...withoutShadow, 'shadow'];
+                        updateImage(lightbox.id, { tags: nextTags });
+                      }}
+                    >
+                      {lightboxHasShadow ? 'Shadow tag ✓' : 'Add "shadow" tag'}
+                    </button>
+                    <input
                       type="text"
                       value={tagInput}
                       placeholder="Add tag"

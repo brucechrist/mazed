@@ -692,12 +692,42 @@
   border-radius: 6px;
 }
 
-.tag {
+.tag { 
   background: var(--library-accent);
   color: var(--library-accent-contrast);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
+}
+
+.shadow-tag-button {
+  flex: 0 0 auto;
+  background: var(--library-button-bg);
+  border: 1px solid var(--library-button-border);
+  color: var(--library-text);
+  padding: 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease, box-shadow 0.3s ease;
+  font: inherit;
+}
+
+.shadow-tag-button:hover {
+  background: var(--library-soft-highlight);
+  color: var(--library-accent);
+  border-color: var(--library-accent);
+}
+
+.shadow-tag-button.active {
+  background: var(--library-accent);
+  color: var(--library-accent-contrast);
+  border-color: transparent;
+}
+
+.shadow-tag-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--library-ring);
 }
 
