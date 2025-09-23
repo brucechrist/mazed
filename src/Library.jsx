@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
 import { colorDiff } from './colorUtils.js';
 import namer from 'color-namer';
+import {
+  deleteImageData,
+  extractMimeType,
+  loadImageData,
+  storeImageData,
+} from './assets/LibraryStorage';
 import {
   deleteSoundData,
   loadSoundData,
@@ -163,6 +169,8 @@ export default function Library({ onBack }) {
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
 
+  const saveSequenceRef = useRef(0);
+
   const [zoom, setZoom] = useState(
     () => parseFloat(localStorage.getItem('libraryZoom')) || 0.5
   );
@@ -201,31 +209,85 @@ export default function Library({ onBack }) {
 
   // Restore masonry spans by normalizing stored images to their natural size
   useEffect(() => {
-    const saved = localStorage.getItem('mazedImages');
-    if (saved) {
+    if (typeof window === 'undefined') {
+      return () => {};
+    }
+
+    let cancelled = false;
+
+    const readDimensions = (dataUrl) =>
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        };
+        img.onerror = () => resolve({ width: undefined, height: undefined });
+        img.src = dataUrl;
+      });
+
+    const hydrateImages = async () => {
+      const saved = localStorage.getItem('mazedImages');
+      if (!saved) return;
+
+      let parsed;
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          Promise.all(
-            parsed.map(
-              (img) =>
-                new Promise((resolve) => {
-                  const i = new Image();
-                  i.onload = () =>
-                    resolve({
-                      ...img,
-                      width: i.naturalWidth,
-                      height: i.naturalHeight,
-                    });
-                  i.src = img.dataUrl;
-                })
-            )
-          ).then(saveImages);
-        }
+        parsed = JSON.parse(saved);
       } catch (e) {
         console.error('Failed to parse saved images', e);
+        return;
       }
-    }
+
+      if (!Array.isArray(parsed)) return;
+
+      const hydrated = await Promise.all(
+        parsed.map(async (entry) => {
+          if (!entry || typeof entry.id === 'undefined') {
+            return null;
+          }
+
+          const base = { ...entry };
+          const normalizedTags = normalizeImageTags(base.tags);
+          base.tags = normalizedTags;
+
+          let dataUrl = entry.dataUrl;
+          if (!dataUrl) {
+            dataUrl = await loadImageData(entry.id);
+          }
+
+          if (!dataUrl) {
+            return null;
+          }
+
+          const mimeType = base.mimeType || extractMimeType(dataUrl) || null;
+          base.mimeType = mimeType;
+
+          delete base.dataUrl;
+
+          if (!base.width || !base.height) {
+            const { width, height } = await readDimensions(dataUrl);
+            if (width && height) {
+              base.width = width;
+              base.height = height;
+            }
+          }
+
+          return { ...base, dataUrl };
+        })
+      );
+
+      if (cancelled) return;
+
+      const valid = hydrated.filter(Boolean);
+      if (!valid.length) return;
+
+      saveImages(valid);
+    };
+
+    hydrateImages();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load saved words and sounds from localStorage on mount
@@ -304,12 +366,58 @@ export default function Library({ onBack }) {
   }, []);
 
   const saveImages = (imgs) => {
-    const normalized = imgs.map((img) => ({
-      ...img,
-      tags: normalizeImageTags(img.tags),
-    }));
+    const normalized = imgs.map((img) => {
+      const normalizedTags = normalizeImageTags(img.tags);
+      const mimeType = img.mimeType || extractMimeType(img.dataUrl) || null;
+      return {
+        ...img,
+        tags: normalizedTags,
+        mimeType,
+      };
+    });
     setImages(normalized);
-    localStorage.setItem('mazedImages', JSON.stringify(normalized));
+
+    if (typeof window !== 'undefined') {
+      const sequence = (saveSequenceRef.current += 1);
+      (async () => {
+        try {
+          if (!normalized.length) {
+            if (saveSequenceRef.current === sequence) {
+              localStorage.setItem('mazedImages', JSON.stringify([]));
+            }
+            return;
+          }
+
+          const results = await Promise.all(
+            normalized.map((img) =>
+              storeImageData(img.id, img.dataUrl, img.mimeType)
+            )
+          );
+
+          const metadata = normalized.map((img, idx) => {
+            const { dataUrl, ...meta } = img;
+            const stored = results[idx];
+            return stored || typeof stored === 'undefined'
+              ? meta
+              : { ...meta, dataUrl };
+          });
+
+          if (saveSequenceRef.current === sequence) {
+            localStorage.setItem('mazedImages', JSON.stringify(metadata));
+          }
+        } catch (err) {
+          console.error('Failed to save images metadata', err);
+          if (saveSequenceRef.current === sequence) {
+            try {
+              localStorage.setItem('mazedImages', JSON.stringify(normalized));
+            } catch (fallbackErr) {
+              console.error('Failed to fallback save images', fallbackErr);
+            }
+          }
+        }
+      })();
+    }
+
     return normalized;
   };
 
@@ -434,6 +542,9 @@ export default function Library({ onBack }) {
   const deleteImage = (id) => {
     const updated = images.filter((img) => img.id !== id);
     saveImages(updated);
+    if (typeof window !== 'undefined') {
+      deleteImageData(id);
+    }
   };
 
   const deleteSound = async (id) => {
@@ -458,8 +569,15 @@ export default function Library({ onBack }) {
   };
 
   const updateImage = (id, updates) => {
+    let payload = updates;
+    if (updates && typeof updates === 'object' && 'dataUrl' in updates) {
+      const mimeType =
+        updates.mimeType || extractMimeType(updates.dataUrl) || null;
+      payload = { ...updates, mimeType };
+    }
+
     const updated = images.map((img) =>
-      img.id === id ? { ...img, ...updates } : img
+      img.id === id ? { ...img, ...payload } : img
     );
 
     const normalized = saveImages(updated);
@@ -600,6 +718,7 @@ export default function Library({ onBack }) {
           quadrants: [],
           color: hex,
           dataUrl: result,
+          mimeType: extractMimeType(result) || null,
           width: imgEl.naturalWidth,
           height: imgEl.naturalHeight,
         };

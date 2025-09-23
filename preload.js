@@ -9,4 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.invoke('close-window'),
   readPalette: () => ipcRenderer.invoke('read-palette'),
   writePalette: (colors) => ipcRenderer.invoke('write-palette', colors),
+  saveLibraryImage: (id, dataUrl, mimeType) =>
+    ipcRenderer.invoke('library-save-image', { id, dataUrl, mimeType }),
+  loadLibraryImage: (id) => ipcRenderer.invoke('library-load-image', id),
+  deleteLibraryImage: (id) => ipcRenderer.invoke('library-delete-image', id),
 });
