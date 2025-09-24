@@ -262,6 +262,9 @@
 }
 
 .world-tastet-container {
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
   align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
 }
