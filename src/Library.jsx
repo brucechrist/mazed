@@ -148,7 +148,7 @@ export default function Library({ onBack }) {
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [palette, setPalette] = useState(DEFAULT_COLORS);
-  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date'
+  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'random'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [libraryTheme, setLibraryTheme] = useState(() => {
@@ -502,6 +502,61 @@ export default function Library({ onBack }) {
   }, [lightbox?.id]);
 
   useEffect(() => {
+    if (!lightbox) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+        return;
+      }
+
+      const target = event.target;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (filteredImages.length <= 1) {
+        return;
+      }
+
+      const currentIndex = filteredImages.findIndex(
+        (img) => img.id === lightbox.id,
+      );
+
+      if (currentIndex === -1) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const nextIndex =
+        (currentIndex + direction + filteredImages.length) %
+        filteredImages.length;
+      const nextImage = filteredImages[nextIndex];
+
+      if (nextImage && nextImage.id !== lightbox.id) {
+        setLightbox(nextImage);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [filteredImages, lightbox, setLightbox]);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
       localStorage.setItem('hideShadowOrientation', hiddenOrientation);
@@ -680,6 +735,15 @@ export default function Library({ onBack }) {
   const sortByDate = () => {
     const sorted = [...images].sort((a, b) => a.id - b.id);
     sortImages(sorted, 'date');
+  };
+
+  const shuffleImages = () => {
+    const shuffled = [...images];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    sortImages(shuffled, 'random');
   };
 
   const resetSort = () => {
@@ -1179,6 +1243,14 @@ export default function Library({ onBack }) {
                     }}
                   >
                     Color
+                  </button>
+                  <button
+                    onClick={() => {
+                      shuffleImages();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Random
                   </button>
                 </div>
               )}
