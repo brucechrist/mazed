@@ -260,3 +260,8 @@
 #contract-center {
   /* positioned via .contract-box.circle */
 }
+
+.world-tastet-container {
+  overflow: visible;
+  align-items: stretch;
+}

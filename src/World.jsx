@@ -4,9 +4,10 @@ import QuestModal from "./QuestModal.jsx";
 import MainQuestModal from "./MainQuestModal.jsx";
 import { supabaseClient } from "./supabaseClient";
 import { useQuests } from "./QuestContext.jsx";
+import TasteT from "./TasteT.jsx";
 import "./world.css";
 
-export default function World() {
+export default function World({ activeLayer = "Form" }) {
   const [resource, setResource] = useState(() => {
     const stored = localStorage.getItem("resourceR");
     return stored ? parseInt(stored, 10) : 0;
@@ -23,6 +24,7 @@ export default function World() {
   const [needsMainQuest, setNeedsMainQuest] = useState(false);
   const [showMainQuest, setShowMainQuest] = useState(false);
   const [showPublished, setShowPublished] = useState(false);
+  const isSemiFormless = activeLayer === "Semi-Formless";
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -32,6 +34,7 @@ export default function World() {
   }, []);
 
   useEffect(() => {
+    if (isSemiFormless) return;
     const load = async () => {
       if (!navigator.onLine) return;
       const {
@@ -54,7 +57,7 @@ export default function World() {
       // quests are loaded via QuestProvider
     };
     load();
-  }, []);
+  }, [isSemiFormless]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -94,6 +97,14 @@ export default function World() {
   };
 
   // quests are managed via QuestProvider
+
+  if (isSemiFormless) {
+    return (
+      <div className="world-container world-tastet-container">
+        <TasteT />
+      </div>
+    );
+  }
 
   return (
     <div className="world-container">

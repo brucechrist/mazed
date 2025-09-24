@@ -998,7 +998,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
             )}
           </div>
         )}
-        {activeTab === 'World' && <World />}
+        {activeTab === 'World' && <World activeLayer={activeLayer} />}
         {activeTab === 'Friends' && <FriendsList />}
       </div>
       <div className="bottom-nav">
