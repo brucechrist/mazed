@@ -6,7 +6,7 @@ import { supabaseClient } from "./supabaseClient";
 import { useQuests } from "./QuestContext.jsx";
 import "./world.css";
 
-export default function World() {
+export default function World({ activeLayer = "Form" }) {
   const [resource, setResource] = useState(() => {
     const stored = localStorage.getItem("resourceR");
     return stored ? parseInt(stored, 10) : 0;
@@ -23,6 +23,7 @@ export default function World() {
   const [needsMainQuest, setNeedsMainQuest] = useState(false);
   const [showMainQuest, setShowMainQuest] = useState(false);
   const [showPublished, setShowPublished] = useState(false);
+  const isSemiFormless = activeLayer === "Semi-Formless";
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -32,6 +33,7 @@ export default function World() {
   }, []);
 
   useEffect(() => {
+    if (isSemiFormless) return;
     const load = async () => {
       if (!navigator.onLine) return;
       const {
@@ -54,7 +56,7 @@ export default function World() {
       // quests are loaded via QuestProvider
     };
     load();
-  }, []);
+  }, [isSemiFormless]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -94,6 +96,20 @@ export default function World() {
   };
 
   // quests are managed via QuestProvider
+
+  if (isSemiFormless) {
+    return (
+      <div className="world-container world-placeholder-container">
+        <div className="world-placeholder">
+          <h3 className="world-placeholder-title">Semi-Formless Realm</h3>
+          <p className="world-placeholder-text">
+            This space is intentionally open. Let it breathe while you shape how the
+            Semi-Formless layer of your world should feel.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="world-container">
