@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./taste-t.css";
+import { loadImageData } from "./assets/LibraryStorage";
 
 const STORAGE_KEY = "tastet-state-v2";
+const LIBRARY_STORAGE_KEY = "mazedImages";
 const DEFAULT_VOLATILITY = 0.06;
 const MAX_RD = 350;
 const MIN_RD = 35;
@@ -64,260 +66,177 @@ const TIER_LOOKUP = TIER_RULES.reduce((acc, tier, index) => {
   return acc;
 }, {});
 
-const DEFAULT_LIBRARY_TEMPLATES = [
-  {
-    id: "starlit-veil",
-    name: "Starlit Veil",
-    imageUrl:
-      "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Blue", "Celestial"],
-    rating: 2012,
-    rd: 52,
-    volatility: 0.045,
-    tierKey: "Worlds",
-    stats: {
-      wins: 68,
-      losses: 18,
-      draws: 3,
-      minisEntered: 15,
-      totalDuels: 89,
-      placementDuels: 5,
-      bestFinish: 1,
-    },
-    lastPlayedHoursAgo: 18,
-  },
-  {
-    id: "ember-queen",
-    name: "Ember Queen",
-    imageUrl:
-      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Warm", "Portrait"],
-    rating: 1890,
-    rd: 61,
-    volatility: 0.05,
-    tierKey: "LEC",
-    stats: {
-      wins: 54,
-      losses: 26,
-      draws: 2,
-      minisEntered: 12,
-      totalDuels: 82,
-      placementDuels: 5,
-      bestFinish: 1,
-    },
-    lastPlayedHoursAgo: 32,
-  },
-  {
-    id: "chrome-harbor",
-    name: "Chrome Harbor",
-    imageUrl:
-      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Urban", "Blue"],
-    rating: 1834,
-    rd: 74,
-    volatility: 0.055,
-    tierKey: "LEC",
-    stats: {
-      wins: 47,
-      losses: 24,
-      draws: 4,
-      minisEntered: 11,
-      totalDuels: 75,
-      placementDuels: 5,
-      bestFinish: 2,
-    },
-    lastPlayedHoursAgo: 10,
-  },
-  {
-    id: "meadowline-spirit",
-    name: "Meadowline Spirit",
-    imageUrl:
-      "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Nature", "Green"],
-    rating: 1764,
-    rd: 82,
-    volatility: 0.06,
-    tierKey: "LFL",
-    stats: {
-      wins: 38,
-      losses: 20,
-      draws: 3,
-      minisEntered: 9,
-      totalDuels: 61,
-      placementDuels: 5,
-      bestFinish: 2,
-    },
-    lastPlayedHoursAgo: 44,
-  },
-  {
-    id: "ivory-focus",
-    name: "Ivory Focus",
-    imageUrl:
-      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
-    tags: ["Minimal", "Monochrome"],
-    rating: 1711,
-    rd: 68,
-    volatility: 0.055,
-    tierKey: "LFL",
-    stats: {
-      wins: 31,
-      losses: 18,
-      draws: 4,
-      minisEntered: 7,
-      totalDuels: 53,
-      placementDuels: 5,
-      bestFinish: 3,
-    },
-    lastPlayedHoursAgo: 72,
-  },
-  {
-    id: "drift-pulse",
-    name: "Drift Pulse",
-    imageUrl:
-      "https://images.unsplash.com/photo-1526402469413-93fef5d92c2f?auto=format&fit=crop&w=1200&q=80",
-    tags: ["Synthwave", "Purple"],
-    rating: 1632,
-    rd: 94,
-    volatility: 0.06,
-    tierKey: "Div1",
-    stats: {
-      wins: 24,
-      losses: 16,
-      draws: 2,
-      minisEntered: 5,
-      totalDuels: 42,
-      placementDuels: 5,
-      bestFinish: 4,
-    },
-    lastPlayedHoursAgo: 6,
-  },
-  {
-    id: "solstice-bloom",
-    name: "Solstice Bloom",
-    imageUrl:
-      "https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Floral", "Warm"],
-    rating: 1586,
-    rd: 88,
-    volatility: 0.06,
-    tierKey: "Div1",
-    stats: {
-      wins: 22,
-      losses: 15,
-      draws: 3,
-      minisEntered: 4,
-      totalDuels: 40,
-      placementDuels: 5,
-      bestFinish: 4,
-    },
-    lastPlayedHoursAgo: 120,
-  },
-  {
-    id: "afterglow-breaker",
-    name: "Afterglow Breaker",
-    imageUrl:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Neon", "Blue"],
-    rating: 1552,
-    rd: 112,
-    volatility: 0.065,
-    tierKey: "Div1",
-    stats: {
-      wins: 17,
-      losses: 14,
-      draws: 2,
-      minisEntered: 3,
-      totalDuels: 33,
-      placementDuels: 5,
-      bestFinish: 5,
-    },
-    lastPlayedHoursAgo: 8,
-  },
-  {
-    id: "timberglass",
-    name: "Timberglass",
-    imageUrl:
-      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Green", "Moody"],
-    rating: 1498,
-    rd: 128,
-    volatility: 0.065,
-    tierKey: "Div2",
-    stats: {
-      wins: 14,
-      losses: 14,
-      draws: 1,
-      minisEntered: 2,
-      totalDuels: 29,
-      placementDuels: 5,
-      bestFinish: 6,
-    },
-    lastPlayedHoursAgo: 200,
-  },
-  {
-    id: "velvet-echo",
-    name: "Velvet Echo",
-    imageUrl:
-      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1200&q=80",
-    tags: ["Portrait", "Warm"],
-    rating: 1464,
-    rd: 138,
-    volatility: 0.07,
-    tierKey: "Div2",
-    stats: {
-      wins: 12,
-      losses: 13,
-      draws: 2,
-      minisEntered: 2,
-      totalDuels: 27,
-      placementDuels: 5,
-      bestFinish: 6,
-    },
-    lastPlayedHoursAgo: 36,
-  },
-  {
-    id: "cascade-runner",
-    name: "Cascade Runner",
-    imageUrl:
-      "https://images.unsplash.com/photo-1526481280695-3c46917f44c8?auto=format&fit=crop&w=1200&q=80",
-    tags: ["League of Legends", "Blue", "Motion"],
-    rating: 1425,
-    rd: 152,
-    volatility: 0.07,
-    tierKey: "Div2",
-    stats: {
-      wins: 10,
-      losses: 13,
-      draws: 1,
-      minisEntered: 1,
-      totalDuels: 24,
-      placementDuels: 4,
-      bestFinish: 7,
-    },
-    lastPlayedHoursAgo: 15,
-  },
-  {
-    id: "prism-rookie",
-    name: "Prism Rookie",
-    imageUrl:
-      "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=1200&q=80",
-    tags: ["Abstract", "Violet"],
-    rating: 1512,
-    rd: 180,
-    volatility: 0.08,
-    tierKey: "Div2",
-    stats: {
-      wins: 7,
-      losses: 6,
-      draws: 1,
-      minisEntered: 1,
-      totalDuels: 14,
-      placementDuels: 4,
-      bestFinish: 7,
-    },
-    lastPlayedHoursAgo: 4,
-  },
-];
+const MINI_SIZE_OPTIONS = [4, 6, 8, 10, 12, 16];
+
+function coerceLibraryId(value) {
+  if (value == null) return null;
+  return String(value);
+}
+
+function sanitizeText(value, fallback = "") {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : fallback;
+}
+
+function normalizeLibraryTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .map((tag) => sanitizeText(typeof tag === "string" ? tag : ""))
+    .filter((tag) => tag.length > 0);
+}
+
+function arraysEqual(a = [], b = []) {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function loadLibraryCatalog() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((entry, index) => {
+        const id = coerceLibraryId(entry?.id ?? index);
+        if (!id) return null;
+        const tags = normalizeLibraryTags(entry?.tags);
+        const dataUrl = typeof entry?.dataUrl === "string" && entry.dataUrl.length ? entry.dataUrl : null;
+        const mimeType = sanitizeText(entry?.mimeType || "", null);
+        const createdAt =
+          typeof entry?.createdAt === "number"
+            ? entry.createdAt
+            : typeof entry?.addedAt === "number"
+            ? entry.addedAt
+            : typeof entry?.timestamp === "number"
+            ? entry.timestamp
+            : null;
+
+        return {
+          id,
+          title: sanitizeText(entry?.title || "", "Untitled"),
+          tags,
+          dataUrl,
+          mimeType,
+          width: typeof entry?.width === "number" ? entry.width : null,
+          height: typeof entry?.height === "number" ? entry.height : null,
+          color: sanitizeText(entry?.color || "", null),
+          createdAt,
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.warn('TierT: unable to read library catalog', error);
+    return [];
+  }
+}
+
+function synchronizeImagesWithLibrary(savedImages, libraryEntries) {
+  const savedMap = new Map(savedImages.map((image) => [String(image.id), image]));
+  const merged = [];
+  const newIds = [];
+  let changed = false;
+  const now = Date.now();
+
+  libraryEntries.forEach((entry, index) => {
+    const id = String(entry.id);
+    const existing = savedMap.get(id);
+    const tags = normalizeLibraryTags(entry.tags);
+    const baseName = sanitizeText(entry.title, existing?.name || `Image ${index + 1}`);
+    const dataUrl = entry.dataUrl || existing?.dataUrl || null;
+    const imageUrl = dataUrl || existing?.imageUrl || null;
+    const mimeType = entry.mimeType || existing?.mimeType || null;
+    const createdAt = existing?.createdAt || entry.createdAt || now - index * 1000;
+
+    if (existing) {
+      let next = existing;
+      if (
+        existing.name !== baseName ||
+        !arraysEqual(existing.tags, tags) ||
+        (dataUrl && existing.dataUrl !== dataUrl) ||
+        (imageUrl && existing.imageUrl !== imageUrl) ||
+        (mimeType && existing.mimeType !== mimeType) ||
+        (entry.color && existing.libraryColor !== entry.color) ||
+        (entry.width && existing.libraryWidth !== entry.width) ||
+        (entry.height && existing.libraryHeight !== entry.height) ||
+        (!existing.createdAt && createdAt)
+      ) {
+        next = {
+          ...existing,
+          name: baseName,
+          tags,
+          dataUrl,
+          imageUrl,
+          mimeType,
+          libraryColor: entry.color || existing.libraryColor || null,
+          libraryWidth: entry.width || existing.libraryWidth || null,
+          libraryHeight: entry.height || existing.libraryHeight || null,
+          createdAt,
+        };
+        changed = true;
+      }
+      merged.push(next);
+      savedMap.delete(id);
+    } else {
+      const record = createImageRecord({
+        id,
+        name: baseName,
+        imageUrl,
+        dataUrl,
+        tags,
+        rating: 1500,
+        rd: 300,
+        volatility: DEFAULT_VOLATILITY,
+        createdAt,
+      });
+      record.mimeType = mimeType;
+      record.libraryColor = entry.color || null;
+      record.libraryWidth = entry.width || null;
+      record.libraryHeight = entry.height || null;
+      merged.push(record);
+      newIds.push(id);
+      changed = true;
+    }
+  });
+
+  if (savedMap.size > 0) {
+    changed = true;
+  }
+
+  return { images: changed ? merged : savedImages, newIds, changed };
+}
+
+function buildPlacementQueueForImage(imageId, images, count = 5) {
+  if (!imageId) return null;
+  const opponents = createPlacementOpponents(imageId, images, count).map((entry) => entry.id);
+  if (!opponents.length) {
+    return null;
+  }
+  return {
+    imageId,
+    opponents,
+    currentIndex: 0,
+    history: [],
+    createdAt: Date.now(),
+  };
+}
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -637,6 +556,8 @@ function createImageRecord({
   id,
   name,
   imageUrl,
+  dataUrl = null,
+  mimeType = null,
   tags = [],
   rating = 1500,
   rd = 260,
@@ -695,7 +616,9 @@ function createImageRecord({
   return {
     id,
     name,
-    imageUrl,
+    imageUrl: imageUrl || null,
+    dataUrl,
+    mimeType,
     tags: normalizedTags,
     rating,
     rd,
@@ -713,28 +636,16 @@ function createImageRecord({
   };
 }
 
-function buildDefaultLibrary() {
-  const now = Date.now();
-  return DEFAULT_LIBRARY_TEMPLATES.map((template, index) => {
-    const { lastPlayedHoursAgo, ...rest } = template;
-    return createImageRecord({
-      ...rest,
-      createdAt: now - (index + 1) * 8 * 24 * 60 * 60 * 1000,
-      lastPlayedAt:
-        typeof lastPlayedHoursAgo === "number"
-          ? now - lastPlayedHoursAgo * 60 * 60 * 1000
-          : null,
-    });
-  });
-}
 
 function normalizeImage(raw) {
   if (!raw || !raw.id) return null;
   return {
     ...createImageRecord({
       id: raw.id,
-      name: raw.name || "Untitled",
-      imageUrl: raw.imageUrl || "",
+      name: raw.name || raw.title || "Untitled",
+      imageUrl: raw.imageUrl || raw.dataUrl || null,
+      dataUrl: typeof raw.dataUrl === "string" ? raw.dataUrl : null,
+      mimeType: raw.mimeType || null,
       tags: Array.isArray(raw.tags) ? raw.tags : [],
       rating: typeof raw.rating === "number" ? raw.rating : 1500,
       rd: typeof raw.rd === "number" ? raw.rd : 260,
@@ -821,14 +732,21 @@ function normalizeSwiss(raw) {
 }
 
 function loadInitialState() {
+  const libraryEntries = loadLibraryCatalog();
+  const baseline = synchronizeImagesWithLibrary([], libraryEntries);
+  const baseImages = baseline.images;
+  const basePlacement = buildPlacementQueueForImage(baseline.newIds[0], baseImages);
+
   const base = {
-    images: buildDefaultLibrary(),
+    images: baseImages,
     duelLog: [],
     swissHistory: [],
     activeSwiss: null,
-    placementQueue: null,
+    placementQueue: basePlacement,
+    placementQueueRestored: false,
     selectedTag: "",
     miniSize: 8,
+    libraryEntries,
   };
 
   if (typeof window === "undefined") {
@@ -840,36 +758,61 @@ function loadInitialState() {
     if (!raw) {
       return base;
     }
+
     const parsed = JSON.parse(raw);
-    const images = Array.isArray(parsed.images) && parsed.images.length
+    const savedImages = Array.isArray(parsed.images)
       ? parsed.images.map(normalizeImage).filter(Boolean)
-      : base.images;
+      : [];
+    const mergeResult = synchronizeImagesWithLibrary(savedImages, libraryEntries);
+    const images = mergeResult.images;
+
+    const duelLog = Array.isArray(parsed.duelLog)
+      ? parsed.duelLog.slice(0, LOG_LIMIT)
+      : base.duelLog;
+    const swissHistory = Array.isArray(parsed.swissHistory)
+      ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
+      : base.swissHistory;
+    const activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+
+    const imageIds = new Set(images.map((image) => image.id));
+    let placementQueue = null;
+    let placementQueueRestored = false;
+
+    if (parsed.placementQueue && parsed.placementQueue.imageId && imageIds.has(parsed.placementQueue.imageId)) {
+      const opponents = Array.isArray(parsed.placementQueue.opponents)
+        ? parsed.placementQueue.opponents.filter(
+            (id) => id && imageIds.has(id) && id !== parsed.placementQueue.imageId,
+          )
+        : [];
+      if (opponents.length) {
+        placementQueue = {
+          imageId: parsed.placementQueue.imageId,
+          opponents,
+          currentIndex: Math.min(parsed.placementQueue.currentIndex || 0, opponents.length - 1),
+          history: Array.isArray(parsed.placementQueue.history)
+            ? parsed.placementQueue.history
+            : [],
+          createdAt: parsed.placementQueue.createdAt || Date.now(),
+        };
+        placementQueueRestored = true;
+      }
+    }
+
+    if (!placementQueue && mergeResult.newIds.length) {
+      placementQueue = buildPlacementQueueForImage(mergeResult.newIds[0], images);
+      placementQueueRestored = false;
+    }
 
     return {
       images,
-      duelLog: Array.isArray(parsed.duelLog)
-        ? parsed.duelLog.slice(0, LOG_LIMIT)
-        : base.duelLog,
-      swissHistory: Array.isArray(parsed.swissHistory)
-        ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
-        : base.swissHistory,
-      activeSwiss: parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null,
-      placementQueue:
-        parsed.placementQueue && parsed.placementQueue.imageId
-          ? {
-              imageId: parsed.placementQueue.imageId,
-              opponents: Array.isArray(parsed.placementQueue.opponents)
-                ? parsed.placementQueue.opponents
-                : [],
-              currentIndex: parsed.placementQueue.currentIndex || 0,
-              history: Array.isArray(parsed.placementQueue.history)
-                ? parsed.placementQueue.history
-                : [],
-              createdAt: parsed.placementQueue.createdAt || Date.now(),
-            }
-          : null,
+      duelLog,
+      swissHistory,
+      activeSwiss,
+      placementQueue,
+      placementQueueRestored,
       selectedTag: parsed.selectedTag || base.selectedTag,
       miniSize: parsed.miniSize || base.miniSize,
+      libraryEntries,
     };
   } catch (error) {
     console.warn("TierT: unable to restore saved state", error);
@@ -1279,6 +1222,63 @@ function determineTotalRounds(size) {
   return 5;
 }
 
+function createSwissMini(images, size, imagesById) {
+  const trimmedSize = Math.max(2, Math.min(size, images.length));
+  if (trimmedSize < 2) return null;
+
+  const selected = selectSwissParticipants(images, trimmedSize);
+  if (!selected.length) return null;
+
+  const participants = selected.map((image, index) => ({
+    id: image.id,
+    name: image.name,
+    seed: index + 1,
+    seedRating: image.rating,
+    currentRating: image.rating,
+    rd: image.rd,
+    tierKey: image.tierKey,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    points: 0,
+    opponents: [],
+    history: [],
+    hasBye: false,
+    buchholz: 0,
+  }));
+
+  const totalRounds = determineTotalRounds(participants.length);
+  const { participants: seededParticipants, pairings } = prepareRound(participants, 1, imagesById);
+  const { standings } = computeStandings(seededParticipants);
+  const awaitingAdvance = pairings.every((pair) => pair.resolved);
+  const status = awaitingAdvance
+    ? totalRounds <= 1
+      ? "awaiting-finish"
+      : "between-rounds"
+    : "in-progress";
+
+  return {
+    id: `swiss-${Date.now()}`,
+    createdAt: Date.now(),
+    status,
+    totalRounds,
+    currentRound: 1,
+    awaitingAdvance,
+    participants: seededParticipants,
+    rounds: [
+      {
+        index: 1,
+        pairings,
+        standings: awaitingAdvance ? standings : null,
+        completedAt: awaitingAdvance ? Date.now() : null,
+      },
+    ],
+    latestStandings: standings,
+    finalStandings: null,
+  };
+}
+
+
 function resolveDuelForImages(leftImage, rightImage, outcome, context = {}) {
   if (!leftImage || !rightImage) {
     return null;
@@ -1513,6 +1513,12 @@ function buildRankingData(images, selectedTag) {
 
 function getPreviewStyle(image) {
   if (!image) return {};
+  if (image.dataUrl) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(8, 12, 28, 0.2), rgba(8, 12, 28, 0.85)), url(${image.dataUrl})`,
+    };
+  }
+
   if (image.imageUrl) {
     return {
       backgroundImage: `linear-gradient(180deg, rgba(8, 12, 28, 0.2), rgba(8, 12, 28, 0.85)), url(${image.imageUrl})`,
@@ -1522,14 +1528,6 @@ function getPreviewStyle(image) {
   return {
     background: createTierGradient(tierColor),
   };
-}
-
-function parseTags(input) {
-  if (!input) return [];
-  return input
-    .split(/[#,\n,]/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
 }
 
 function TierBadge({ tierKey }) {
@@ -1774,6 +1772,7 @@ function PlacementPanel({ queue, imagesById, onResolve, onCancel }) {
   );
 }
 
+
 function TasteT() {
   const initialState = useMemo(() => loadInitialState(), []);
   const [images, setImages] = useState(initialState.images);
@@ -1783,8 +1782,13 @@ function TasteT() {
   const [placementQueue, setPlacementQueue] = useState(initialState.placementQueue);
   const [selectedTag, setSelectedTag] = useState(initialState.selectedTag);
   const [miniSize, setMiniSize] = useState(initialState.miniSize || 8);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formValues, setFormValues] = useState({ name: "", imageUrl: "", tags: "" });
+  const [libraryEntries, setLibraryEntries] = useState(initialState.libraryEntries);
+  const [mode, setMode] = useState(() => {
+    if (initialState.activeSwiss) return "swiss";
+    if (initialState.placementQueue && initialState.placementQueueRestored) return "placement";
+    return "lobby";
+  });
+  const pendingPreviewRef = useRef(new Set());
 
   const imagesById = useMemo(() => {
     const map = {};
@@ -1795,305 +1799,372 @@ function TasteT() {
   }, [images]);
 
   const rankingData = useMemo(() => buildRankingData(images, selectedTag), [images, selectedTag]);
+  const availableTags = rankingData.tags;
+  const hasImages = images.length > 0;
+  const canStartSwiss = hasImages && images.length >= 2;
+  const placementImage = placementQueue ? imagesById[placementQueue.imageId] : null;
+  const pendingPlacementRounds = placementQueue
+    ? Math.max(placementQueue.opponents.length - placementQueue.currentIndex, 0)
+    : 0;
+  const showPlacementCallout =
+    mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
+
+  const refreshLibrary = useCallback(() => {
+    if (typeof window === "undefined") return;
+    setLibraryEntries(loadLibraryCatalog());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    let cancelled = false;
+    const pending = pendingPreviewRef.current;
+    const missing = images.filter((image) => !image.dataUrl && !pending.has(image.id));
+
+    missing.forEach((image) => {
+      pending.add(image.id);
+      loadImageData(image.id)
+        .then((dataUrl) => {
+          pending.delete(image.id);
+          if (!dataUrl || cancelled) return;
+          setImages((current) => {
+            const index = current.findIndex((img) => img.id === image.id);
+            if (index === -1) return current;
+            if (current[index].dataUrl === dataUrl) return current;
+            const next = current.slice();
+            next[index] = { ...current[index], dataUrl };
+            return next;
+          });
+        })
+        .catch(() => {
+          pending.delete(image.id);
+        });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [images]);
+
+  useEffect(() => {
+    const result = synchronizeImagesWithLibrary(images, libraryEntries);
+    if (result.changed) {
+      setImages(result.images);
+    }
+    const effectiveImages = result.changed ? result.images : images;
+    const availableIds = new Set(effectiveImages.map((image) => image.id));
+
+    if (
+      result.newIds.length &&
+      (!placementQueue || !placementQueue.opponents.length || !availableIds.has(placementQueue.imageId))
+    ) {
+      const queue = buildPlacementQueueForImage(result.newIds[0], effectiveImages);
+      if (queue) {
+        setPlacementQueue(queue);
+      }
+    }
+  }, [libraryEntries]);
+
+  useEffect(() => {
+    if (!placementQueue) return;
+    const availableIds = new Set(images.map((image) => image.id));
+    if (!availableIds.has(placementQueue.imageId)) {
+      setPlacementQueue(null);
+      if (mode === "placement") {
+        setMode("lobby");
+      }
+      return;
+    }
+
+    const filteredOpponents = placementQueue.opponents.filter(
+      (id) => id !== placementQueue.imageId && availableIds.has(id),
+    );
+
+    if (!filteredOpponents.length) {
+      setPlacementQueue(null);
+      if (mode === "placement") {
+        setMode("lobby");
+      }
+      return;
+    }
+
+    if (
+      filteredOpponents.length !== placementQueue.opponents.length ||
+      placementQueue.currentIndex >= filteredOpponents.length
+    ) {
+      setPlacementQueue((current) => {
+        if (!current) return current;
+        const nextIndex = Math.min(current.currentIndex, filteredOpponents.length - 1);
+        return {
+          ...current,
+          opponents: filteredOpponents,
+          currentIndex: Math.max(0, nextIndex),
+        };
+      });
+    }
+  }, [images, placementQueue, mode]);
+
+  useEffect(() => {
+    if (!activeSwiss) return;
+    const availableIds = new Set(images.map((image) => image.id));
+    const missingParticipant = activeSwiss.participants.some(
+      (participant) => !availableIds.has(participant.id),
+    );
+    if (missingParticipant) {
+      setActiveSwiss(null);
+      if (mode === "swiss") {
+        setMode("lobby");
+      }
+    }
+  }, [images, activeSwiss, mode]);
+
+  useEffect(() => {
+    if (!selectedTag) return;
+    if (!availableTags.includes(selectedTag)) {
+      setSelectedTag("");
+    }
+  }, [availableTags, selectedTag]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const payload = {
-      images,
-      duelLog,
-      swissHistory,
-      activeSwiss,
-      placementQueue,
-      selectedTag,
-      miniSize,
-    };
     try {
+      const payload = {
+        images,
+        duelLog,
+        swissHistory,
+        activeSwiss,
+        placementQueue,
+        selectedTag,
+        miniSize,
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (error) {
       console.warn("TierT: unable to persist state", error);
     }
   }, [images, duelLog, swissHistory, activeSwiss, placementQueue, selectedTag, miniSize]);
 
-  const handleResolvePairing = useCallback(
-    (pairingId, outcome) => {
-      if (!activeSwiss) return;
-      const round = activeSwiss.rounds.find((entry) => entry.index === activeSwiss.currentRound);
-      if (!round) return;
-      const pairing = round.pairings.find((pair) => pair.id === pairingId);
-      if (!pairing || pairing.bye) return;
-      const leftImage = imagesById[pairing.leftId];
-      const rightImage = imagesById[pairing.rightId];
-      if (!leftImage || !rightImage) return;
+  const applyResolution = useCallback(
+    (resolution) => {
+      if (!resolution) {
+        return;
+      }
 
-      const resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
-        mode: "swiss",
-        swissId: activeSwiss.id,
-        round: activeSwiss.currentRound,
-        pairingId,
-      });
-      if (!resolution) return;
-
-      setImages((prev) =>
-        prev.map((image) => {
-          if (image.id === leftImage.id) return resolution.left.image;
-          if (image.id === rightImage.id) return resolution.right.image;
+      setImages((current) => {
+        let changed = false;
+        const next = current.map((image) => {
+          if (image.id === resolution.left.image.id) {
+            changed = true;
+            return resolution.left.image;
+          }
+          if (image.id === resolution.right.image.id) {
+            changed = true;
+            return resolution.right.image;
+          }
           return image;
-        }),
-      );
+        });
+        return changed ? next : current;
+      });
 
-      setDuelLog((prev) => [resolution.duelEntry, ...prev].slice(0, LOG_LIMIT));
-
-      setActiveSwiss((prev) => updateSwissWithResult(prev, pairingId, resolution));
+      setDuelLog((current) => [resolution.duelEntry, ...current].slice(0, LOG_LIMIT));
     },
-    [activeSwiss, imagesById],
+    [setImages, setDuelLog],
   );
 
-  const handleAdvanceRound = useCallback(() => {
-    if (!activeSwiss || !activeSwiss.awaitingAdvance) return;
-    if (activeSwiss.currentRound >= activeSwiss.totalRounds) return;
+  const handleStartSwiss = useCallback(() => {
+    if (!canStartSwiss || mode !== "lobby") return;
+    const size = Math.min(miniSize, images.length);
+    const swiss = createSwissMini(images, size, imagesById);
+    if (!swiss) return;
 
-    const nextRoundNumber = activeSwiss.currentRound + 1;
-    const { participants, pairings } = prepareRound(
-      activeSwiss.participants,
-      nextRoundNumber,
-      imagesById,
-    );
-
-    const nextSwiss = {
-      ...activeSwiss,
-      participants,
-      rounds: [
-        ...activeSwiss.rounds,
-        {
-          index: nextRoundNumber,
-          pairings,
-          standings: null,
-          completedAt: null,
-        },
-      ],
-      currentRound: nextRoundNumber,
-      awaitingAdvance: false,
-      status: "in-progress",
-      latestStandings: computeStandings(participants).standings,
-    };
-    setActiveSwiss(nextSwiss);
-  }, [activeSwiss, imagesById]);
-
-  const handleFinishSwiss = useCallback(() => {
-    if (!activeSwiss || activeSwiss.status !== "awaiting-finish") return;
-    const finalStandings =
-      activeSwiss.latestStandings || computeStandings(activeSwiss.participants).standings;
-    const completedAt = Date.now();
-    const summary = createSwissSummary(
-      { ...activeSwiss, finalStandings, completedAt, status: "completed" },
-      imagesById,
-    );
-
-    if (summary) {
-      setSwissHistory((prev) => [summary, ...prev].slice(0, HISTORY_LIMIT));
-    }
-
-    setImages((prev) =>
-      prev.map((image) => {
-        const placement = finalStandings.find((entry) => entry.id === image.id);
-        if (!placement) return image;
+    const participantIds = new Set(swiss.participants.map((participant) => participant.id));
+    setImages((current) =>
+      current.map((image) => {
+        if (!participantIds.has(image.id)) return image;
         const stats = {
           ...image.stats,
           minisEntered: (image.stats?.minisEntered || 0) + 1,
-          bestFinish:
-            image.stats?.bestFinish == null
-              ? placement.rank
-              : Math.min(image.stats.bestFinish, placement.rank),
+          lastMode: "swiss",
         };
         return { ...image, stats };
       }),
     );
 
-    setActiveSwiss(null);
-  }, [activeSwiss, imagesById]);
+    setActiveSwiss(swiss);
+    setMode("swiss");
+  }, [canStartSwiss, mode, miniSize, images, imagesById]);
+
+  const handleResolvePairing = useCallback(
+    (pairingId, outcome) => {
+      setActiveSwiss((current) => {
+        if (!current) return current;
+        const round = current.rounds.find((entry) => entry.index === current.currentRound);
+        if (!round) return current;
+        const pairing = round.pairings.find((pair) => pair.id === pairingId);
+        if (!pairing || pairing.bye || pairing.resolved) return current;
+
+        const leftImage = imagesById[pairing.leftId];
+        const rightImage = imagesById[pairing.rightId];
+        if (!leftImage || !rightImage) {
+          return current;
+        }
+
+        const resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
+          mode: "swiss",
+          swissId: current.id,
+          round: current.currentRound,
+          pairingId,
+        });
+        applyResolution(resolution);
+        return updateSwissWithResult(current, pairingId, resolution);
+      });
+    },
+    [imagesById, applyResolution],
+  );
+
+  const handleAdvanceRound = useCallback(() => {
+    setActiveSwiss((current) => {
+      if (!current) return current;
+      if (!current.awaitingAdvance) return current;
+
+      const nextRoundNumber = current.currentRound + 1;
+      if (nextRoundNumber > current.totalRounds) {
+        return {
+          ...current,
+          status: "awaiting-finish",
+        };
+      }
+
+      const { participants: nextParticipants, pairings } = prepareRound(
+        current.participants,
+        nextRoundNumber,
+        imagesById,
+      );
+      const { standings } = computeStandings(nextParticipants);
+      const awaitingAdvance = pairings.every((pair) => pair.resolved);
+      const status = awaitingAdvance
+        ? nextRoundNumber >= current.totalRounds
+          ? "awaiting-finish"
+          : "between-rounds"
+        : "in-progress";
+
+      return {
+        ...current,
+        participants: nextParticipants,
+        rounds: [
+          ...current.rounds,
+          {
+            index: nextRoundNumber,
+            pairings,
+            standings: awaitingAdvance ? standings : null,
+            completedAt: awaitingAdvance ? Date.now() : null,
+          },
+        ],
+        currentRound: nextRoundNumber,
+        awaitingAdvance,
+        status,
+        latestStandings: standings,
+      };
+    });
+  }, [imagesById]);
+
+  const handleFinishSwiss = useCallback(() => {
+    let summary = null;
+    setActiveSwiss((current) => {
+      if (!current) return current;
+      const { standings } = computeStandings(current.participants);
+      const completed = {
+        ...current,
+        status: "completed",
+        completedAt: Date.now(),
+        finalStandings: standings,
+        latestStandings: standings,
+      };
+      summary = createSwissSummary(completed, imagesById);
+      return null;
+    });
+    if (summary) {
+      setSwissHistory((current) => [summary, ...current].slice(0, HISTORY_LIMIT));
+    }
+    setMode("lobby");
+  }, [imagesById]);
 
   const handleCancelSwiss = useCallback(() => {
     setActiveSwiss(null);
+    setMode("lobby");
+  }, []);
+
+  const handleEnterPlacement = useCallback(() => {
+    if (!placementQueue) return;
+    setMode("placement");
+  }, [placementQueue]);
+
+  const handleCancelPlacement = useCallback(() => {
+    setMode("lobby");
   }, []);
 
   const handleResolvePlacement = useCallback(
     (outcome) => {
       if (!placementQueue) return;
-      const image = imagesById[placementQueue.imageId];
+
+      const queueImage = imagesById[placementQueue.imageId];
       const opponentId = placementQueue.opponents[placementQueue.currentIndex];
       const opponent = imagesById[opponentId];
-      if (!image || !opponent) return;
+      let completed = false;
+      let historyEntry = null;
 
-      const resolution = resolveDuelForImages(image, opponent, outcome, {
-        mode: "placement",
-        pairingId: `placement-${placementQueue.currentIndex}`,
-        round: placementQueue.currentIndex + 1,
-      });
-      if (!resolution) return;
+      if (queueImage && opponent) {
+        const resolution = resolveDuelForImages(queueImage, opponent, outcome, {
+          mode: "placement",
+        });
+        applyResolution(resolution);
+        const delta =
+          resolution.left.image.id === queueImage.id
+            ? resolution.left.deltaRating
+            : resolution.right.deltaRating;
+        historyEntry = {
+          id: resolution.duelEntry.id,
+          opponentId,
+          outcome: outcome === "left" ? "Win" : outcome === "right" ? "Loss" : "Draw",
+          delta,
+        };
+      } else {
+        historyEntry = {
+          id: `placement-${Date.now()}`,
+          opponentId,
+          outcome: "Skipped",
+          delta: 0,
+        };
+      }
 
-      setImages((prev) =>
-        prev.map((entry) => {
-          if (entry.id === image.id) return resolution.left.image;
-          if (entry.id === opponent.id) return resolution.right.image;
-          return entry;
-        }),
-      );
-
-      setDuelLog((prev) => [resolution.duelEntry, ...prev].slice(0, LOG_LIMIT));
-
-      setPlacementQueue((prev) => {
-        if (!prev) return prev;
-        const nextHistory = [
-          {
-            id: resolution.duelEntry.id,
-            opponentId,
-            outcome: outcome === "draw" ? "Draw" : outcome === "left" ? "Win" : "Loss",
-            delta: resolution.left.deltaRating,
-          },
-          ...prev.history,
-        ].slice(0, 10);
-        const nextIndex = prev.currentIndex + 1;
-        if (nextIndex >= prev.opponents.length) {
+      setPlacementQueue((current) => {
+        if (!current) return current;
+        const nextHistory = historyEntry ? [...current.history, historyEntry].slice(-10) : current.history;
+        const nextIndex = current.currentIndex + 1;
+        if (nextIndex >= current.opponents.length) {
+          completed = true;
           return null;
         }
         return {
-          ...prev,
+          ...current,
           currentIndex: nextIndex,
           history: nextHistory,
         };
       });
+
+      if (completed) {
+        setMode("lobby");
+      }
     },
-    [imagesById, placementQueue],
+    [placementQueue, imagesById, applyResolution],
   );
 
-  const handleCancelPlacement = useCallback(() => {
-    setPlacementQueue(null);
-  }, []);
-
-  const handleStartSwiss = useCallback(() => {
-    if (!images.length) return;
-    const participants = selectSwissParticipants(images, miniSize);
-    if (!participants.length) return;
-    const timestamp = Date.now();
-
-    const seeded = participants.map((image, index) => ({
-      id: image.id,
-      name: image.name,
-      seed: index + 1,
-      seedRating: image.rating,
-      currentRating: image.rating,
-      rd: image.rd,
-      tierKey: image.tierKey,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      points: 0,
-      opponents: [],
-      history: [],
-      hasBye: false,
-      buchholz: 0,
-    }));
-
-    const totalRounds = determineTotalRounds(seeded.length);
-    const { participants: preparedParticipants, pairings } = prepareRound(seeded, 1, imagesById);
-
-    const swiss = {
-      id: `swiss-${timestamp}`,
-      createdAt: timestamp,
-      status: "in-progress",
-      participants: preparedParticipants,
-      rounds: [
-        {
-          index: 1,
-          pairings,
-          standings: null,
-          completedAt: null,
-        },
-      ],
-      currentRound: 1,
-      totalRounds,
-      awaitingAdvance: false,
-      latestStandings: computeStandings(preparedParticipants).standings,
-      finalStandings: null,
-      completedAt: null,
-    };
-
-    setActiveSwiss(swiss);
-  }, [images, miniSize, imagesById]);
-
-  const handleToggleAddForm = useCallback(() => {
-    setShowAddForm((prev) => !prev);
-  }, []);
-
-  const handleFormChange = useCallback((event) => {
-    const { name, value } = event.target;
-    setFormValues((prev) => ({ ...prev, [name]: value }));
-  }, []);
-
-  const handleCreateImage = useCallback(() => {
-    if (!formValues.name.trim()) return;
-    const id = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-    const tags = parseTags(formValues.tags);
-    const newImage = createImageRecord({
-      id,
-      name: formValues.name.trim(),
-      imageUrl: formValues.imageUrl.trim(),
-      tags,
-      rating: 1500,
-      rd: 300,
-      volatility: DEFAULT_VOLATILITY,
-      createdAt: Date.now(),
-      stats: {},
-      tierLog: [],
-    });
-
-    const nextImages = [...images, newImage];
-    setImages(nextImages);
-
-    const opponents = createPlacementOpponents(newImage.id, nextImages, 5).map((entry) => entry.id);
-    if (opponents.length) {
-      setPlacementQueue({
-        imageId: newImage.id,
-        opponents,
-        currentIndex: 0,
-        history: [],
-        createdAt: Date.now(),
-      });
-    }
-
-    setFormValues({ name: "", imageUrl: "", tags: "" });
-    setShowAddForm(false);
-  }, [formValues, images]);
-
-  const availableTags = rankingData.tags;
+  const hasActiveSwiss = mode === "swiss" && activeSwiss;
+  const hasPlacement = mode === "placement" && placementQueue;
 
   return (
     <div className="taste-t-app">
-      <header className="taste-t-header">
-        <div>
-          <h1>TierT · Swiss Minis</h1>
-          <p>Quick-fire tournaments to surface your favourite images.</p>
-        </div>
-        <div className="header-actions">
-          <label className="mini-size-control">
-            <span>Mini size</span>
-            <select value={miniSize} onChange={(event) => setMiniSize(Number(event.target.value))}>
-              {[6, 8, 10, 12, 16].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="button" onClick={handleStartSwiss} disabled={Boolean(activeSwiss)}>
-            Start Swiss Mini
-          </button>
-        </div>
-      </header>
-
-      <div className="taste-t-grid">
-        <div className="taste-t-column">
-          {activeSwiss ? (
+      <div className="taste-t-frame">
+        {hasActiveSwiss ? (
+          <div className="taste-t-game">
             <SwissMiniPanel
               swiss={activeSwiss}
               imagesById={imagesById}
@@ -2102,188 +2173,221 @@ function TasteT() {
               onFinish={handleFinishSwiss}
               onCancel={handleCancelSwiss}
             />
-          ) : (
-            <section className="taste-t-panel">
-              <h2>No active Swiss mini</h2>
-              <p>Select a mini size and start a new Swiss lobby to keep ranking your gallery.</p>
-              <button type="button" onClick={handleStartSwiss}>
-                Create Swiss Mini
-              </button>
-            </section>
-          )}
-
-          {placementQueue ? (
+          </div>
+        ) : hasPlacement ? (
+          <div className="taste-t-game">
             <PlacementPanel
               queue={placementQueue}
               imagesById={imagesById}
               onResolve={handleResolvePlacement}
               onCancel={handleCancelPlacement}
             />
-          ) : (
-            <section className="taste-t-panel">
-              <header className="panel-header">
+          </div>
+        ) : (
+          <div className="taste-t-lobby">
+            <section className="taste-t-hero">
+              <div className="taste-t-hero-top">
                 <div>
-                  <h2>Image Library</h2>
-                  <p className="panel-subtitle">{`${images.length} images in the system`}</p>
+                  <h1>TierT</h1>
+                  <p>
+                    {hasImages
+                      ? "Queue a Swiss mini to keep refining your favourites."
+                      : "Add images in your Library to start ranking them."}
+                  </p>
+                </div>
+                <div className="taste-t-hero-actions">
+                  <label className="mini-size-control">
+                    <span>Mini size</span>
+                    <select value={miniSize} onChange={(event) => setMiniSize(Number(event.target.value))}>
+                      {MINI_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="taste-t-play-button"
+                    onClick={handleStartSwiss}
+                    disabled={!canStartSwiss || mode !== "lobby"}
+                  >
+                    Play
+                  </button>
+                  <button type="button" className="ghost" onClick={refreshLibrary}>
+                    Refresh Library
+                  </button>
+                </div>
+              </div>
+              <div className="taste-t-hero-stats">
+                <div className="taste-t-stat-card">
+                  <span className="stat-label">Library images</span>
+                  <strong>{images.length}</strong>
+                  <p>{hasImages ? "Ready to rank" : "Visit the Library to add images."}</p>
+                </div>
+                <div className="taste-t-stat-card">
+                  <span className="stat-label">Placements</span>
+                  <strong>{pendingPlacementRounds}</strong>
+                  <p>{placementQueue ? "Duels to settle your newest image." : "All images are placed."}</p>
+                </div>
+                <div className="taste-t-stat-card">
+                  <span className="stat-label">Recent duels</span>
+                  <strong>{duelLog.length}</strong>
+                  <p>{duelLog.length ? "Tracked below in your duel log." : "Play a mini to build history."}</p>
+                </div>
+              </div>
+              {!canStartSwiss ? (
+                <p className="taste-t-hero-note">Add at least two images to start a Swiss mini.</p>
+              ) : null}
+            </section>
+
+            {showPlacementCallout ? (
+              <section className="taste-t-panel taste-t-placement-callout">
+                <div>
+                  <h2>Placement ready</h2>
+                  <p>
+                    {placementImage ? placementImage.name : "New image"} has {pendingPlacementRounds} duels remaining.
+                  </p>
                 </div>
                 <div className="panel-actions">
-                  <button type="button" onClick={handleToggleAddForm}>
-                    {showAddForm ? "Close" : "Add Image"}
+                  <button type="button" onClick={handleEnterPlacement}>
+                    Start placement
                   </button>
                 </div>
-              </header>
-              {showAddForm ? (
-                <div className="add-image-form">
-                  <label>
-                    <span>Name</span>
-                    <input name="name" value={formValues.name} onChange={handleFormChange} />
-                  </label>
-                  <label>
-                    <span>Image URL</span>
-                    <input name="imageUrl" value={formValues.imageUrl} onChange={handleFormChange} />
-                  </label>
-                  <label>
-                    <span>Tags</span>
-                    <input
-                      name="tags"
-                      value={formValues.tags}
-                      onChange={handleFormChange}
-                      placeholder="Comma or # separated"
-                    />
-                  </label>
-                  <button type="button" onClick={handleCreateImage}>
-                    Save &amp; Place
-                  </button>
-                </div>
-              ) : null}
-              <ul className="library-list">
-                {images.slice(0, 8).map((image) => (
-                  <li key={image.id}>
-                    <div className="library-preview" style={getPreviewStyle(image)} />
-                    <div>
-                      <h3>{image.name}</h3>
-                      <p>{`Rating ${Math.round(image.rating)} · RD ${Math.round(image.rd)}`}</p>
-                      <p className="library-tags">{image.tags.join(" · ")}</p>
-                    </div>
-                    <TierBadge tierKey={image.tierKey} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
+              </section>
+            ) : null}
 
-        <div className="taste-t-column">
-          <section className="taste-t-panel">
-            <header className="panel-header">
-              <div>
-                <h2>Global Order</h2>
-                <p className="panel-subtitle">
-                  {selectedTag ? `Filtering by ${selectedTag}` : "All images"}
-                </p>
-              </div>
-              <div className="panel-actions">
-                <select value={selectedTag} onChange={(event) => setSelectedTag(event.target.value)}>
-                  <option value="">All tags</option>
-                  {availableTags.map((tag) => (
-                    <option key={tag} value={tag}>
-                      {tag}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </header>
-            <ol className="ranking-list">
-              {rankingData.filtered.slice(0, 12).map((image, index) => (
-                <li key={image.id}>
-                  <span className="rank-index">#{index + 1}</span>
-                  <div className="ranking-meta">
-                    <h3>{image.name}</h3>
-                    <p>
-                      {`Rating ${Math.round(image.rating)} · RD ${Math.round(image.rd)} · ${formatRecord(
-                        image.stats?.wins,
-                        image.stats?.losses,
-                        image.stats?.draws,
-                      )}`}
-                    </p>
-                    <p className="ranking-tags">
-                      #{image.tierKey} · {image.tags.slice(0, 3).join(" · ")}
+            <div className="taste-t-lobby-grid">
+              <section className="taste-t-panel">
+                <header className="panel-header">
+                  <div>
+                    <h2>Global Order</h2>
+                    <p className="panel-subtitle">
+                      {selectedTag
+                        ? `Filtering by ${selectedTag}`
+                        : hasImages
+                        ? "All images"
+                        : "No images available"}
                     </p>
                   </div>
-                  <span className="rank-rating">{Math.round(image.rating)}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="taste-t-panel">
-            <h2>Tier Snapshots</h2>
-            <div className="tier-grid">
-              {rankingData.perTier.map(({ tier, images: tierImages }) => (
-                <div key={tier.key} className="tier-card">
-                  <header style={{ borderColor: tier.color }}>
-                    <h3>{tier.label}</h3>
-                    <p>{tier.tagline}</p>
-                  </header>
-                  <ol>
-                    {tierImages.slice(0, 5).map((image) => (
+                  <div className="panel-actions">
+                    <select value={selectedTag} onChange={(event) => setSelectedTag(event.target.value)}>
+                      <option value="">All tags</option>
+                      {availableTags.map((tag) => (
+                        <option key={tag} value={tag}>
+                          {tag}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </header>
+                {rankingData.filtered.length ? (
+                  <ol className="ranking-list">
+                    {rankingData.filtered.slice(0, 12).map((image, index) => (
                       <li key={image.id}>
-                        <span>{image.name}</span>
-                        <span>{Math.round(image.rating)}</span>
+                        <span className="rank-index">#{index + 1}</span>
+                        <div className="ranking-meta">
+                          <h3>{image.name}</h3>
+                          <p>
+                            {`Rating ${Math.round(image.rating)} · RD ${Math.round(image.rd)} · ${formatRecord(
+                              image.stats?.wins,
+                              image.stats?.losses,
+                              image.stats?.draws,
+                            )}`}
+                          </p>
+                          <p className="ranking-tags">
+                            #{image.tierKey} · {image.tags.slice(0, 3).join(" · ")}
+                          </p>
+                        </div>
+                        <span className="rank-rating">{Math.round(image.rating)}</span>
                       </li>
                     ))}
-                    {!tierImages.length ? <li className="empty">No images yet</li> : null}
                   </ol>
+                ) : (
+                  <div className="panel-placeholder">
+                    {hasImages
+                      ? "No rankings match the selected tag."
+                      : "Add images in your Library to begin ranking."}
+                  </div>
+                )}
+              </section>
+
+              <section className="taste-t-panel">
+                <h2>Tier Snapshots</h2>
+                <div className="tier-grid">
+                  {rankingData.perTier.map(({ tier, images: tierImages }) => (
+                    <div key={tier.key} className="tier-card">
+                      <header style={{ borderColor: tier.color }}>
+                        <h3>{tier.label}</h3>
+                        <p>{tier.tagline}</p>
+                      </header>
+                      <ol>
+                        {tierImages.slice(0, 5).map((image) => (
+                          <li key={image.id}>
+                            <span>{image.name}</span>
+                            <span>{Math.round(image.rating)}</span>
+                          </li>
+                        ))}
+                        {!tierImages.length ? <li className="empty">No images yet</li> : null}
+                      </ol>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </section>
+
+              <section className="taste-t-panel">
+                <h2>Recent Duels</h2>
+                {duelLog.length ? (
+                  <ul className="duel-log">
+                    {duelLog.map((entry) => (
+                      <li key={entry.id}>
+                        <span className="duel-log-names">
+                          {entry.leftName} vs {entry.rightName}
+                        </span>
+                        <span className="duel-log-outcome">
+                          {entry.outcome === "draw"
+                            ? "Draw"
+                            : `${entry.winnerId === entry.leftId ? entry.leftName : entry.rightName} won`}
+                        </span>
+                        <span className="duel-log-delta">
+                          {formatDelta(entry.leftDelta)} / {formatDelta(entry.rightDelta)}
+                        </span>
+                        <span className="duel-log-time">{formatRelativeTime(entry.timestamp)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="panel-placeholder">Play duels to populate your log.</div>
+                )}
+              </section>
+
+              <section className="taste-t-panel">
+                <h2>Swiss History</h2>
+                {swissHistory.length ? (
+                  <ul className="swiss-history">
+                    {swissHistory.map((entry) => (
+                      <li key={entry.id}>
+                        <div>
+                          <strong>{entry.id}</strong>
+                          <span>
+                            {entry.participants[0]?.name || "Swiss"} · {entry.totalRounds} rounds · {entry.participants.length} images
+                          </span>
+                        </div>
+                        <div>Winner: {entry.participants.find((p) => p.rank === 1)?.name || ""}</div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="panel-placeholder">Finish a Swiss mini to see it logged here.</div>
+                )}
+              </section>
             </div>
-          </section>
-
-          <section className="taste-t-panel">
-            <h2>Recent Duels</h2>
-            <ul className="duel-log">
-              {duelLog.map((entry) => (
-                <li key={entry.id}>
-                  <span className="duel-log-names">
-                    {entry.leftName} vs {entry.rightName}
-                  </span>
-                  <span className="duel-log-outcome">
-                    {entry.outcome === "draw"
-                      ? "Draw"
-                      : `${entry.winnerId === entry.leftId ? entry.leftName : entry.rightName} won`}
-                  </span>
-                  <span className="duel-log-delta">{formatDelta(entry.leftDelta)} / {formatDelta(entry.rightDelta)}</span>
-                  <span className="duel-log-time">{formatRelativeTime(entry.timestamp)}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="taste-t-panel">
-            <h2>Swiss History</h2>
-            <ul className="swiss-history">
-              {swissHistory.map((entry) => (
-                <li key={entry.id}>
-                  <div>
-                    <strong>{entry.id}</strong>
-                    <span>
-                      {entry.participants[0]?.name || "Swiss"} · {entry.totalRounds} rounds ·
-                      {" "}
-                      {entry.participants.length} images
-                    </span>
-                  </div>
-                  <div>
-                    Winner: {entry.participants.find((p) => p.rank === 1)?.name || ""}
-                  </div>
-                </li>
-              ))}
-              {!swissHistory.length ? <li className="empty">Play a Swiss mini to build history.</li> : null}
-            </ul>
-          </section>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 
 export default TasteT;
