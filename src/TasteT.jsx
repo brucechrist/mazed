@@ -1,144 +1,2289 @@
-import React from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import "./taste-t.css";
 
-const roadmap = [
+const STORAGE_KEY = "tastet-state-v2";
+const DEFAULT_VOLATILITY = 0.06;
+const MAX_RD = 350;
+const MIN_RD = 35;
+const HOURS_PER_PERIOD = 36;
+const PROMOTION_RD_CAP = 125;
+const LOG_LIMIT = 120;
+const HISTORY_LIMIT = 6;
+const RECENT_MATCHES_LIMIT = 6;
+
+const TIER_RULES = [
   {
-    stage: "Now",
-    title: "Palette Calibration",
-    detail: "Capture the signature mood, color stories, and textures that TasteT will revolve around.",
+    key: "Div2",
+    label: "Division 2",
+    color: "#5c73ff",
+    floor: -Infinity,
+    demoteBelow: -Infinity,
+    promoteAt: 1580,
+    tagline: "New challengers finding their footing.",
   },
   {
-    stage: "Next",
-    title: "Experience Flow",
-    detail: "Sketch the journey from inspiration to tasting notes so we can choreograph each interaction.",
+    key: "Div1",
+    label: "Division 1",
+    color: "#00b3ff",
+    floor: 1500,
+    demoteBelow: 1475,
+    promoteAt: 1700,
+    tagline: "Consistent performers ready for a climb.",
   },
   {
-    stage: "Later",
-    title: "Sensory Library",
-    detail: "Collect audio, visual, and aromatic references that will anchor our experiments.",
+    key: "LFL",
+    label: "LFL",
+    color: "#8a60ff",
+    floor: 1640,
+    demoteBelow: 1610,
+    promoteAt: 1830,
+    tagline: "Regional elite shaping the meta.",
+  },
+  {
+    key: "LEC",
+    label: "LEC",
+    color: "#ff7a59",
+    floor: 1780,
+    demoteBelow: 1750,
+    promoteAt: 1950,
+    tagline: "Major league powerhouses.",
+  },
+  {
+    key: "Worlds",
+    label: "Worlds",
+    color: "#f9c846",
+    floor: 1920,
+    demoteBelow: 1890,
+    promoteAt: Infinity,
+    tagline: "Final stage icons and legends.",
   },
 ];
 
-const tastingMoments = [
+const TIER_LOOKUP = TIER_RULES.reduce((acc, tier, index) => {
+  acc[tier.key] = { ...tier, index };
+  return acc;
+}, {});
+
+const DEFAULT_LIBRARY_TEMPLATES = [
   {
-    label: "Dawn",
-    description: "Bright, crisp openings that wake up curiosity.",
+    id: "starlit-veil",
+    name: "Starlit Veil",
+    imageUrl:
+      "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Blue", "Celestial"],
+    rating: 2012,
+    rd: 52,
+    volatility: 0.045,
+    tierKey: "Worlds",
+    stats: {
+      wins: 68,
+      losses: 18,
+      draws: 3,
+      minisEntered: 15,
+      totalDuels: 89,
+      placementDuels: 5,
+      bestFinish: 1,
+    },
+    lastPlayedHoursAgo: 18,
   },
   {
-    label: "Noon",
-    description: "Balanced harmonies where the rhythm settles in.",
+    id: "ember-queen",
+    name: "Ember Queen",
+    imageUrl:
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Warm", "Portrait"],
+    rating: 1890,
+    rd: 61,
+    volatility: 0.05,
+    tierKey: "LEC",
+    stats: {
+      wins: 54,
+      losses: 26,
+      draws: 2,
+      minisEntered: 12,
+      totalDuels: 82,
+      placementDuels: 5,
+      bestFinish: 1,
+    },
+    lastPlayedHoursAgo: 32,
   },
   {
-    label: "Dusk",
-    description: "Velvet transitions carrying warmth into the night.",
+    id: "chrome-harbor",
+    name: "Chrome Harbor",
+    imageUrl:
+      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Urban", "Blue"],
+    rating: 1834,
+    rd: 74,
+    volatility: 0.055,
+    tierKey: "LEC",
+    stats: {
+      wins: 47,
+      losses: 24,
+      draws: 4,
+      minisEntered: 11,
+      totalDuels: 75,
+      placementDuels: 5,
+      bestFinish: 2,
+    },
+    lastPlayedHoursAgo: 10,
+  },
+  {
+    id: "meadowline-spirit",
+    name: "Meadowline Spirit",
+    imageUrl:
+      "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Nature", "Green"],
+    rating: 1764,
+    rd: 82,
+    volatility: 0.06,
+    tierKey: "LFL",
+    stats: {
+      wins: 38,
+      losses: 20,
+      draws: 3,
+      minisEntered: 9,
+      totalDuels: 61,
+      placementDuels: 5,
+      bestFinish: 2,
+    },
+    lastPlayedHoursAgo: 44,
+  },
+  {
+    id: "ivory-focus",
+    name: "Ivory Focus",
+    imageUrl:
+      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80",
+    tags: ["Minimal", "Monochrome"],
+    rating: 1711,
+    rd: 68,
+    volatility: 0.055,
+    tierKey: "LFL",
+    stats: {
+      wins: 31,
+      losses: 18,
+      draws: 4,
+      minisEntered: 7,
+      totalDuels: 53,
+      placementDuels: 5,
+      bestFinish: 3,
+    },
+    lastPlayedHoursAgo: 72,
+  },
+  {
+    id: "drift-pulse",
+    name: "Drift Pulse",
+    imageUrl:
+      "https://images.unsplash.com/photo-1526402469413-93fef5d92c2f?auto=format&fit=crop&w=1200&q=80",
+    tags: ["Synthwave", "Purple"],
+    rating: 1632,
+    rd: 94,
+    volatility: 0.06,
+    tierKey: "Div1",
+    stats: {
+      wins: 24,
+      losses: 16,
+      draws: 2,
+      minisEntered: 5,
+      totalDuels: 42,
+      placementDuels: 5,
+      bestFinish: 4,
+    },
+    lastPlayedHoursAgo: 6,
+  },
+  {
+    id: "solstice-bloom",
+    name: "Solstice Bloom",
+    imageUrl:
+      "https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Floral", "Warm"],
+    rating: 1586,
+    rd: 88,
+    volatility: 0.06,
+    tierKey: "Div1",
+    stats: {
+      wins: 22,
+      losses: 15,
+      draws: 3,
+      minisEntered: 4,
+      totalDuels: 40,
+      placementDuels: 5,
+      bestFinish: 4,
+    },
+    lastPlayedHoursAgo: 120,
+  },
+  {
+    id: "afterglow-breaker",
+    name: "Afterglow Breaker",
+    imageUrl:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Neon", "Blue"],
+    rating: 1552,
+    rd: 112,
+    volatility: 0.065,
+    tierKey: "Div1",
+    stats: {
+      wins: 17,
+      losses: 14,
+      draws: 2,
+      minisEntered: 3,
+      totalDuels: 33,
+      placementDuels: 5,
+      bestFinish: 5,
+    },
+    lastPlayedHoursAgo: 8,
+  },
+  {
+    id: "timberglass",
+    name: "Timberglass",
+    imageUrl:
+      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Green", "Moody"],
+    rating: 1498,
+    rd: 128,
+    volatility: 0.065,
+    tierKey: "Div2",
+    stats: {
+      wins: 14,
+      losses: 14,
+      draws: 1,
+      minisEntered: 2,
+      totalDuels: 29,
+      placementDuels: 5,
+      bestFinish: 6,
+    },
+    lastPlayedHoursAgo: 200,
+  },
+  {
+    id: "velvet-echo",
+    name: "Velvet Echo",
+    imageUrl:
+      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1200&q=80",
+    tags: ["Portrait", "Warm"],
+    rating: 1464,
+    rd: 138,
+    volatility: 0.07,
+    tierKey: "Div2",
+    stats: {
+      wins: 12,
+      losses: 13,
+      draws: 2,
+      minisEntered: 2,
+      totalDuels: 27,
+      placementDuels: 5,
+      bestFinish: 6,
+    },
+    lastPlayedHoursAgo: 36,
+  },
+  {
+    id: "cascade-runner",
+    name: "Cascade Runner",
+    imageUrl:
+      "https://images.unsplash.com/photo-1526481280695-3c46917f44c8?auto=format&fit=crop&w=1200&q=80",
+    tags: ["League of Legends", "Blue", "Motion"],
+    rating: 1425,
+    rd: 152,
+    volatility: 0.07,
+    tierKey: "Div2",
+    stats: {
+      wins: 10,
+      losses: 13,
+      draws: 1,
+      minisEntered: 1,
+      totalDuels: 24,
+      placementDuels: 4,
+      bestFinish: 7,
+    },
+    lastPlayedHoursAgo: 15,
+  },
+  {
+    id: "prism-rookie",
+    name: "Prism Rookie",
+    imageUrl:
+      "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=1200&q=80",
+    tags: ["Abstract", "Violet"],
+    rating: 1512,
+    rd: 180,
+    volatility: 0.08,
+    tierKey: "Div2",
+    stats: {
+      wins: 7,
+      losses: 6,
+      draws: 1,
+      minisEntered: 1,
+      totalDuels: 14,
+      placementDuels: 4,
+      bestFinish: 7,
+    },
+    lastPlayedHoursAgo: 4,
   },
 ];
 
-const experimentIdeas = [
-  {
-    title: "Atmosphere Sequencer",
-    note: "Layer ambient soundscapes with palette cues to reinforce the tasting arc.",
-  },
-  {
-    title: "Texture Sampler",
-    note: "Prototype tactile prompts that respond to progress and choices.",
-  },
-  {
-    title: "Memory Anchor",
-    note: "Design rituals that let guests capture a single vivid note from each session.",
-  },
-];
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
 
-export default function TasteT() {
+function roundTo(value, decimals = 2) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function formatDelta(value) {
+  const rounded = roundTo(value, 1);
+  if (!rounded) {
+    return "±0";
+  }
+  return `${rounded > 0 ? "+" : ""}${rounded}`;
+}
+
+function formatRecord(wins = 0, losses = 0, draws = 0) {
+  return draws ? `${wins}-${losses}-${draws}` : `${wins}-${losses}`;
+}
+
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return "never";
+  const diff = Date.now() - timestamp;
+  if (diff < 0) return "just now";
+  const minutes = Math.round(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 90) return `${days}d ago`;
+  const months = Math.round(days / 30);
+  if (months < 24) return `${months}mo ago`;
+  const years = Math.round(days / 365);
+  return `${years}y ago`;
+}
+
+function scoreToPoints(score) {
+  if (score === 1) return 2;
+  if (score === 0.5) return 1;
+  return 0;
+}
+
+function expectedScore(ratingA, ratingB) {
+  return 1 / (1 + 10 ** ((ratingB - ratingA) / 400));
+}
+
+function colorFromString(input) {
+  const str = input || "tier";
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 55%)`;
+}
+
+function hexToRgb(color) {
+  if (!color) {
+    return { r: 120, g: 160, b: 255 };
+  }
+  let hex = color.replace("#", "");
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+  const num = parseInt(hex, 16);
+  if (Number.isNaN(num)) {
+    return { r: 120, g: 160, b: 255 };
+  }
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function applyAlpha(color, alpha) {
+  const { r, g, b } = hexToRgb(color);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function createTierGradient(color) {
+  return `linear-gradient(135deg, ${applyAlpha(color, 0.85)}, ${applyAlpha(color, 0.45)})`;
+}
+
+function getTierIndex(tierKey) {
+  return TIER_LOOKUP[tierKey]?.index ?? 0;
+}
+
+function getTierByRating(rating) {
+  let tierKey = TIER_RULES[0].key;
+  for (const tier of TIER_RULES) {
+    const floor = tier.floor === -Infinity ? -Infinity : tier.floor;
+    if (rating >= floor) {
+      tierKey = tier.key;
+    }
+  }
+  return tierKey;
+}
+
+function resolveTierChange(currentTierKey, rating, rd) {
+  const currentIndex = currentTierKey ? getTierIndex(currentTierKey) : 0;
+  let index = currentIndex;
+
+  while (index < TIER_RULES.length - 1) {
+    const tier = TIER_RULES[index];
+    if (rating >= tier.promoteAt && rd <= PROMOTION_RD_CAP) {
+      index += 1;
+    } else {
+      break;
+    }
+  }
+
+  while (index > 0) {
+    const tier = TIER_RULES[index];
+    if (rating < tier.demoteBelow) {
+      index -= 1;
+    } else {
+      break;
+    }
+  }
+
+  const tier = TIER_RULES[index];
+  return {
+    key: tier.key,
+    index,
+    tier,
+    changed: tier.key !== currentTierKey,
+    direction: tier.key === currentTierKey ? null : index > currentIndex ? "promotion" : "demotion",
+  };
+}
+
+function computeStreak(recentMatches) {
+  if (!recentMatches || !recentMatches.length) return "—";
+  const first = recentMatches[0].result;
+  if (first === "D") {
+    const drawStreak = recentMatches.findIndex((match) => match.result !== "D");
+    const count = drawStreak === -1 ? recentMatches.length : drawStreak;
+    return `D${count}`;
+  }
+  let count = 0;
+  for (const match of recentMatches) {
+    if (match.result !== first) break;
+    count += 1;
+  }
+  return `${first}${count}`;
+}
+
+function updateImageStats(image, score, context, newRating, timestamp, tierChange) {
+  const stats = {
+    wins: image.stats?.wins ?? 0,
+    losses: image.stats?.losses ?? 0,
+    draws: image.stats?.draws ?? 0,
+    totalDuels: image.stats?.totalDuels ?? 0,
+    minisEntered: image.stats?.minisEntered ?? 0,
+    placementDuels: image.stats?.placementDuels ?? 0,
+    promotions: image.stats?.promotions ?? 0,
+    demotions: image.stats?.demotions ?? 0,
+    bestFinish: image.stats?.bestFinish ?? null,
+    highestRating: image.stats?.highestRating ?? image.rating,
+    lowestRating: image.stats?.lowestRating ?? image.rating,
+    currentStreak: image.stats?.currentStreak ?? "—",
+    lastMode: image.stats?.lastMode ?? "duel",
+    lastSwissId: image.stats?.lastSwissId ?? null,
+    lastOutcome: image.stats?.lastOutcome ?? null,
+    lastRating: image.stats?.lastRating ?? image.rating,
+    lastRD: image.stats?.lastRD ?? image.rd,
+    lastOpponentId: image.stats?.lastOpponentId ?? null,
+    lastUpdatedAt: image.stats?.lastUpdatedAt ?? image.updatedAt ?? image.createdAt ?? timestamp,
+  };
+
+  if (score === 1) stats.wins += 1;
+  else if (score === 0) stats.losses += 1;
+  else stats.draws += 1;
+
+  stats.totalDuels += 1;
+
+  if (context.mode === "placement") {
+    stats.placementDuels += 1;
+  }
+
+  if (tierChange?.direction === "promotion") {
+    stats.promotions += 1;
+  } else if (tierChange?.direction === "demotion") {
+    stats.demotions += 1;
+  }
+
+  stats.highestRating = Math.max(stats.highestRating, newRating);
+  stats.lowestRating = Math.min(stats.lowestRating, newRating);
+  stats.lastMode = context.mode || "duel";
+  if (context.swissId) {
+    stats.lastSwissId = context.swissId;
+  }
+  stats.lastUpdatedAt = timestamp;
+
+  const outcomeLabel = score === 1 ? "win" : score === 0 ? "loss" : "draw";
+  stats.lastOutcome = outcomeLabel;
+  stats.lastRating = newRating;
+  if (typeof context.newRd === "number") {
+    stats.lastRD = context.newRd;
+  }
+  if (context.opponentId) {
+    stats.lastOpponentId = context.opponentId;
+  }
+
+  const streakCode = outcomeLabel === "win" ? "W" : outcomeLabel === "loss" ? "L" : "D";
+  const prevStreak = image.stats?.currentStreak || "";
+  const prevCode = prevStreak.charAt(0);
+  const prevCount = Number.parseInt(prevStreak.slice(1), 10);
+  if (prevCode === streakCode && Number.isFinite(prevCount)) {
+    stats.currentStreak = `${streakCode}${prevCount + 1}`;
+  } else {
+    stats.currentStreak = `${streakCode}1`;
+  }
+
+  return stats;
+}
+
+function computePeriodsElapsed(lastPlayedAt, now = Date.now()) {
+  if (!lastPlayedAt) return 1;
+  const diff = now - lastPlayedAt;
+  if (diff <= 0) return 1;
+  const hours = diff / (1000 * 60 * 60);
+  if (hours <= HOURS_PER_PERIOD) {
+    return 1;
+  }
+  return Math.min(8, Math.round(hours / HOURS_PER_PERIOD));
+}
+
+function updateGlickoPlayer(player, matches, periods = 1) {
+  const rating = typeof player.rating === "number" ? player.rating : 1500;
+  const rd = typeof player.rd === "number" ? player.rd : 350;
+  const sigma = typeof player.volatility === "number" ? player.volatility : DEFAULT_VOLATILITY;
+
+  const scale = 173.7178;
+  const mu = (rating - 1500) / scale;
+  const phi = rd / scale;
+  const phiStar = Math.sqrt(phi * phi + sigma * sigma * periods);
+
+  if (!matches || !matches.length) {
+    return {
+      rating,
+      rd: roundTo(clamp(phiStar * scale, MIN_RD, MAX_RD), 2),
+      volatility: sigma,
+    };
+  }
+
+  let vDenom = 0;
+  let deltaSum = 0;
+
+  matches.forEach((match) => {
+    const oppMu = ((match.rating ?? 1500) - 1500) / scale;
+    const oppPhi = (match.rd ?? 350) / scale;
+    const gPhi = 1 / Math.sqrt(1 + (3 * oppPhi * oppPhi) / (Math.PI * Math.PI));
+    const expected = 1 / (1 + Math.exp(-gPhi * (mu - oppMu)));
+    const score = typeof match.score === "number" ? match.score : 0.5;
+    vDenom += gPhi * gPhi * expected * (1 - expected);
+    deltaSum += gPhi * (score - expected);
+  });
+
+  const v = 1 / vDenom;
+  const delta = v * deltaSum;
+  const tau = 0.5;
+  const a = Math.log(sigma * sigma);
+
+  const f = (x) => {
+    const expX = Math.exp(x);
+    const num = expX * (delta * delta - phiStar * phiStar - v - expX);
+    const den = 2 * (phiStar * phiStar + v + expX) ** 2;
+    return num / den - (x - a) / (tau * tau);
+  };
+
+  let A = a;
+  let B;
+  if (delta * delta > phiStar * phiStar + v) {
+    B = Math.log(delta * delta - phiStar * phiStar - v);
+  } else {
+    let k = 1;
+    do {
+      B = a - k * tau;
+      k += 1;
+    } while (f(B) < 0);
+  }
+
+  let fA = f(A);
+  let fB = f(B);
+  while (Math.abs(B - A) > 1e-6) {
+    const C = A + (A - B) * (fA / (fB - fA));
+    const fC = f(C);
+    if (fC * fB < 0) {
+      A = B;
+      fA = fB;
+    } else {
+      fA /= 2;
+    }
+    B = C;
+    fB = fC;
+  }
+
+  const newSigma = Math.exp(A / 2);
+  const phiPrime = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+  const muPrime = mu + phiPrime * phiPrime * deltaSum;
+
+  return {
+    rating: roundTo(muPrime * scale + 1500, 2),
+    rd: roundTo(clamp(phiPrime * scale, MIN_RD, MAX_RD), 2),
+    volatility: clamp(newSigma, 0.02, 1.2),
+  };
+}
+
+function createImageRecord({
+  id,
+  name,
+  imageUrl,
+  tags = [],
+  rating = 1500,
+  rd = 260,
+  volatility = DEFAULT_VOLATILITY,
+  tierKey,
+  stats = {},
+  createdAt = Date.now(),
+  lastPlayedAt = null,
+  recentMatches = [],
+  tierLog,
+}) {
+  const normalizedTags = Array.isArray(tags) ? tags : [];
+  const normalizedStats = {
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    totalDuels: 0,
+    minisEntered: 0,
+    placementDuels: 0,
+    promotions: 0,
+    demotions: 0,
+    bestFinish: null,
+    highestRating: rating,
+    lowestRating: rating,
+    currentStreak: "—",
+    lastMode: "duel",
+    lastSwissId: null,
+    lastOutcome: null,
+    lastRating: rating,
+    lastRD: rd,
+    lastOpponentId: null,
+    lastUpdatedAt: createdAt,
+    ...stats,
+  };
+
+  if (!normalizedStats.totalDuels) {
+    normalizedStats.totalDuels =
+      (normalizedStats.wins || 0) + (normalizedStats.losses || 0) + (normalizedStats.draws || 0);
+  }
+  if (normalizedStats.highestRating == null) normalizedStats.highestRating = rating;
+  if (normalizedStats.lowestRating == null) normalizedStats.lowestRating = rating;
+
+  const resolvedTierKey = tierKey || getTierByRating(rating);
+  const baseTierLog =
+    Array.isArray(tierLog) && tierLog.length
+      ? tierLog
+      : [
+          {
+            timestamp: createdAt,
+            tier: resolvedTierKey,
+            direction: "init",
+            rating,
+          },
+        ];
+
+  return {
+    id,
+    name,
+    imageUrl,
+    tags: normalizedTags,
+    rating,
+    rd,
+    volatility,
+    tierKey: resolvedTierKey,
+    tierIndex: getTierIndex(resolvedTierKey),
+    stats: normalizedStats,
+    createdAt,
+    updatedAt: createdAt,
+    lastPlayedAt,
+    tierLog: baseTierLog,
+    recentMatches: Array.isArray(recentMatches)
+      ? recentMatches.slice(0, RECENT_MATCHES_LIMIT)
+      : [],
+  };
+}
+
+function buildDefaultLibrary() {
+  const now = Date.now();
+  return DEFAULT_LIBRARY_TEMPLATES.map((template, index) => {
+    const { lastPlayedHoursAgo, ...rest } = template;
+    return createImageRecord({
+      ...rest,
+      createdAt: now - (index + 1) * 8 * 24 * 60 * 60 * 1000,
+      lastPlayedAt:
+        typeof lastPlayedHoursAgo === "number"
+          ? now - lastPlayedHoursAgo * 60 * 60 * 1000
+          : null,
+    });
+  });
+}
+
+function normalizeImage(raw) {
+  if (!raw || !raw.id) return null;
+  return {
+    ...createImageRecord({
+      id: raw.id,
+      name: raw.name || "Untitled",
+      imageUrl: raw.imageUrl || "",
+      tags: Array.isArray(raw.tags) ? raw.tags : [],
+      rating: typeof raw.rating === "number" ? raw.rating : 1500,
+      rd: typeof raw.rd === "number" ? raw.rd : 260,
+      volatility: typeof raw.volatility === "number" ? raw.volatility : DEFAULT_VOLATILITY,
+      tierKey: raw.tierKey || raw.tier || getTierByRating(raw.rating || 1500),
+      stats: raw.stats || {},
+      createdAt: raw.createdAt || Date.now(),
+      lastPlayedAt: raw.lastPlayedAt || null,
+      recentMatches: raw.recentMatches || [],
+      tierLog: raw.tierLog || [],
+    }),
+    updatedAt: raw.updatedAt || raw.createdAt || Date.now(),
+  };
+}
+
+function normalizeSwiss(raw) {
+  if (!raw || !Array.isArray(raw.participants) || !Array.isArray(raw.rounds)) {
+    return null;
+  }
+  const participants = raw.participants.map((participant) => ({
+    id: participant.id,
+    name: participant.name,
+    seed: participant.seed || 0,
+    seedRating: typeof participant.seedRating === "number" ? participant.seedRating : 1500,
+    currentRating:
+      typeof participant.currentRating === "number"
+        ? participant.currentRating
+        : participant.seedRating || 1500,
+    rd: typeof participant.rd === "number" ? participant.rd : 260,
+    tierKey: participant.tierKey || getTierByRating(participant.currentRating || 1500),
+    wins: participant.wins || 0,
+    losses: participant.losses || 0,
+    draws: participant.draws || 0,
+    points: participant.points || 0,
+    opponents: Array.isArray(participant.opponents) ? participant.opponents : [],
+    history: Array.isArray(participant.history) ? participant.history : [],
+    hasBye: Boolean(participant.hasBye),
+    buchholz: participant.buchholz || 0,
+  }));
+
+  const rounds = raw.rounds.map((round) => ({
+    index: round.index,
+    pairings: Array.isArray(round.pairings)
+      ? round.pairings.map((pair) => ({
+          id: pair.id,
+          leftId: pair.leftId,
+          rightId: pair.rightId ?? null,
+          bye: Boolean(pair.bye),
+          resolved: Boolean(pair.resolved || pair.bye),
+          result: pair.result || (pair.bye ? "bye" : null),
+          winnerId: pair.winnerId ?? (pair.bye ? pair.leftId : null),
+          preRatings: pair.preRatings || null,
+          expected: typeof pair.expected === "number" ? pair.expected : 0.5,
+          ratingChange: pair.ratingChange || null,
+          outcome: pair.outcome || null,
+          tierChanges: pair.tierChanges || null,
+          logId: pair.logId || null,
+          timestamp: pair.timestamp || null,
+        }))
+      : [],
+    standings: Array.isArray(round.standings) ? round.standings : null,
+    completedAt: round.completedAt || null,
+  }));
+
+  const normalized = {
+    id: raw.id || `swiss-${Date.now()}`,
+    createdAt: raw.createdAt || Date.now(),
+    status: raw.status || "in-progress",
+    participants,
+    rounds,
+    currentRound: raw.currentRound || (rounds.length ? rounds[rounds.length - 1].index : 1),
+    totalRounds: raw.totalRounds || Math.max(rounds.length, 3),
+    awaitingAdvance: Boolean(raw.awaitingAdvance),
+    latestStandings: raw.latestStandings || null,
+    finalStandings: raw.finalStandings || null,
+    completedAt: raw.completedAt || null,
+  };
+
+  if (!normalized.latestStandings) {
+    normalized.latestStandings = computeStandings(participants).standings;
+  }
+
+  return normalized;
+}
+
+function loadInitialState() {
+  const base = {
+    images: buildDefaultLibrary(),
+    duelLog: [],
+    swissHistory: [],
+    activeSwiss: null,
+    placementQueue: null,
+    selectedTag: "",
+    miniSize: 8,
+  };
+
+  if (typeof window === "undefined") {
+    return base;
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return base;
+    }
+    const parsed = JSON.parse(raw);
+    const images = Array.isArray(parsed.images) && parsed.images.length
+      ? parsed.images.map(normalizeImage).filter(Boolean)
+      : base.images;
+
+    return {
+      images,
+      duelLog: Array.isArray(parsed.duelLog)
+        ? parsed.duelLog.slice(0, LOG_LIMIT)
+        : base.duelLog,
+      swissHistory: Array.isArray(parsed.swissHistory)
+        ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
+        : base.swissHistory,
+      activeSwiss: parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null,
+      placementQueue:
+        parsed.placementQueue && parsed.placementQueue.imageId
+          ? {
+              imageId: parsed.placementQueue.imageId,
+              opponents: Array.isArray(parsed.placementQueue.opponents)
+                ? parsed.placementQueue.opponents
+                : [],
+              currentIndex: parsed.placementQueue.currentIndex || 0,
+              history: Array.isArray(parsed.placementQueue.history)
+                ? parsed.placementQueue.history
+                : [],
+              createdAt: parsed.placementQueue.createdAt || Date.now(),
+            }
+          : null,
+      selectedTag: parsed.selectedTag || base.selectedTag,
+      miniSize: parsed.miniSize || base.miniSize,
+    };
+  } catch (error) {
+    console.warn("TierT: unable to restore saved state", error);
+    return base;
+  }
+}
+
+function selectSwissParticipants(images, size) {
+  if (images.length <= size) {
+    return images.slice();
+  }
+  const now = Date.now();
+  const scored = images.map((image) => {
+    const lastPlayed = image.lastPlayedAt ? (now - image.lastPlayedAt) / (1000 * 60 * 60) : 999;
+    const uncertainty = image.rd || 0;
+    const totalDuels = image.stats?.totalDuels || 0;
+    const weight =
+      (12 - Math.min(totalDuels, 12)) * 4 +
+      Math.min(lastPlayed, 168) * 0.3 +
+      uncertainty * 0.4 +
+      (image.rating - 1500) / 80 +
+      Math.random() * 5;
+    return { image, weight };
+  });
+
+  scored.sort((a, b) => b.weight - a.weight);
+  const selected = [];
+  const used = new Set();
+
+  for (const entry of scored) {
+    if (selected.length >= size) break;
+    selected.push(entry.image);
+    used.add(entry.image.id);
+  }
+
+  const topRated = images.slice().sort((a, b) => b.rating - a.rating).slice(0, 3);
+  for (const candidate of topRated) {
+    if (selected.length >= size) break;
+    if (!used.has(candidate.id)) {
+      selected.push(candidate);
+      used.add(candidate.id);
+    }
+  }
+
+  const fallback = images.slice().sort((a, b) => b.rating - a.rating);
+  let index = 0;
+  while (selected.length < size && index < fallback.length) {
+    const candidate = fallback[index];
+    if (!used.has(candidate.id)) {
+      selected.push(candidate);
+      used.add(candidate.id);
+    }
+    index += 1;
+  }
+
+  return selected;
+}
+
+function generatePairings(participants, roundNumber) {
+  const sorted = participants
+    .slice()
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const aDiff = (a.wins || 0) - (a.losses || 0);
+      const bDiff = (b.wins || 0) - (b.losses || 0);
+      if (bDiff !== aDiff) return bDiff - aDiff;
+      if ((a.rd ?? 0) !== (b.rd ?? 0)) return (a.rd ?? 0) - (b.rd ?? 0);
+      return a.seed - b.seed;
+    });
+
+  const used = new Set();
+  const pairings = [];
+
+  if (sorted.length % 2 === 1) {
+    let byeCandidate = null;
+    let bestScore = -Infinity;
+    for (const player of sorted) {
+      if (player.hasBye) continue;
+      const candidateScore = -(player.points || 0) * 4 + (player.rd || 0);
+      if (candidateScore > bestScore) {
+        bestScore = candidateScore;
+        byeCandidate = player;
+      }
+    }
+    if (!byeCandidate) {
+      byeCandidate = sorted[sorted.length - 1];
+    }
+    if (byeCandidate) {
+      pairings.push({
+        id: `bye-${roundNumber}-${byeCandidate.id}`,
+        leftId: byeCandidate.id,
+        bye: true,
+      });
+      used.add(byeCandidate.id);
+    }
+  }
+
+  for (const player of sorted) {
+    if (used.has(player.id)) continue;
+    let bestIndex = -1;
+    let bestScore = Infinity;
+    for (let i = 0; i < sorted.length; i += 1) {
+      const opponent = sorted[i];
+      if (used.has(opponent.id) || opponent.id === player.id) continue;
+      const alreadyPlayed = Array.isArray(player.opponents)
+        ? player.opponents.includes(opponent.id)
+        : false;
+      const recordGap = Math.abs((player.points || 0) - (opponent.points || 0));
+      const ratingGap = Math.abs(
+        (player.currentRating ?? player.seedRating ?? 1500) -
+          (opponent.currentRating ?? opponent.seedRating ?? 1500)
+      );
+      const rdFactor = ((player.rd ?? 0) + (opponent.rd ?? 0)) / 2;
+      const rematchPenalty = alreadyPlayed ? 400 : 0;
+      const byePenalty = opponent.hasBye ? 300 : 0;
+      const score =
+        ratingGap - rdFactor * 0.35 + recordGap * 220 + rematchPenalty + byePenalty;
+      if (score < bestScore) {
+        bestScore = score;
+        bestIndex = i;
+      }
+    }
+    if (bestIndex === -1) continue;
+    const opponent = sorted[bestIndex];
+    used.add(player.id);
+    used.add(opponent.id);
+    const leftFirst = Math.random() > 0.5;
+    const leftId = leftFirst ? player.id : opponent.id;
+    const rightId = leftFirst ? opponent.id : player.id;
+    pairings.push({
+      id: `pair-${roundNumber}-${player.id}-${opponent.id}-${Math.random()
+        .toString(36)
+        .slice(2, 6)}`,
+      leftId,
+      rightId,
+      bye: false,
+    });
+  }
+
+  return pairings;
+}
+
+function prepareRound(participants, roundNumber, imagesById) {
+  const clones = participants.map((participant) => ({
+    ...participant,
+    opponents: Array.isArray(participant.opponents)
+      ? [...participant.opponents]
+      : [],
+    history: Array.isArray(participant.history)
+      ? [...participant.history]
+      : [],
+  }));
+
+  const pairings = generatePairings(clones, roundNumber);
+  const participantMap = new Map(clones.map((participant) => [participant.id, participant]));
+
+  const finalPairings = pairings.map((pair) => {
+    if (pair.bye) {
+      const player = participantMap.get(pair.leftId);
+      if (player) {
+        player.hasBye = true;
+        player.wins += 1;
+        player.points += 2;
+        player.history = [
+          ...player.history,
+          {
+            round: roundNumber,
+            opponentId: null,
+            result: "BYE",
+            points: 2,
+            ratingDelta: 0,
+          },
+        ];
+      }
+      return {
+        ...pair,
+        resolved: true,
+        result: "bye",
+        winnerId: pair.leftId,
+      };
+    }
+
+    const left = participantMap.get(pair.leftId);
+    const right = participantMap.get(pair.rightId);
+
+    if (left && !left.opponents.includes(pair.rightId)) {
+      left.opponents.push(pair.rightId);
+    }
+    if (right && !right.opponents.includes(pair.leftId)) {
+      right.opponents.push(pair.leftId);
+    }
+
+    const leftImage = imagesById[pair.leftId];
+    const rightImage = imagesById[pair.rightId];
+
+    return {
+      ...pair,
+      resolved: false,
+      result: null,
+      preRatings:
+        leftImage && rightImage
+          ? {
+              left: leftImage.rating,
+              right: rightImage.rating,
+              leftRd: leftImage.rd,
+              rightRd: rightImage.rd,
+            }
+          : null,
+      expected:
+        leftImage && rightImage ? expectedScore(leftImage.rating, rightImage.rating) : 0.5,
+    };
+  });
+
+  return { participants: clones, pairings: finalPairings };
+}
+
+function computeStandings(participants) {
+  const map = new Map(participants.map((participant) => [participant.id, participant]));
+  const computed = participants.map((participant) => {
+    const buchholz = (participant.opponents || []).reduce((total, opponentId) => {
+      const opponent = map.get(opponentId);
+      return total + (opponent ? opponent.points || 0 : 0);
+    }, 0);
+    return {
+      ...participant,
+      buchholz,
+    };
+  });
+
+  computed.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if ((b.buchholz || 0) !== (a.buchholz || 0)) return (b.buchholz || 0) - (a.buchholz || 0);
+    if ((b.currentRating || 0) !== (a.currentRating || 0))
+      return (b.currentRating || 0) - (a.currentRating || 0);
+    return a.seed - b.seed;
+  });
+
+  const buchholzMap = {};
+  computed.forEach((entry, index) => {
+    entry.rank = index + 1;
+    buchholzMap[entry.id] = entry.buchholz || 0;
+  });
+
+  return { standings: computed, buchholzMap };
+}
+
+function applySwissParticipantResult(participant, opponentId, score, resultData, roundNumber, logId) {
+  const resultLabel = score === 1 ? "W" : score === 0 ? "L" : "D";
+  const historyEntry = {
+    round: roundNumber,
+    opponentId,
+    result: resultLabel,
+    points: scoreToPoints(score),
+    ratingDelta: roundTo(resultData.deltaRating, 2),
+    tierChange: resultData.tierChange
+      ? { key: resultData.tierChange.key, direction: resultData.tierChange.direction }
+      : null,
+    logId,
+  };
+
+  return {
+    ...participant,
+    wins: participant.wins + (score === 1 ? 1 : 0),
+    losses: participant.losses + (score === 0 ? 1 : 0),
+    draws: participant.draws + (score === 0.5 ? 1 : 0),
+    points: participant.points + scoreToPoints(score),
+    currentRating: resultData.image.rating,
+    rd: resultData.image.rd,
+    tierKey: resultData.image.tierKey,
+    history: [...(participant.history || []), historyEntry].slice(-12),
+  };
+}
+
+function updateSwissWithResult(prevSwiss, pairingId, resolution) {
+  if (!prevSwiss) return prevSwiss;
+  const roundIndex = prevSwiss.rounds.findIndex((round) => round.index === prevSwiss.currentRound);
+  if (roundIndex === -1) return prevSwiss;
+  const round = prevSwiss.rounds[roundIndex];
+  const pairingIndex = round.pairings.findIndex((pair) => pair.id === pairingId);
+  if (pairingIndex === -1) return prevSwiss;
+  const pairing = round.pairings[pairingIndex];
+  if (!pairing || pairing.resolved) return prevSwiss;
+
+  const participants = prevSwiss.participants.map((participant) => {
+    if (participant.id === pairing.leftId) {
+      return applySwissParticipantResult(
+        participant,
+        pairing.rightId,
+        resolution.leftOutcome,
+        resolution.left,
+        prevSwiss.currentRound,
+        resolution.duelEntry.id,
+      );
+    }
+    if (participant.id === pairing.rightId) {
+      return applySwissParticipantResult(
+        participant,
+        pairing.leftId,
+        resolution.rightOutcome,
+        resolution.right,
+        prevSwiss.currentRound,
+        resolution.duelEntry.id,
+      );
+    }
+    return participant;
+  });
+
+  const { standings, buchholzMap } = computeStandings(participants);
+  const participantsWithBuchholz = participants.map((participant) => ({
+    ...participant,
+    buchholz: buchholzMap[participant.id] || 0,
+  }));
+
+  const updatedPairings = round.pairings.map((pair, index) => {
+    if (index !== pairingIndex) return pair;
+    return {
+      ...pair,
+      resolved: true,
+      result: resolution.outcome,
+      winnerId: resolution.winnerId,
+      ratingChange: {
+        left: resolution.left.deltaRating,
+        right: resolution.right.deltaRating,
+      },
+      outcome: {
+        left: resolution.leftOutcome,
+        right: resolution.rightOutcome,
+      },
+      tierChanges: {
+        left: resolution.left.tierChange,
+        right: resolution.right.tierChange,
+      },
+      logId: resolution.duelEntry.id,
+      timestamp: resolution.timestamp,
+    };
+  });
+
+  const updatedRound = {
+    ...round,
+    pairings: updatedPairings,
+  };
+
+  let awaitingAdvance = prevSwiss.awaitingAdvance;
+  let status = prevSwiss.status;
+  let latestStandings = prevSwiss.latestStandings;
+
+  const allResolved = updatedPairings.every((pair) => pair.resolved);
+  if (allResolved) {
+    awaitingAdvance = true;
+    latestStandings = standings;
+    updatedRound.completedAt = resolution.timestamp;
+    updatedRound.standings = standings;
+    status = prevSwiss.currentRound >= prevSwiss.totalRounds ? "awaiting-finish" : "between-rounds";
+  }
+
+  const rounds = prevSwiss.rounds.map((entry, index) => (index === roundIndex ? updatedRound : entry));
+
+  return {
+    ...prevSwiss,
+    participants: participantsWithBuchholz,
+    rounds,
+    awaitingAdvance,
+    status,
+    latestStandings,
+  };
+}
+
+function createPlacementOpponents(newImageId, images, count = 5) {
+  const pool = images.filter((image) => image.id !== newImageId);
+  if (!pool.length) return [];
+
+  const sortedByRating = pool.slice().sort((a, b) => b.rating - a.rating);
+  const sortedByUncertainty = pool.slice().sort((a, b) => b.rd - a.rd);
+  const picks = [];
+
+  const pushCandidate = (candidate) => {
+    if (!candidate) return;
+    if (picks.some((entry) => entry.id === candidate.id)) return;
+    picks.push(candidate);
+  };
+
+  pushCandidate(sortedByRating[0]);
+  pushCandidate(sortedByRating[Math.floor(sortedByRating.length / 3)]);
+  pushCandidate(sortedByRating[Math.floor((sortedByRating.length * 2) / 3)]);
+  pushCandidate(sortedByRating[sortedByRating.length - 1]);
+  pushCandidate(sortedByUncertainty[0]);
+
+  let index = 1;
+  while (picks.length < Math.min(count, pool.length) && index < sortedByUncertainty.length) {
+    pushCandidate(sortedByUncertainty[index]);
+    index += 1;
+  }
+
+  index = 0;
+  while (picks.length < Math.min(count, pool.length) && index < sortedByRating.length) {
+    pushCandidate(sortedByRating[index]);
+    index += 1;
+  }
+
+  return picks.slice(0, Math.min(count, picks.length));
+}
+
+function determineTotalRounds(size) {
+  if (size <= 4) return 3;
+  if (size <= 8) return 4;
+  if (size <= 16) return 5;
+  return 5;
+}
+
+function resolveDuelForImages(leftImage, rightImage, outcome, context = {}) {
+  if (!leftImage || !rightImage) {
+    return null;
+  }
+
+  const timestamp = Date.now();
+  const normalizedOutcome = outcome === "left" || outcome === "right" ? outcome : "draw";
+  const leftScore = normalizedOutcome === "left" ? 1 : normalizedOutcome === "right" ? 0 : 0.5;
+  const rightScore = normalizedOutcome === "left" ? 0 : normalizedOutcome === "right" ? 1 : 0.5;
+
+  const baseContext = {
+    mode: context.mode || "duel",
+    swissId: context.swissId || null,
+    round: context.round ?? null,
+    pairingId: context.pairingId || null,
+  };
+
+  const leftPeriods = computePeriodsElapsed(leftImage.lastPlayedAt, timestamp);
+  const rightPeriods = computePeriodsElapsed(rightImage.lastPlayedAt, timestamp);
+
+  const leftUpdate = updateGlickoPlayer(
+    leftImage,
+    [
+      {
+        rating: rightImage.rating,
+        rd: rightImage.rd,
+        score: leftScore,
+      },
+    ],
+    leftPeriods,
+  );
+
+  const rightUpdate = updateGlickoPlayer(
+    rightImage,
+    [
+      {
+        rating: leftImage.rating,
+        rd: leftImage.rd,
+        score: rightScore,
+      },
+    ],
+    rightPeriods,
+  );
+
+  const leftTierChange = resolveTierChange(leftImage.tierKey, leftUpdate.rating, leftUpdate.rd);
+  const rightTierChange = resolveTierChange(rightImage.tierKey, rightUpdate.rating, rightUpdate.rd);
+
+  const leftStats = updateImageStats(
+    leftImage,
+    leftScore,
+    { ...baseContext, opponentId: rightImage.id, newRd: leftUpdate.rd },
+    leftUpdate.rating,
+    timestamp,
+    leftTierChange,
+  );
+  const rightStats = updateImageStats(
+    rightImage,
+    rightScore,
+    { ...baseContext, opponentId: leftImage.id, newRd: rightUpdate.rd },
+    rightUpdate.rating,
+    timestamp,
+    rightTierChange,
+  );
+
+  const leftDelta = roundTo(leftUpdate.rating - leftImage.rating, 2);
+  const rightDelta = roundTo(rightUpdate.rating - rightImage.rating, 2);
+
+  const leftRecentEntry = {
+    opponentId: rightImage.id,
+    opponentName: rightImage.name,
+    result: leftScore === 1 ? "W" : leftScore === 0 ? "L" : "D",
+    delta: leftDelta,
+    timestamp,
+    mode: baseContext.mode,
+    swissId: baseContext.swissId,
+    round: baseContext.round,
+  };
+  const rightRecentEntry = {
+    opponentId: leftImage.id,
+    opponentName: leftImage.name,
+    result: rightScore === 1 ? "W" : rightScore === 0 ? "L" : "D",
+    delta: rightDelta,
+    timestamp,
+    mode: baseContext.mode,
+    swissId: baseContext.swissId,
+    round: baseContext.round,
+  };
+
+  const leftTierLog = leftTierChange.changed
+    ? [...(leftImage.tierLog || []), {
+        timestamp,
+        tier: leftTierChange.key,
+        direction: leftTierChange.direction,
+        rating: leftUpdate.rating,
+      }].slice(-10)
+    : [...(leftImage.tierLog || [])];
+  const rightTierLog = rightTierChange.changed
+    ? [...(rightImage.tierLog || []), {
+        timestamp,
+        tier: rightTierChange.key,
+        direction: rightTierChange.direction,
+        rating: rightUpdate.rating,
+      }].slice(-10)
+    : [...(rightImage.tierLog || [])];
+
+  const updatedLeft = {
+    ...leftImage,
+    rating: leftUpdate.rating,
+    rd: leftUpdate.rd,
+    volatility: leftUpdate.volatility,
+    tierKey: leftTierChange.key,
+    tierIndex: leftTierChange.index,
+    stats: leftStats,
+    updatedAt: timestamp,
+    lastPlayedAt: timestamp,
+    tierLog: leftTierLog,
+    recentMatches: [leftRecentEntry, ...(leftImage.recentMatches || [])].slice(0, RECENT_MATCHES_LIMIT),
+  };
+  const updatedRight = {
+    ...rightImage,
+    rating: rightUpdate.rating,
+    rd: rightUpdate.rd,
+    volatility: rightUpdate.volatility,
+    tierKey: rightTierChange.key,
+    tierIndex: rightTierChange.index,
+    stats: rightStats,
+    updatedAt: timestamp,
+    lastPlayedAt: timestamp,
+    tierLog: rightTierLog,
+    recentMatches: [rightRecentEntry, ...(rightImage.recentMatches || [])].slice(0, RECENT_MATCHES_LIMIT),
+  };
+
+  const winnerId = normalizedOutcome === "left" ? leftImage.id : normalizedOutcome === "right" ? rightImage.id : null;
+
+  const duelEntry = {
+    id: `duel-${timestamp}-${Math.random().toString(36).slice(2, 6)}`,
+    timestamp,
+    leftId: leftImage.id,
+    rightId: rightImage.id,
+    leftName: leftImage.name,
+    rightName: rightImage.name,
+    leftScore,
+    rightScore,
+    outcome: normalizedOutcome,
+    winnerId,
+    leftDelta,
+    rightDelta,
+    leftRatingAfter: leftUpdate.rating,
+    rightRatingAfter: rightUpdate.rating,
+    context: baseContext,
+    tierChanges: {
+      left: leftTierChange.changed ? leftTierChange.direction : null,
+      right: rightTierChange.changed ? rightTierChange.direction : null,
+    },
+  };
+
+  return {
+    timestamp,
+    outcome: normalizedOutcome,
+    winnerId,
+    leftOutcome: leftScore,
+    rightOutcome: rightScore,
+    left: {
+      image: updatedLeft,
+      deltaRating: leftDelta,
+      tierChange: leftTierChange.changed ? leftTierChange : null,
+    },
+    right: {
+      image: updatedRight,
+      deltaRating: rightDelta,
+      tierChange: rightTierChange.changed ? rightTierChange : null,
+    },
+    duelEntry,
+  };
+}
+
+function createSwissSummary(swiss, imagesById) {
+  if (!swiss) return null;
+
+  const standings = swiss.finalStandings || swiss.latestStandings || [];
+  const enriched = standings.map((entry) => {
+    const image = imagesById[entry.id];
+    return {
+      id: entry.id,
+      name: image?.name || entry.name,
+      rating: image?.rating ?? entry.currentRating ?? entry.seedRating ?? 1500,
+      tierKey: image?.tierKey || entry.tierKey || getTierByRating(entry.currentRating ?? 1500),
+      wins: entry.wins,
+      losses: entry.losses,
+      draws: entry.draws,
+      points: entry.points,
+      buchholz: entry.buchholz || 0,
+      rank: entry.rank,
+    };
+  });
+
+  return {
+    id: swiss.id,
+    createdAt: swiss.createdAt,
+    completedAt: swiss.completedAt || Date.now(),
+    totalRounds: swiss.totalRounds,
+    participants: enriched,
+  };
+}
+
+function buildRankingData(images, selectedTag) {
+  const global = images.slice().sort((a, b) => b.rating - a.rating);
+  const tagsSet = new Set();
+  global.forEach((image) => {
+    (image.tags || []).forEach((tag) => tagsSet.add(tag));
+  });
+
+  const tags = Array.from(tagsSet).sort((a, b) => a.localeCompare(b));
+  const filtered = selectedTag ? global.filter((image) => image.tags.includes(selectedTag)) : global;
+  const perTier = TIER_RULES.map((tier) => ({
+    tier,
+    images: global.filter((image) => image.tierKey === tier.key),
+  }));
+  const tagLeaders = tags.map((tag) => ({
+    tag,
+    leaders: global.filter((image) => image.tags.includes(tag)).slice(0, 5),
+  }));
+
+  return {
+    global,
+    filtered,
+    perTier,
+    tags,
+    tagLeaders,
+  };
+}
+
+function getPreviewStyle(image) {
+  if (!image) return {};
+  if (image.imageUrl) {
+    return {
+      backgroundImage: `linear-gradient(180deg, rgba(8, 12, 28, 0.2), rgba(8, 12, 28, 0.85)), url(${image.imageUrl})`,
+    };
+  }
+  const tierColor = TIER_LOOKUP[image.tierKey]?.color || colorFromString(image.id);
+  return {
+    background: createTierGradient(tierColor),
+  };
+}
+
+function parseTags(input) {
+  if (!input) return [];
+  return input
+    .split(/[#,\n,]/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
+function TierBadge({ tierKey }) {
+  const tier = TIER_LOOKUP[tierKey] || TIER_RULES[0];
   return (
-    <div className="tastet-shell">
-      <div className="tastet-frame">
-        <header className="tastet-header">
-          <div className="tastet-title-block">
-            <span className="tastet-badge">Semi-Formless · Layer 1 Prototype</span>
-            <h1>TasteT</h1>
-            <p>
-              A generous canvas for cultivating sensory-driven worlds. We begin by
-              mapping moods, textures, and rituals so the experience can bloom
-              deliberately.
-            </p>
-            <button type="button" className="tastet-primary-action">
-              Enter Studio
-            </button>
-          </div>
-          <div className="tastet-flavor-panel">
-            <div className="tastet-flavor-wheel">
-              <span className="tastet-wheel-label">flavor<br />intention</span>
-            </div>
-            <ul className="tastet-flavor-legend">
-              <li>
-                <span className="tastet-legend-dot tastet-legend-dot--base" />
-                Base Notes
-              </li>
-              <li>
-                <span className="tastet-legend-dot tastet-legend-dot--accent" />
-                Accents
-              </li>
-              <li>
-                <span className="tastet-legend-dot tastet-legend-dot--spark" />
-                Spark
-              </li>
-            </ul>
-          </div>
-        </header>
+    <span className="tier-badge" style={{ backgroundColor: tier.color }}>
+      {tier.label}
+    </span>
+  );
+}
 
-        <div className="tastet-layout">
-          <section className="tastet-panel tastet-roadmap">
-            <h2>Flavor Roadmap</h2>
-            <ol className="tastet-roadmap-list">
-              {roadmap.map((item) => (
-                <li key={item.stage}>
-                  <span className="tastet-roadmap-stage">{item.stage}</span>
-                  <div className="tastet-roadmap-content">
-                    <h3>{item.title}</h3>
-                    <p>{item.detail}</p>
+function DuelCard({
+  leftImage,
+  rightImage,
+  disabled = false,
+  expected = 0.5,
+  contextLabel,
+  onResolve,
+}) {
+  if (!leftImage || !rightImage) {
+    return null;
+  }
+
+  return (
+    <div className="duel-card">
+      {contextLabel ? <div className="duel-context">{contextLabel}</div> : null}
+      <div className="duel-combatants">
+        <button
+          type="button"
+          className="combatant"
+          onClick={() => onResolve("left")}
+          disabled={disabled}
+        >
+          <div className="combatant-art" style={getPreviewStyle(leftImage)} />
+          <div className="combatant-meta">
+            <TierBadge tierKey={leftImage.tierKey} />
+            <h3>{leftImage.name}</h3>
+            <p>{`Rating ${Math.round(leftImage.rating)} · RD ${Math.round(leftImage.rd)}`}</p>
+            <p className="combatant-tags">{leftImage.tags.slice(0, 3).join(" · ")}</p>
+          </div>
+          <span className="combatant-callout">Win</span>
+        </button>
+        <div className="duel-actions">
+          <span className="expected-label">{`Expected ${Math.round(expected * 100)}%`}</span>
+          <button
+            type="button"
+            onClick={() => onResolve("draw")}
+            className="draw-button"
+            disabled={disabled}
+          >
+            Draw
+          </button>
+        </div>
+        <button
+          type="button"
+          className="combatant"
+          onClick={() => onResolve("right")}
+          disabled={disabled}
+        >
+          <div className="combatant-art" style={getPreviewStyle(rightImage)} />
+          <div className="combatant-meta">
+            <TierBadge tierKey={rightImage.tierKey} />
+            <h3>{rightImage.name}</h3>
+            <p>{`Rating ${Math.round(rightImage.rating)} · RD ${Math.round(rightImage.rd)}`}</p>
+            <p className="combatant-tags">{rightImage.tags.slice(0, 3).join(" · ")}</p>
+          </div>
+          <span className="combatant-callout">Win</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SwissMiniPanel({
+  swiss,
+  imagesById,
+  onResolvePairing,
+  onAdvanceRound,
+  onFinish,
+  onCancel,
+}) {
+  if (!swiss) return null;
+
+  const currentRound = swiss.rounds.find((round) => round.index === swiss.currentRound);
+  const pendingPairing = currentRound?.pairings?.find((pair) => !pair.resolved && !pair.bye);
+  const standings = swiss.latestStandings || computeStandings(swiss.participants).standings;
+
+  const renderPairingStatus = (pair) => {
+    if (pair.bye) {
+      const byeImage = imagesById[pair.leftId];
+      return `${byeImage?.name || "Unknown"} receives a bye`;
+    }
+    const left = imagesById[pair.leftId];
+    const right = imagesById[pair.rightId];
+    const label = `${left?.name || "?"} vs ${right?.name || "?"}`;
+    if (!pair.resolved) {
+      return `${label} · pending`;
+    }
+    if (pair.outcome?.left === 0.5) {
+      return `${label} · draw`;
+    }
+    const winner = pair.winnerId === pair.leftId ? left?.name : right?.name;
+    return `${label} · ${winner || "winner"}`;
+  };
+
+  return (
+    <section className="taste-t-panel swiss-panel">
+      <header className="panel-header">
+        <div>
+          <h2>Swiss Mini · Round {swiss.currentRound}</h2>
+          <p className="panel-subtitle">
+            {`${standings.length} images · ${swiss.totalRounds} rounds · ${swiss.status}`}
+          </p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="ghost" onClick={onCancel}>
+            Abandon
+          </button>
+          {swiss.awaitingAdvance && swiss.status === "between-rounds" ? (
+            <button type="button" onClick={onAdvanceRound}>
+              Start Round {swiss.currentRound + 1}
+            </button>
+          ) : null}
+          {swiss.awaitingAdvance && swiss.status === "awaiting-finish" ? (
+            <button type="button" onClick={onFinish}>
+              Finalize Mini
+            </button>
+          ) : null}
+        </div>
+      </header>
+      {pendingPairing ? (
+        <DuelCard
+          leftImage={imagesById[pendingPairing.leftId]}
+          rightImage={imagesById[pendingPairing.rightId]}
+          expected={pendingPairing.expected}
+          contextLabel={`Round ${swiss.currentRound}`}
+          onResolve={(result) => onResolvePairing(pendingPairing.id, result)}
+        />
+      ) : (
+        <div className="panel-placeholder">
+          {swiss.awaitingAdvance
+            ? "All pairings resolved. Continue when ready."
+            : "Awaiting next pairing..."}
+        </div>
+      )}
+      <div className="panel-body">
+        <div>
+          <h3>Round Pairings</h3>
+          <ul className="pairing-list">
+            {currentRound?.pairings?.map((pair) => (
+              <li key={pair.id}>{renderPairingStatus(pair)}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3>Standings</h3>
+          <table className="standings-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Points</th>
+                <th>Record</th>
+                <th>Buchholz</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standings.map((entry) => (
+                <tr key={entry.id}>
+                  <td>{entry.rank}</td>
+                  <td>
+                    <div className="standings-name">
+                      <TierBadge tierKey={entry.tierKey || imagesById[entry.id]?.tierKey} />
+                      <span>{imagesById[entry.id]?.name || entry.name}</span>
+                    </div>
+                  </td>
+                  <td>{entry.points}</td>
+                  <td>{formatRecord(entry.wins, entry.losses, entry.draws)}</td>
+                  <td>{roundTo(entry.buchholz, 1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlacementPanel({ queue, imagesById, onResolve, onCancel }) {
+  if (!queue) return null;
+
+  const image = imagesById[queue.imageId];
+  const opponentId = queue.opponents[queue.currentIndex];
+  const opponent = imagesById[opponentId];
+  const progress = queue.opponents.length
+    ? ((queue.currentIndex + (opponent ? 0 : 1)) / queue.opponents.length) * 100
+    : 100;
+
+  return (
+    <section className="taste-t-panel placement-panel">
+      <header className="panel-header">
+        <div>
+          <h2>Placement Duels</h2>
+          <p className="panel-subtitle">
+            {image ? image.name : "New image"} · {queue.currentIndex + 1} of {queue.opponents.length}
+          </p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="ghost" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </header>
+      {image && opponent ? (
+        <DuelCard
+          leftImage={image}
+          rightImage={opponent}
+          expected={expectedScore(image.rating, opponent.rating)}
+          contextLabel="Placement"
+          onResolve={onResolve}
+        />
+      ) : (
+        <div className="panel-placeholder">Placement complete!</div>
+      )}
+      <div className="placement-progress">
+        <div className="placement-progress-bar" style={{ width: `${Math.min(progress, 100)}%` }} />
+      </div>
+      <ul className="placement-history">
+        {queue.history.map((entry) => {
+          const opp = imagesById[entry.opponentId];
+          return (
+            <li key={entry.id}>
+              <span>{opp?.name || "Opponent"}</span>
+              <span>{entry.outcome}</span>
+              <span>{formatDelta(entry.delta)}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function TasteT() {
+  const initialState = useMemo(() => loadInitialState(), []);
+  const [images, setImages] = useState(initialState.images);
+  const [duelLog, setDuelLog] = useState(initialState.duelLog);
+  const [swissHistory, setSwissHistory] = useState(initialState.swissHistory);
+  const [activeSwiss, setActiveSwiss] = useState(initialState.activeSwiss);
+  const [placementQueue, setPlacementQueue] = useState(initialState.placementQueue);
+  const [selectedTag, setSelectedTag] = useState(initialState.selectedTag);
+  const [miniSize, setMiniSize] = useState(initialState.miniSize || 8);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formValues, setFormValues] = useState({ name: "", imageUrl: "", tags: "" });
+
+  const imagesById = useMemo(() => {
+    const map = {};
+    images.forEach((image) => {
+      map[image.id] = image;
+    });
+    return map;
+  }, [images]);
+
+  const rankingData = useMemo(() => buildRankingData(images, selectedTag), [images, selectedTag]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const payload = {
+      images,
+      duelLog,
+      swissHistory,
+      activeSwiss,
+      placementQueue,
+      selectedTag,
+      miniSize,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.warn("TierT: unable to persist state", error);
+    }
+  }, [images, duelLog, swissHistory, activeSwiss, placementQueue, selectedTag, miniSize]);
+
+  const handleResolvePairing = useCallback(
+    (pairingId, outcome) => {
+      if (!activeSwiss) return;
+      const round = activeSwiss.rounds.find((entry) => entry.index === activeSwiss.currentRound);
+      if (!round) return;
+      const pairing = round.pairings.find((pair) => pair.id === pairingId);
+      if (!pairing || pairing.bye) return;
+      const leftImage = imagesById[pairing.leftId];
+      const rightImage = imagesById[pairing.rightId];
+      if (!leftImage || !rightImage) return;
+
+      const resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
+        mode: "swiss",
+        swissId: activeSwiss.id,
+        round: activeSwiss.currentRound,
+        pairingId,
+      });
+      if (!resolution) return;
+
+      setImages((prev) =>
+        prev.map((image) => {
+          if (image.id === leftImage.id) return resolution.left.image;
+          if (image.id === rightImage.id) return resolution.right.image;
+          return image;
+        }),
+      );
+
+      setDuelLog((prev) => [resolution.duelEntry, ...prev].slice(0, LOG_LIMIT));
+
+      setActiveSwiss((prev) => updateSwissWithResult(prev, pairingId, resolution));
+    },
+    [activeSwiss, imagesById],
+  );
+
+  const handleAdvanceRound = useCallback(() => {
+    if (!activeSwiss || !activeSwiss.awaitingAdvance) return;
+    if (activeSwiss.currentRound >= activeSwiss.totalRounds) return;
+
+    const nextRoundNumber = activeSwiss.currentRound + 1;
+    const { participants, pairings } = prepareRound(
+      activeSwiss.participants,
+      nextRoundNumber,
+      imagesById,
+    );
+
+    const nextSwiss = {
+      ...activeSwiss,
+      participants,
+      rounds: [
+        ...activeSwiss.rounds,
+        {
+          index: nextRoundNumber,
+          pairings,
+          standings: null,
+          completedAt: null,
+        },
+      ],
+      currentRound: nextRoundNumber,
+      awaitingAdvance: false,
+      status: "in-progress",
+      latestStandings: computeStandings(participants).standings,
+    };
+    setActiveSwiss(nextSwiss);
+  }, [activeSwiss, imagesById]);
+
+  const handleFinishSwiss = useCallback(() => {
+    if (!activeSwiss || activeSwiss.status !== "awaiting-finish") return;
+    const finalStandings =
+      activeSwiss.latestStandings || computeStandings(activeSwiss.participants).standings;
+    const completedAt = Date.now();
+    const summary = createSwissSummary(
+      { ...activeSwiss, finalStandings, completedAt, status: "completed" },
+      imagesById,
+    );
+
+    if (summary) {
+      setSwissHistory((prev) => [summary, ...prev].slice(0, HISTORY_LIMIT));
+    }
+
+    setImages((prev) =>
+      prev.map((image) => {
+        const placement = finalStandings.find((entry) => entry.id === image.id);
+        if (!placement) return image;
+        const stats = {
+          ...image.stats,
+          minisEntered: (image.stats?.minisEntered || 0) + 1,
+          bestFinish:
+            image.stats?.bestFinish == null
+              ? placement.rank
+              : Math.min(image.stats.bestFinish, placement.rank),
+        };
+        return { ...image, stats };
+      }),
+    );
+
+    setActiveSwiss(null);
+  }, [activeSwiss, imagesById]);
+
+  const handleCancelSwiss = useCallback(() => {
+    setActiveSwiss(null);
+  }, []);
+
+  const handleResolvePlacement = useCallback(
+    (outcome) => {
+      if (!placementQueue) return;
+      const image = imagesById[placementQueue.imageId];
+      const opponentId = placementQueue.opponents[placementQueue.currentIndex];
+      const opponent = imagesById[opponentId];
+      if (!image || !opponent) return;
+
+      const resolution = resolveDuelForImages(image, opponent, outcome, {
+        mode: "placement",
+        pairingId: `placement-${placementQueue.currentIndex}`,
+        round: placementQueue.currentIndex + 1,
+      });
+      if (!resolution) return;
+
+      setImages((prev) =>
+        prev.map((entry) => {
+          if (entry.id === image.id) return resolution.left.image;
+          if (entry.id === opponent.id) return resolution.right.image;
+          return entry;
+        }),
+      );
+
+      setDuelLog((prev) => [resolution.duelEntry, ...prev].slice(0, LOG_LIMIT));
+
+      setPlacementQueue((prev) => {
+        if (!prev) return prev;
+        const nextHistory = [
+          {
+            id: resolution.duelEntry.id,
+            opponentId,
+            outcome: outcome === "draw" ? "Draw" : outcome === "left" ? "Win" : "Loss",
+            delta: resolution.left.deltaRating,
+          },
+          ...prev.history,
+        ].slice(0, 10);
+        const nextIndex = prev.currentIndex + 1;
+        if (nextIndex >= prev.opponents.length) {
+          return null;
+        }
+        return {
+          ...prev,
+          currentIndex: nextIndex,
+          history: nextHistory,
+        };
+      });
+    },
+    [imagesById, placementQueue],
+  );
+
+  const handleCancelPlacement = useCallback(() => {
+    setPlacementQueue(null);
+  }, []);
+
+  const handleStartSwiss = useCallback(() => {
+    if (!images.length) return;
+    const participants = selectSwissParticipants(images, miniSize);
+    if (!participants.length) return;
+    const timestamp = Date.now();
+
+    const seeded = participants.map((image, index) => ({
+      id: image.id,
+      name: image.name,
+      seed: index + 1,
+      seedRating: image.rating,
+      currentRating: image.rating,
+      rd: image.rd,
+      tierKey: image.tierKey,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      points: 0,
+      opponents: [],
+      history: [],
+      hasBye: false,
+      buchholz: 0,
+    }));
+
+    const totalRounds = determineTotalRounds(seeded.length);
+    const { participants: preparedParticipants, pairings } = prepareRound(seeded, 1, imagesById);
+
+    const swiss = {
+      id: `swiss-${timestamp}`,
+      createdAt: timestamp,
+      status: "in-progress",
+      participants: preparedParticipants,
+      rounds: [
+        {
+          index: 1,
+          pairings,
+          standings: null,
+          completedAt: null,
+        },
+      ],
+      currentRound: 1,
+      totalRounds,
+      awaitingAdvance: false,
+      latestStandings: computeStandings(preparedParticipants).standings,
+      finalStandings: null,
+      completedAt: null,
+    };
+
+    setActiveSwiss(swiss);
+  }, [images, miniSize, imagesById]);
+
+  const handleToggleAddForm = useCallback(() => {
+    setShowAddForm((prev) => !prev);
+  }, []);
+
+  const handleFormChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleCreateImage = useCallback(() => {
+    if (!formValues.name.trim()) return;
+    const id = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const tags = parseTags(formValues.tags);
+    const newImage = createImageRecord({
+      id,
+      name: formValues.name.trim(),
+      imageUrl: formValues.imageUrl.trim(),
+      tags,
+      rating: 1500,
+      rd: 300,
+      volatility: DEFAULT_VOLATILITY,
+      createdAt: Date.now(),
+      stats: {},
+      tierLog: [],
+    });
+
+    const nextImages = [...images, newImage];
+    setImages(nextImages);
+
+    const opponents = createPlacementOpponents(newImage.id, nextImages, 5).map((entry) => entry.id);
+    if (opponents.length) {
+      setPlacementQueue({
+        imageId: newImage.id,
+        opponents,
+        currentIndex: 0,
+        history: [],
+        createdAt: Date.now(),
+      });
+    }
+
+    setFormValues({ name: "", imageUrl: "", tags: "" });
+    setShowAddForm(false);
+  }, [formValues, images]);
+
+  const availableTags = rankingData.tags;
+
+  return (
+    <div className="taste-t-app">
+      <header className="taste-t-header">
+        <div>
+          <h1>TierT · Swiss Minis</h1>
+          <p>Quick-fire tournaments to surface your favourite images.</p>
+        </div>
+        <div className="header-actions">
+          <label className="mini-size-control">
+            <span>Mini size</span>
+            <select value={miniSize} onChange={(event) => setMiniSize(Number(event.target.value))}>
+              {[6, 8, 10, 12, 16].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" onClick={handleStartSwiss} disabled={Boolean(activeSwiss)}>
+            Start Swiss Mini
+          </button>
+        </div>
+      </header>
+
+      <div className="taste-t-grid">
+        <div className="taste-t-column">
+          {activeSwiss ? (
+            <SwissMiniPanel
+              swiss={activeSwiss}
+              imagesById={imagesById}
+              onResolvePairing={handleResolvePairing}
+              onAdvanceRound={handleAdvanceRound}
+              onFinish={handleFinishSwiss}
+              onCancel={handleCancelSwiss}
+            />
+          ) : (
+            <section className="taste-t-panel">
+              <h2>No active Swiss mini</h2>
+              <p>Select a mini size and start a new Swiss lobby to keep ranking your gallery.</p>
+              <button type="button" onClick={handleStartSwiss}>
+                Create Swiss Mini
+              </button>
+            </section>
+          )}
+
+          {placementQueue ? (
+            <PlacementPanel
+              queue={placementQueue}
+              imagesById={imagesById}
+              onResolve={handleResolvePlacement}
+              onCancel={handleCancelPlacement}
+            />
+          ) : (
+            <section className="taste-t-panel">
+              <header className="panel-header">
+                <div>
+                  <h2>Image Library</h2>
+                  <p className="panel-subtitle">{`${images.length} images in the system`}</p>
+                </div>
+                <div className="panel-actions">
+                  <button type="button" onClick={handleToggleAddForm}>
+                    {showAddForm ? "Close" : "Add Image"}
+                  </button>
+                </div>
+              </header>
+              {showAddForm ? (
+                <div className="add-image-form">
+                  <label>
+                    <span>Name</span>
+                    <input name="name" value={formValues.name} onChange={handleFormChange} />
+                  </label>
+                  <label>
+                    <span>Image URL</span>
+                    <input name="imageUrl" value={formValues.imageUrl} onChange={handleFormChange} />
+                  </label>
+                  <label>
+                    <span>Tags</span>
+                    <input
+                      name="tags"
+                      value={formValues.tags}
+                      onChange={handleFormChange}
+                      placeholder="Comma or # separated"
+                    />
+                  </label>
+                  <button type="button" onClick={handleCreateImage}>
+                    Save &amp; Place
+                  </button>
+                </div>
+              ) : null}
+              <ul className="library-list">
+                {images.slice(0, 8).map((image) => (
+                  <li key={image.id}>
+                    <div className="library-preview" style={getPreviewStyle(image)} />
+                    <div>
+                      <h3>{image.name}</h3>
+                      <p>{`Rating ${Math.round(image.rating)} · RD ${Math.round(image.rd)}`}</p>
+                      <p className="library-tags">{image.tags.join(" · ")}</p>
+                    </div>
+                    <TierBadge tierKey={image.tierKey} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <div className="taste-t-column">
+          <section className="taste-t-panel">
+            <header className="panel-header">
+              <div>
+                <h2>Global Order</h2>
+                <p className="panel-subtitle">
+                  {selectedTag ? `Filtering by ${selectedTag}` : "All images"}
+                </p>
+              </div>
+              <div className="panel-actions">
+                <select value={selectedTag} onChange={(event) => setSelectedTag(event.target.value)}>
+                  <option value="">All tags</option>
+                  {availableTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </header>
+            <ol className="ranking-list">
+              {rankingData.filtered.slice(0, 12).map((image, index) => (
+                <li key={image.id}>
+                  <span className="rank-index">#{index + 1}</span>
+                  <div className="ranking-meta">
+                    <h3>{image.name}</h3>
+                    <p>
+                      {`Rating ${Math.round(image.rating)} · RD ${Math.round(image.rd)} · ${formatRecord(
+                        image.stats?.wins,
+                        image.stats?.losses,
+                        image.stats?.draws,
+                      )}`}
+                    </p>
+                    <p className="ranking-tags">
+                      #{image.tierKey} · {image.tags.slice(0, 3).join(" · ")}
+                    </p>
                   </div>
+                  <span className="rank-rating">{Math.round(image.rating)}</span>
                 </li>
               ))}
             </ol>
           </section>
 
-          <section className="tastet-panel tastet-moments">
-            <h2>Moments to Craft</h2>
-            <div className="tastet-moments-grid">
-              {tastingMoments.map((moment) => (
-                <article key={moment.label}>
-                  <h3>{moment.label}</h3>
-                  <p>{moment.description}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="tastet-panel tastet-experiments">
-            <h2>Experiment Bench</h2>
-            <div className="tastet-experiment-list">
-              {experimentIdeas.map((idea) => (
-                <div key={idea.title} className="tastet-experiment-card">
-                  <h3>{idea.title}</h3>
-                  <p>{idea.note}</p>
+          <section className="taste-t-panel">
+            <h2>Tier Snapshots</h2>
+            <div className="tier-grid">
+              {rankingData.perTier.map(({ tier, images: tierImages }) => (
+                <div key={tier.key} className="tier-card">
+                  <header style={{ borderColor: tier.color }}>
+                    <h3>{tier.label}</h3>
+                    <p>{tier.tagline}</p>
+                  </header>
+                  <ol>
+                    {tierImages.slice(0, 5).map((image) => (
+                      <li key={image.id}>
+                        <span>{image.name}</span>
+                        <span>{Math.round(image.rating)}</span>
+                      </li>
+                    ))}
+                    {!tierImages.length ? <li className="empty">No images yet</li> : null}
+                  </ol>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="tastet-panel tastet-journal">
-            <h2>Studio Notes</h2>
-            <p>
-              Leave space for sketches, tasting logs, and future collaborators.
-              We will weave them in as TasteT evolves.
-            </p>
-            <div className="tastet-note-placeholder">
-              <span>Tap to begin composing the first entry…</span>
-            </div>
+          <section className="taste-t-panel">
+            <h2>Recent Duels</h2>
+            <ul className="duel-log">
+              {duelLog.map((entry) => (
+                <li key={entry.id}>
+                  <span className="duel-log-names">
+                    {entry.leftName} vs {entry.rightName}
+                  </span>
+                  <span className="duel-log-outcome">
+                    {entry.outcome === "draw"
+                      ? "Draw"
+                      : `${entry.winnerId === entry.leftId ? entry.leftName : entry.rightName} won`}
+                  </span>
+                  <span className="duel-log-delta">{formatDelta(entry.leftDelta)} / {formatDelta(entry.rightDelta)}</span>
+                  <span className="duel-log-time">{formatRelativeTime(entry.timestamp)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="taste-t-panel">
+            <h2>Swiss History</h2>
+            <ul className="swiss-history">
+              {swissHistory.map((entry) => (
+                <li key={entry.id}>
+                  <div>
+                    <strong>{entry.id}</strong>
+                    <span>
+                      {entry.participants[0]?.name || "Swiss"} · {entry.totalRounds} rounds ·
+                      {" "}
+                      {entry.participants.length} images
+                    </span>
+                  </div>
+                  <div>
+                    Winner: {entry.participants.find((p) => p.rank === 1)?.name || ""}
+                  </div>
+                </li>
+              ))}
+              {!swissHistory.length ? <li className="empty">Play a Swiss mini to build history.</li> : null}
+            </ul>
           </section>
         </div>
       </div>
     </div>
   );
 }
+
+export default TasteT;
