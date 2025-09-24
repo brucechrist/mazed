@@ -228,9 +228,15 @@ button.ghost {
 }
 
 .panel-actions {
+
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
+  padding: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(8, 11, 25, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .panel-placeholder {

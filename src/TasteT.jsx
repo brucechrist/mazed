@@ -1518,6 +1518,7 @@ function getPreviewStyle(image) {
       backgroundImage: `linear-gradient(180deg, rgba(8, 12, 28, 0.2), rgba(8, 12, 28, 0.85)), url(${image.dataUrl})`,
     };
   }
+
   if (image.imageUrl) {
     return {
       backgroundImage: `linear-gradient(180deg, rgba(8, 12, 28, 0.2), rgba(8, 12, 28, 0.85)), url(${image.imageUrl})`,
