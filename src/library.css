@@ -447,6 +447,38 @@
   opacity: 1;
 }
 
+.image-card.loading {
+  cursor: default;
+}
+
+.image-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--library-placeholder-bg);
+  color: var(--library-placeholder-text);
+  width: 100%;
+  padding: 32px 12px;
+  gap: 10px;
+  text-align: center;
+}
+
+.image-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--library-accent);
+  animation: library-spin 0.8s linear infinite;
+}
+
+.image-loading-text {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .dragging-card {
   box-shadow: var(--library-glow);
   border: 1px solid var(--library-accent);
@@ -505,6 +537,12 @@
   background: var(--library-accent);
   color: var(--library-accent-contrast);
   box-shadow: var(--library-glow);
+}
+
+@keyframes library-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .word-section,
