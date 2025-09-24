@@ -170,6 +170,7 @@ export default function Library({ onBack }) {
   const [draggedId, setDraggedId] = useState(null);
 
   const saveSequenceRef = useRef(0);
+  const lastSavedImagesRef = useRef(new Map());
 
   const [zoom, setZoom] = useState(
     () => parseFloat(localStorage.getItem('libraryZoom')) || 0.5
@@ -280,7 +281,23 @@ export default function Library({ onBack }) {
       const valid = hydrated.filter(Boolean);
       if (!valid.length) return;
 
-      saveImages(valid);
+      const storageStatus = new Map();
+      parsed.forEach((entry) => {
+        if (!entry || typeof entry.id === 'undefined') return;
+        storageStatus.set(entry.id, !entry.dataUrl);
+      });
+
+      setImages(valid);
+      lastSavedImagesRef.current = new Map(
+        valid.map((img) => [
+          img.id,
+          {
+            dataUrl: img.dataUrl,
+            mimeType: img.mimeType,
+            stored: storageStatus.get(img.id) ?? false,
+          },
+        ])
+      );
     };
 
     hydrateImages();
@@ -377,46 +394,102 @@ export default function Library({ onBack }) {
     });
     setImages(normalized);
 
-    if (typeof window !== 'undefined') {
-      const sequence = (saveSequenceRef.current += 1);
-      (async () => {
-        try {
-          if (!normalized.length) {
-            if (saveSequenceRef.current === sequence) {
-              localStorage.setItem('mazedImages', JSON.stringify([]));
-            }
-            return;
-          }
-
-          const results = await Promise.all(
-            normalized.map((img) =>
-              storeImageData(img.id, img.dataUrl, img.mimeType)
-            )
-          );
-
-          const metadata = normalized.map((img, idx) => {
-            const { dataUrl, ...meta } = img;
-            const stored = results[idx];
-            return stored || typeof stored === 'undefined'
-              ? meta
-              : { ...meta, dataUrl };
-          });
-
-          if (saveSequenceRef.current === sequence) {
-            localStorage.setItem('mazedImages', JSON.stringify(metadata));
-          }
-        } catch (err) {
-          console.error('Failed to save images metadata', err);
-          if (saveSequenceRef.current === sequence) {
-            try {
-              localStorage.setItem('mazedImages', JSON.stringify(normalized));
-            } catch (fallbackErr) {
-              console.error('Failed to fallback save images', fallbackErr);
-            }
-          }
-        }
-      })();
+    if (typeof window === 'undefined') {
+      const snapshot = new Map();
+      normalized.forEach((img) => {
+        const previous = lastSavedImagesRef.current.get(img.id);
+        snapshot.set(img.id, {
+          dataUrl: img.dataUrl,
+          mimeType: img.mimeType,
+          stored: previous?.stored ?? false,
+        });
+      });
+      lastSavedImagesRef.current = snapshot;
+      return normalized;
     }
+
+    const sequence = (saveSequenceRef.current += 1);
+    const previous = lastSavedImagesRef.current || new Map();
+    (async () => {
+      try {
+        if (!normalized.length) {
+          if (saveSequenceRef.current === sequence) {
+            localStorage.setItem('mazedImages', JSON.stringify([]));
+            lastSavedImagesRef.current = new Map();
+          }
+          return;
+        }
+
+        const tasks = [];
+        const taskIndex = new Map();
+
+        normalized.forEach((img, idx) => {
+          const prev = previous.get(img.id);
+          const prevStored = prev?.stored ?? false;
+          const prevDataUrl = prev?.dataUrl;
+          const prevMime = prev?.mimeType;
+          const hasData = typeof img.dataUrl === 'string' && img.dataUrl.length > 0;
+          const needsStore =
+            hasData &&
+            (!prevStored || prevDataUrl !== img.dataUrl || prevMime !== img.mimeType);
+          if (needsStore) {
+            taskIndex.set(idx, tasks.length);
+            tasks.push(storeImageData(img.id, img.dataUrl, img.mimeType));
+          }
+        });
+
+        const results = tasks.length ? await Promise.all(tasks) : [];
+        const storedStatuses = normalized.map((img, idx) => {
+          const resultIdx = taskIndex.get(idx);
+          if (typeof resultIdx === 'number') {
+            const outcome = results[resultIdx];
+            return outcome || typeof outcome === 'undefined';
+          }
+          const prev = previous.get(img.id);
+          return prev?.stored ?? false;
+        });
+
+        const metadata = normalized.map((img, idx) => {
+          const { dataUrl, ...meta } = img;
+          return storedStatuses[idx] ? meta : { ...meta, dataUrl };
+        });
+
+        if (saveSequenceRef.current === sequence) {
+          try {
+            localStorage.setItem('mazedImages', JSON.stringify(metadata));
+          } catch (err) {
+            console.error('Failed to update images metadata', err);
+          }
+          const nextMap = new Map();
+          normalized.forEach((img, idx) => {
+            nextMap.set(img.id, {
+              dataUrl: img.dataUrl,
+              mimeType: img.mimeType,
+              stored: storedStatuses[idx],
+            });
+          });
+          lastSavedImagesRef.current = nextMap;
+        }
+      } catch (err) {
+        console.error('Failed to save images metadata', err);
+        if (saveSequenceRef.current === sequence) {
+          try {
+            localStorage.setItem('mazedImages', JSON.stringify(normalized));
+          } catch (fallbackErr) {
+            console.error('Failed to fallback save images', fallbackErr);
+          }
+          const fallbackMap = new Map();
+          normalized.forEach((img) => {
+            fallbackMap.set(img.id, {
+              dataUrl: img.dataUrl,
+              mimeType: img.mimeType,
+              stored: false,
+            });
+          });
+          lastSavedImagesRef.current = fallbackMap;
+        }
+      }
+    })();
 
     return normalized;
   };
@@ -1400,23 +1473,28 @@ export default function Library({ onBack }) {
                     : undefined
                 }
                 >
-                  {(
-                    activeTab === 'all'
-                      ? [
+                  {activeTab === 'all'
+                    ? (() => {
+                        const combined = [
                           ...filteredImages.map((img) => ({
                             type: 'image',
                             item: img,
                           })),
                           ...sounds.map((s) => ({ type: 'sound', item: s })),
-                        ]
-                          .sort((a, b) => a.item.id - b.item.id)
-                          .map(({ type, item }) =>
-                            type === 'image'
-                              ? renderImageCard(item)
-                              : renderSoundCard(item)
-                          )
-                      : filteredImages.map((img) => renderImageCard(img))
-                  )}
+                        ];
+                        const ordered =
+                          sortMode === 'date'
+                            ? combined
+                                .slice()
+                                .sort((a, b) => a.item.id - b.item.id)
+                            : combined;
+                        return ordered.map(({ type, item }) =>
+                          type === 'image'
+                            ? renderImageCard(item)
+                            : renderSoundCard(item)
+                        );
+                      })()
+                    : filteredImages.map((img) => renderImageCard(img))}
                 </div>
             ))}
           {(activeTab === 'all' || activeTab === 'words') && (
