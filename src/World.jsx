@@ -4,6 +4,7 @@ import QuestModal from "./QuestModal.jsx";
 import MainQuestModal from "./MainQuestModal.jsx";
 import { supabaseClient } from "./supabaseClient";
 import { useQuests } from "./QuestContext.jsx";
+import TasteT from "./TasteT.jsx";
 import "./world.css";
 
 export default function World({ activeLayer = "Form" }) {
@@ -99,14 +100,8 @@ export default function World({ activeLayer = "Form" }) {
 
   if (isSemiFormless) {
     return (
-      <div className="world-container world-placeholder-container">
-        <div className="world-placeholder">
-          <h3 className="world-placeholder-title">Semi-Formless Realm</h3>
-          <p className="world-placeholder-text">
-            This space is intentionally open. Let it breathe while you shape how the
-            Semi-Formless layer of your world should feel.
-          </p>
-        </div>
+      <div className="world-container world-tastet-container">
+        <TasteT />
       </div>
     );
   }
