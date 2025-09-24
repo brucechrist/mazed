@@ -260,3 +260,31 @@
 #contract-center {
   /* positioned via .contract-box.circle */
 }
+
+.world-placeholder-container {
+  justify-content: center;
+}
+
+.world-placeholder {
+  max-width: 520px;
+  padding: 32px;
+  border-radius: 20px;
+  text-align: center;
+  color: #f3f3f3;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.world-placeholder-title {
+  margin: 0 0 12px;
+  font-size: 1.75rem;
+  letter-spacing: 0.04em;
+}
+
+.world-placeholder-text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.85;
+}
