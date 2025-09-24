@@ -2,7 +2,127 @@ const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
 const fs = require('fs');
+const fsp = fs.promises;
 let mainWindow;
+
+const LIBRARY_DIR_NAME = 'LibraryStorage';
+const LIBRARY_IMAGES_SUBDIR = 'images';
+const MIME_EXTENSION_MAP = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+};
+
+const extensionForMime = (mime) => {
+  if (!mime || typeof mime !== 'string') {
+    return 'bin';
+  }
+  const lower = mime.toLowerCase();
+  if (MIME_EXTENSION_MAP[lower]) {
+    return MIME_EXTENSION_MAP[lower];
+  }
+  const slash = lower.lastIndexOf('/');
+  if (slash !== -1 && slash < lower.length - 1) {
+    const subtype = lower.slice(slash + 1);
+    if (subtype.includes('+')) {
+      const [base] = subtype.split('+');
+      if (base) return base.replace(/[^a-z0-9]/g, '') || 'bin';
+    }
+    return subtype.replace(/[^a-z0-9]/g, '') || 'bin';
+  }
+  return 'bin';
+};
+
+const parseDataUrlForSave = (dataUrl, hintedMime) => {
+  if (typeof dataUrl !== 'string') {
+    return null;
+  }
+  const match = /^data:([^;]+);base64,(.+)$/is.exec(dataUrl);
+  if (match) {
+    const [, mime, base64] = match;
+    const mimeType = mime || hintedMime || 'application/octet-stream';
+    const buffer = Buffer.from(base64, 'base64');
+    return {
+      encoding: 'base64',
+      mimeType,
+      extension: extensionForMime(mimeType),
+      buffer,
+    };
+  }
+  return {
+    encoding: 'data-url',
+    mimeType: hintedMime || 'text/plain',
+    extension: 'txt',
+    raw: dataUrl,
+  };
+};
+
+const getLibraryBaseDir = () =>
+  path.join(app.getPath('userData'), LIBRARY_DIR_NAME);
+const getImagesDir = () =>
+  path.join(getLibraryBaseDir(), LIBRARY_IMAGES_SUBDIR);
+const getImageDir = (id) => path.join(getImagesDir(), String(id));
+const getImageMetaPath = (id) => path.join(getImageDir(id), 'meta.json');
+
+const ensureImagesDir = async () => {
+  await fsp.mkdir(getImagesDir(), { recursive: true });
+};
+
+const removeDirectory = async (dir) => {
+  try {
+    if (fsp.rm) {
+      await fsp.rm(dir, { recursive: true, force: true });
+    } else {
+      await fsp.rmdir(dir, { recursive: true });
+    }
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      throw err;
+    }
+  }
+};
+
+const readJsonSafe = async (filePath) => {
+  try {
+    const text = await fsp.readFile(filePath, 'utf8');
+    return JSON.parse(text);
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to read library image metadata', err);
+    }
+    return null;
+  }
+};
+
+const findFallbackImageData = async (dir) => {
+  try {
+    const files = await fsp.readdir(dir);
+    for (const name of files) {
+      const filePath = path.join(dir, name);
+      if (name.endsWith('.txt')) {
+        return await fsp.readFile(filePath, 'utf8');
+      }
+      const buffer = await fsp.readFile(filePath);
+      const ext = path.extname(name).slice(1).toLowerCase();
+      const mimeType =
+        Object.keys(MIME_EXTENSION_MAP).find(
+          (key) => MIME_EXTENSION_MAP[key] === ext
+        ) || `image/${ext || 'png'}`;
+      const base64 = buffer.toString('base64');
+      return `data:${mimeType};base64,${base64}`;
+    }
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to read legacy library image', err);
+    }
+  }
+  return null;
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -121,6 +241,104 @@ ipcMain.handle('write-palette', async (_e, colors) => {
     );
     return true;
   } catch {
+    return false;
+  }
+});
+
+ipcMain.removeHandler('library-save-image');
+ipcMain.handle('library-save-image', async (_event, payload) => {
+  const { id, dataUrl, mimeType } = payload || {};
+  if (typeof id === 'undefined') {
+    return false;
+  }
+  try {
+    await ensureImagesDir();
+    const targetDir = getImageDir(id);
+
+    if (!dataUrl) {
+      await removeDirectory(targetDir);
+      return true;
+    }
+
+    const parsed = parseDataUrlForSave(dataUrl, mimeType);
+    if (!parsed) {
+      return false;
+    }
+
+    await removeDirectory(targetDir);
+    await fsp.mkdir(targetDir, { recursive: true });
+
+    let fileName;
+    if (parsed.encoding === 'base64') {
+      fileName = `image.${parsed.extension}`;
+      await fsp.writeFile(path.join(targetDir, fileName), parsed.buffer);
+    } else {
+      fileName = 'image.txt';
+      await fsp.writeFile(path.join(targetDir, fileName), parsed.raw, 'utf8');
+    }
+
+    const meta = {
+      mimeType: parsed.mimeType,
+      encoding: parsed.encoding,
+      extension: parsed.extension,
+      fileName,
+      savedAt: Date.now(),
+    };
+
+    await fsp.writeFile(
+      getImageMetaPath(id),
+      JSON.stringify(meta, null, 2) + '\n',
+      'utf8'
+    );
+    return true;
+  } catch (err) {
+    console.error('Failed to save library image', err);
+    return false;
+  }
+});
+
+ipcMain.removeHandler('library-load-image');
+ipcMain.handle('library-load-image', async (_event, id) => {
+  if (typeof id === 'undefined') {
+    return null;
+  }
+  try {
+    const dir = getImageDir(id);
+    const meta = await readJsonSafe(getImageMetaPath(id));
+    if (!meta) {
+      return await findFallbackImageData(dir);
+    }
+
+    const fileName = meta.fileName || `image.${meta.extension || 'bin'}`;
+    const filePath = path.join(dir, fileName);
+
+    if (meta.encoding === 'data-url') {
+      return await fsp.readFile(filePath, 'utf8');
+    }
+
+    const buffer = await fsp.readFile(filePath);
+    const type = meta.mimeType || 'application/octet-stream';
+    const base64 = buffer.toString('base64');
+    return `data:${type};base64,${base64}`;
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to load library image', err);
+    }
+    return null;
+  }
+});
+
+ipcMain.removeHandler('library-delete-image');
+ipcMain.handle('library-delete-image', async (_event, id) => {
+  if (typeof id === 'undefined') {
+    return false;
+  }
+  try {
+    const dir = getImageDir(id);
+    await removeDirectory(dir);
+    return true;
+  } catch (err) {
+    console.error('Failed to delete library image', err);
     return false;
   }
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './tools-blog.css';
 
 const THEMES = [
@@ -752,16 +752,11 @@ export default function ToolsBlog({ onBack }) {
                   {hasMedia && (
                     <div className="blog-card-media">
                       {imageSources.length > 0 && (
-                        <div className="blog-card-gallery">
-                          {imageSources.map((source, mediaIndex) => (
-                            <div
-                              key={`${post.id}-image-${mediaIndex}`}
-                              className="blog-card-gallery-item"
-                            >
-                              <img src={source} alt="" loading="lazy" />
-                            </div>
-                          ))}
-                        </div>
+                        <BlogCardGallery
+                          images={imageSources}
+                          postId={post.id}
+                          postTitle={post.title}
+                        />
                       )}
                       {youTubeEmbedUrl ? (
                         <div className="blog-card-video">
@@ -796,6 +791,119 @@ export default function ToolsBlog({ onBack }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function BlogCardGallery({ images, postId, postTitle }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const itemRefs = useRef([]);
+  const keyboardNavigationRef = useRef(false);
+  const instructionsIdRef = useRef(`blog-card-gallery-${postId}-instructions`);
+
+  useEffect(() => {
+    itemRefs.current = itemRefs.current.slice(0, images.length);
+    if (activeIndex > images.length - 1) {
+      setActiveIndex(images.length > 0 ? images.length - 1 : 0);
+    }
+  }, [images.length, activeIndex]);
+
+  useEffect(() => {
+    if (!keyboardNavigationRef.current) {
+      return;
+    }
+
+    const node = itemRefs.current[activeIndex];
+    if (node && typeof node.focus === 'function') {
+      node.focus();
+    }
+    keyboardNavigationRef.current = false;
+  }, [activeIndex]);
+
+  if (images.length === 0) {
+    return null;
+  }
+
+  const galleryLabel = postTitle ? `Gallery for ${postTitle}` : 'Post gallery';
+
+  const handleItemClick = (index) => {
+    if (index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  };
+
+  const handleItemKeyDown = (event) => {
+    if (images.length <= 1) {
+      return;
+    }
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      keyboardNavigationRef.current = true;
+      setActiveIndex((previousIndex) =>
+        previousIndex === images.length - 1 ? 0 : previousIndex + 1,
+      );
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      keyboardNavigationRef.current = true;
+      setActiveIndex((previousIndex) =>
+        previousIndex === 0 ? images.length - 1 : previousIndex - 1,
+      );
+    } else if (event.key === 'Home') {
+      if (activeIndex === 0) {
+        return;
+      }
+      event.preventDefault();
+      keyboardNavigationRef.current = true;
+      setActiveIndex(0);
+    } else if (event.key === 'End') {
+      if (activeIndex === images.length - 1) {
+        return;
+      }
+      event.preventDefault();
+      keyboardNavigationRef.current = true;
+      setActiveIndex(images.length - 1);
+    }
+  };
+
+  return (
+    <div
+      className="blog-card-gallery"
+      role="radiogroup"
+      aria-label={galleryLabel}
+      aria-describedby={instructionsIdRef.current}
+    >
+      <span id={instructionsIdRef.current} className="blog-card-gallery-instructions">
+        Use the left and right arrow keys to move through the gallery images.
+      </span>
+      {images.map((source, index) => {
+        const isActive = index === activeIndex;
+        return (
+          <button
+            key={`${postId}-image-${index}`}
+            type="button"
+            className={`blog-card-gallery-item ${
+              isActive ? 'blog-card-gallery-item--active' : ''
+            }`}
+            role="radio"
+            aria-checked={isActive}
+            aria-label={`Image ${index + 1} of ${images.length}`}
+            tabIndex={isActive ? 0 : -1}
+            onClick={() => handleItemClick(index)}
+            onFocus={() => {
+              if (!isActive) {
+                setActiveIndex(index);
+              }
+            }}
+            onKeyDown={handleItemKeyDown}
+            ref={(element) => {
+              itemRefs.current[index] = element;
+            }}
+          >
+            <img src={source} alt="" loading="lazy" />
+          </button>
+        );
+      })}
     </div>
   );
 }
