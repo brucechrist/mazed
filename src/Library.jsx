@@ -226,6 +226,45 @@ export default function Library({ onBack }) {
         img.src = dataUrl;
       });
 
+    const runQueue = (items, worker, concurrency = 4) => {
+      if (!items.length) return Promise.resolve();
+      let pointer = 0;
+      const workers = Math.min(concurrency, items.length);
+      const tasks = Array.from({ length: workers }, async () => {
+        while (!cancelled) {
+          const currentIndex = pointer;
+          if (currentIndex >= items.length) {
+            break;
+          }
+          pointer += 1;
+          try {
+            await worker(items[currentIndex]);
+          } catch (err) {
+            console.error('Library hydration task failed', err);
+          }
+        }
+      });
+      return Promise.all(tasks);
+    };
+
+    const scheduleIdle = (task) => {
+      if (cancelled) return;
+      if (typeof window.requestIdleCallback === 'function') {
+        const handle = window.requestIdleCallback(() => {
+          if (!cancelled) task();
+        });
+        return () => {
+          if (typeof window.cancelIdleCallback === 'function') {
+            window.cancelIdleCallback(handle);
+          }
+        };
+      }
+      const timeout = window.setTimeout(() => {
+        if (!cancelled) task();
+      }, 16);
+      return () => window.clearTimeout(timeout);
+    };
+
     const hydrateImages = async () => {
       const saved = localStorage.getItem('mazedImages');
       if (!saved) return;
@@ -240,64 +279,164 @@ export default function Library({ onBack }) {
 
       if (!Array.isArray(parsed)) return;
 
-      const hydrated = await Promise.all(
-        parsed.map(async (entry) => {
-          if (!entry || typeof entry.id === 'undefined') {
-            return null;
-          }
-
-          const base = { ...entry };
-          const normalizedTags = normalizeImageTags(base.tags);
-          base.tags = normalizedTags;
-
-          let dataUrl = entry.dataUrl;
-          if (!dataUrl) {
-            dataUrl = await loadImageData(entry.id);
-          }
-
-          if (!dataUrl) {
-            return null;
-          }
-
-          const mimeType = base.mimeType || extractMimeType(dataUrl) || null;
-          base.mimeType = mimeType;
-
-          delete base.dataUrl;
-
-          if (!base.width || !base.height) {
-            const { width, height } = await readDimensions(dataUrl);
-            if (width && height) {
-              base.width = width;
-              base.height = height;
-            }
-          }
-
-          return { ...base, dataUrl };
-        })
-      );
-
-      if (cancelled) return;
-
-      const valid = hydrated.filter(Boolean);
-      if (!valid.length) return;
-
       const storageStatus = new Map();
+      const normalized = [];
+      const loadQueue = [];
+      const measureQueue = [];
+
       parsed.forEach((entry) => {
-        if (!entry || typeof entry.id === 'undefined') return;
-        storageStatus.set(entry.id, !entry.dataUrl);
+        if (!entry || typeof entry.id === 'undefined') {
+          return;
+        }
+
+        const base = { ...entry };
+        const normalizedTags = normalizeImageTags(base.tags);
+        base.tags = normalizedTags;
+
+        const dataUrl =
+          typeof base.dataUrl === 'string' && base.dataUrl.length
+            ? base.dataUrl
+            : null;
+        const mimeType = base.mimeType || (dataUrl ? extractMimeType(dataUrl) : null);
+
+        delete base.dataUrl;
+
+        const image = {
+          ...base,
+          dataUrl,
+          mimeType,
+        };
+
+        storageStatus.set(image.id, !entry.dataUrl);
+        normalized.push(image);
+
+        if (!dataUrl) {
+          loadQueue.push({
+            id: image.id,
+            width: image.width,
+            height: image.height,
+            mimeType: image.mimeType,
+          });
+        } else if (!image.width || !image.height) {
+          measureQueue.push({
+            id: image.id,
+            dataUrl,
+          });
+        }
       });
 
-      setImages(valid);
+      if (cancelled || !normalized.length) {
+        return;
+      }
+
+      setImages(normalized);
+
       lastSavedImagesRef.current = new Map(
-        valid.map((img) => [
+        normalized.map((img) => [
           img.id,
           {
-            dataUrl: img.dataUrl,
-            mimeType: img.mimeType,
+            dataUrl:
+              typeof img.dataUrl === 'string' && img.dataUrl.length
+                ? img.dataUrl
+                : null,
+            mimeType: img.mimeType || null,
             stored: storageStatus.get(img.id) ?? false,
           },
         ])
       );
+
+      const ensureDimensions = async ({ id, dataUrl }) => {
+        if (!dataUrl) return;
+        const { width, height } = await readDimensions(dataUrl);
+        if (cancelled || (!width && !height)) {
+          return;
+        }
+        setImages((current) => {
+          let changed = false;
+          const next = current.map((img) => {
+            if (img.id !== id) return img;
+            const nextWidth = width || img.width;
+            const nextHeight = height || img.height;
+            if (nextWidth === img.width && nextHeight === img.height) {
+              return img;
+            }
+            changed = true;
+            return {
+              ...img,
+              width: nextWidth,
+              height: nextHeight,
+            };
+          });
+          return changed ? next : current;
+        });
+      };
+
+      const loadStoredImage = async ({ id, width, height, mimeType }) => {
+        const dataUrl = await loadImageData(id);
+        if (cancelled) return;
+
+        if (!dataUrl) {
+          setImages((current) => current.filter((img) => img.id !== id));
+          const ref = lastSavedImagesRef.current;
+          if (ref) {
+            ref.delete(id);
+          }
+          return;
+        }
+
+        let resolvedWidth = width;
+        let resolvedHeight = height;
+        if (!resolvedWidth || !resolvedHeight) {
+          const dims = await readDimensions(dataUrl);
+          if (dims.width) resolvedWidth = dims.width;
+          if (dims.height) resolvedHeight = dims.height;
+        }
+        const resolvedMime = mimeType || extractMimeType(dataUrl) || null;
+
+        if (cancelled) return;
+
+        setImages((current) => {
+          let changed = false;
+          const next = current.map((img) => {
+            if (img.id !== id) return img;
+            changed = true;
+            return {
+              ...img,
+              dataUrl,
+              mimeType: resolvedMime,
+              width: resolvedWidth || img.width,
+              height: resolvedHeight || img.height,
+            };
+          });
+          return changed ? next : current;
+        });
+
+        const ref = lastSavedImagesRef.current;
+        if (ref) {
+          ref.set(id, {
+            dataUrl,
+            mimeType: resolvedMime,
+            stored: true,
+          });
+        }
+      };
+
+      const initialBatch = loadQueue.splice(0, 8);
+      if (initialBatch.length) {
+        runQueue(initialBatch, loadStoredImage, Math.min(4, initialBatch.length));
+      }
+
+      if (loadQueue.length) {
+        scheduleIdle(() => {
+          runQueue(loadQueue, loadStoredImage, 2);
+        });
+      }
+
+      if (measureQueue.length) {
+        scheduleIdle(() => {
+          runQueue(measureQueue, ensureDimensions, 2);
+        });
+      }
     };
 
     hydrateImages();
@@ -1008,17 +1147,19 @@ export default function Library({ onBack }) {
         ? (img.height / img.width) * colWidth
         : colWidth;
     const span = getMasonrySpan(scaledHeight);
+    const isLoaded = Boolean(img.dataUrl);
+    const placeholderHeight = Math.max(scaledHeight, colWidth * 0.75);
     return (
       <div
         key={img.id}
-        className="image-card"
+        className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
         draggable={sortMode !== 'title' && sortMode !== 'date'}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
-        onClick={() => setLightbox(img)}
+        onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
           sortMode !== 'title' && sortMode !== 'date'
             ? () => setDraggedId(img.id)
@@ -1055,29 +1196,41 @@ export default function Library({ onBack }) {
             : undefined
         }
       >
-        <img
-          draggable={false}
-          src={img.dataUrl}
-          alt={img.title}
-          onLoad={(e) => {
-            const w = e.target.naturalWidth;
-            const h = e.target.naturalHeight;
-            if (w !== img.width || h !== img.height) {
-              const updated = images.map((i) =>
-                i.id === img.id ? { ...i, width: w, height: h } : i
-              );
-              saveImages(updated);
-              if (lightbox && lightbox.id === img.id) {
-                setLightbox((l) => ({ ...l, width: w, height: h }));
+        {isLoaded ? (
+          <img
+            draggable={false}
+            src={img.dataUrl}
+            alt={img.title}
+            onLoad={(e) => {
+              const w = e.target.naturalWidth;
+              const h = e.target.naturalHeight;
+              if (w !== img.width || h !== img.height) {
+                const updated = images.map((i) =>
+                  i.id === img.id ? { ...i, width: w, height: h } : i
+                );
+                saveImages(updated);
+                if (lightbox && lightbox.id === img.id) {
+                  setLightbox((l) => ({ ...l, width: w, height: h }));
+                }
               }
-            }
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-          }}
-          onClick={() => setLightbox(img)}
-        />
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+            }}
+            onClick={() => setLightbox(img)}
+          />
+        ) : (
+          <div
+            className="image-loading"
+            style={{ minHeight: `${Math.round(placeholderHeight)}px` }}
+            role="status"
+            aria-label="Loading image"
+          >
+            <div className="image-loading-spinner" aria-hidden="true" />
+            <span className="image-loading-text">Loading…</span>
+          </div>
+        )}
         <div className="image-overlay">
           <h3>
             <span
