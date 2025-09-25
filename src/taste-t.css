@@ -11,6 +11,54 @@
   overflow-x: hidden;
 }
 
+.taste-t-app.is-playing {
+  padding: clamp(16px, 4vw, 32px);
+}
+
+.taste-t-app.is-playing .taste-t-frame {
+  align-items: center;
+}
+
+.taste-t-app.is-playing .taste-t-game {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.taste-t-app.is-playing .taste-t-panel {
+  padding: clamp(24px, 4vw, 44px);
+  min-height: clamp(420px, 70vh, 720px);
+}
+
+.taste-t-app.is-playing .duel-card {
+  padding: clamp(24px, 4vw, 48px);
+  gap: clamp(20px, 4vw, 32px);
+}
+
+.taste-t-app.is-playing .duel-context {
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
+}
+
+.taste-t-app.is-playing .duel-combatants {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 18vw) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 32px);
+}
+
+.taste-t-app.is-playing .combatant-art {
+  height: clamp(320px, 60vh, 520px);
+}
+
+.taste-t-app.is-playing .combatant-meta h3 {
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+}
+
+.taste-t-app.is-playing .combatant-meta p {
+  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+}
+
+.taste-t-app.is-playing .duel-actions {
+  gap: clamp(16px, 3vw, 24px);
+}
+
 .taste-t-frame {
   flex: 1 0 auto;
   width: 100%;
@@ -18,6 +66,26 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
+}
+
+.taste-t-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.taste-t-toolbar .ghost {
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.taste-t-toolbar .ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .taste-t-lobby {
@@ -163,7 +231,7 @@
   color: rgba(238, 241, 255, 0.75);
 }
 
-button {
+.taste-t-app button {
   font: inherit;
   border: none;
   border-radius: 14px;
@@ -175,19 +243,19 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-button:hover {
+.taste-t-app button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(255, 144, 171, 0.35);
 }
 
-button:disabled {
+.taste-t-app button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
-button.ghost {
+.taste-t-app button.ghost {
   background: transparent;
   color: rgba(238, 241, 255, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -278,7 +346,7 @@ button.ghost {
 
 .duel-combatants {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) 110px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 140px;
   gap: 16px;
   align-items: stretch;
 }
@@ -292,6 +360,9 @@ button.ghost {
   overflow: hidden;
   background: rgba(8, 11, 25, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  justify-self: stretch;
+  min-width: 0;
 }
 
 .combatant .combatant-callout {
@@ -311,6 +382,7 @@ button.ghost {
 
 .combatant-art {
   height: 160px;
+  width: 100%;
   background-size: cover;
   background-position: center;
 }
@@ -346,6 +418,7 @@ button.ghost {
   align-items: center;
   gap: 12px;
   padding: 12px 0;
+  width: 100%;
 }
 
 .expected-label {
@@ -353,6 +426,18 @@ button.ghost {
   color: rgba(238, 241, 255, 0.65);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.view-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.view-button {
+  font-size: 0.8rem;
+  padding: 8px 12px;
 }
 
 .draw-button {
@@ -365,6 +450,28 @@ button.ghost {
 .panel-body {
   display: grid;
   gap: 16px;
+}
+
+.final-standings {
+  margin-top: 24px;
+  padding: clamp(16px, 3vw, 24px);
+  border-radius: 18px;
+  background: rgba(12, 16, 32, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.final-standings > div {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.final-standings h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(238, 241, 255, 0.8);
 }
 
 .pairing-list {
@@ -523,13 +630,69 @@ button.ghost {
   color: rgba(238, 241, 255, 0.75);
 }
 
+.taste-t-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 20, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.lightbox-content {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.lightbox-close {
+  align-self: flex-end;
+}
+
+.lightbox-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.lightbox-figure img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.lightbox-figure figcaption {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 1rem;
+  color: rgba(238, 241, 255, 0.9);
+}
+
+.lightbox-figure figcaption strong {
+  font-size: 1.1rem;
+}
+
 .tier-card li.empty {
   justify-content: center;
   color: rgba(238, 241, 255, 0.5);
 }
 
-.duel-log,
-.swiss-history {
+.duel-log {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -539,8 +702,7 @@ button.ghost {
   font-size: 0.85rem;
 }
 
-.duel-log li,
-.swiss-history li {
+.duel-log li {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
@@ -567,10 +729,152 @@ button.ghost {
   color: rgba(238, 241, 255, 0.55);
 }
 
-.swiss-history li.empty {
-  justify-content: center;
-  text-align: center;
+.swiss-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.85rem;
+}
+
+.swiss-history-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(15, 18, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.swiss-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.swiss-history-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.swiss-history-header p {
+  margin: 4px 0 0;
+  color: rgba(238, 241, 255, 0.6);
+  font-size: 0.8rem;
+}
+
+.swiss-history-winner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+
+.swiss-history-winner span {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
   color: rgba(238, 241, 255, 0.55);
+}
+
+.swiss-history-winner strong {
+  font-size: 1.05rem;
+}
+
+.swiss-history-winner em {
+  font-style: normal;
+  font-size: 0.8rem;
+  color: rgba(255, 192, 147, 0.9);
+}
+
+.swiss-standings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.swiss-standings li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(20, 24, 44, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.standing-rank {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(255, 210, 130, 0.95);
+}
+
+.standing-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.standing-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.standing-record {
+  color: rgba(238, 241, 255, 0.65);
+  font-size: 0.8rem;
+}
+
+.standing-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 0.75rem;
+}
+
+.standing-rating {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.standing-tier {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(150, 215, 255, 0.8);
+}
+
+@media (max-width: 720px) {
+  .swiss-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .swiss-history-winner {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .swiss-standings li {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .standing-right {
+    align-items: flex-start;
+    grid-column: 2 / 3;
+  }
 }
 
 @media (max-width: 960px) {
