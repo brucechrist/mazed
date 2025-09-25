@@ -692,8 +692,7 @@
   color: rgba(238, 241, 255, 0.5);
 }
 
-.duel-log,
-.swiss-history {
+.duel-log {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -703,8 +702,7 @@
   font-size: 0.85rem;
 }
 
-.duel-log li,
-.swiss-history li {
+.duel-log li {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
@@ -731,10 +729,152 @@
   color: rgba(238, 241, 255, 0.55);
 }
 
-.swiss-history li.empty {
-  justify-content: center;
-  text-align: center;
+.swiss-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.85rem;
+}
+
+.swiss-history-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(15, 18, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.swiss-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.swiss-history-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.swiss-history-header p {
+  margin: 4px 0 0;
+  color: rgba(238, 241, 255, 0.6);
+  font-size: 0.8rem;
+}
+
+.swiss-history-winner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+
+.swiss-history-winner span {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
   color: rgba(238, 241, 255, 0.55);
+}
+
+.swiss-history-winner strong {
+  font-size: 1.05rem;
+}
+
+.swiss-history-winner em {
+  font-style: normal;
+  font-size: 0.8rem;
+  color: rgba(255, 192, 147, 0.9);
+}
+
+.swiss-standings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.swiss-standings li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(20, 24, 44, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.standing-rank {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(255, 210, 130, 0.95);
+}
+
+.standing-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.standing-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.standing-record {
+  color: rgba(238, 241, 255, 0.65);
+  font-size: 0.8rem;
+}
+
+.standing-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 0.75rem;
+}
+
+.standing-rating {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.standing-tier {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(150, 215, 255, 0.8);
+}
+
+@media (max-width: 720px) {
+  .swiss-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .swiss-history-winner {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .swiss-standings li {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .standing-right {
+    align-items: flex-start;
+    grid-column: 2 / 3;
+  }
 }
 
 @media (max-width: 960px) {

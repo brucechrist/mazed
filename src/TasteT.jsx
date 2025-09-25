@@ -163,6 +163,29 @@ function loadLibraryCatalog() {
             : typeof entry?.timestamp === "number"
             ? entry.timestamp
             : null;
+        const rating = typeof entry?.rating === "number" ? entry.rating : null;
+        const rd = typeof entry?.rd === "number" ? entry.rd : null;
+        const volatility = typeof entry?.volatility === "number" ? entry.volatility : null;
+        let tierKey = sanitizeText(entry?.tierKey || entry?.tier || "", null);
+        if (!tierKey && typeof rating === "number") {
+          tierKey = getTierByRating(rating);
+        }
+        const tierIndex =
+          typeof entry?.tierIndex === "number"
+            ? entry.tierIndex
+            : tierKey
+            ? getTierIndex(tierKey)
+            : 0;
+        const stats =
+          entry?.stats && typeof entry.stats === "object" && !Array.isArray(entry.stats)
+            ? { ...entry.stats }
+            : {};
+        const lastPlayedAt = typeof entry?.lastPlayedAt === "number" ? entry.lastPlayedAt : null;
+        const updatedAt = typeof entry?.updatedAt === "number" ? entry.updatedAt : createdAt;
+        const tierLog = Array.isArray(entry?.tierLog) ? entry.tierLog.slice(-10) : [];
+        const recentMatches = Array.isArray(entry?.recentMatches)
+          ? entry.recentMatches.slice(0, RECENT_MATCHES_LIMIT)
+          : [];
 
         return {
           id,
@@ -174,6 +197,16 @@ function loadLibraryCatalog() {
           height: typeof entry?.height === "number" ? entry.height : null,
           color: sanitizeText(entry?.color || "", null),
           createdAt,
+          rating,
+          rd,
+          volatility,
+          tierKey,
+          tierIndex,
+          stats,
+          lastPlayedAt,
+          updatedAt,
+          tierLog,
+          recentMatches,
         };
       })
       .filter(Boolean);
@@ -1544,8 +1577,9 @@ function createSwissSummary(swiss, imagesById) {
   if (!swiss) return null;
 
   const standings = swiss.finalStandings || swiss.latestStandings || [];
-  const enriched = standings.map((entry) => {
+  const enriched = standings.map((entry, index) => {
     const image = imagesById[entry.id];
+    const fallbackRank = typeof entry.rank === "number" ? entry.rank : index + 1;
     return {
       id: entry.id,
       name: image?.name || entry.name,
@@ -1556,16 +1590,29 @@ function createSwissSummary(swiss, imagesById) {
       draws: entry.draws,
       points: entry.points,
       buchholz: entry.buchholz || 0,
-      rank: entry.rank,
+      rank: fallbackRank,
     };
   });
+
+  const sorted = enriched
+    .slice()
+    .sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
+      const aDiff = (a.wins || 0) - (a.losses || 0);
+      const bDiff = (b.wins || 0) - (b.losses || 0);
+      if (bDiff !== aDiff) return bDiff - aDiff;
+      return a.name.localeCompare(b.name);
+    });
 
   return {
     id: swiss.id,
     createdAt: swiss.createdAt,
     completedAt: swiss.completedAt || Date.now(),
     totalRounds: swiss.totalRounds,
-    participants: enriched,
+    participants: sorted,
+    size: sorted.length,
+    winnerId: sorted[0]?.id || null,
   };
 }
 
@@ -2606,17 +2653,66 @@ function TasteT() {
                 <h2>Swiss History</h2>
                 {swissHistory.length ? (
                   <ul className="swiss-history">
-                    {swissHistory.map((entry) => (
-                      <li key={entry.id}>
-                        <div>
-                          <strong>{entry.id}</strong>
-                          <span>
-                            {entry.participants[0]?.name || "Swiss"} · {entry.totalRounds} rounds · {entry.participants.length} images
-                          </span>
-                        </div>
-                        <div>Winner: {entry.participants.find((p) => p.rank === 1)?.name || ""}</div>
-                      </li>
-                    ))}
+                    {swissHistory.map((entry) => {
+                      const winner = entry.participants[0];
+                      return (
+                        <li key={entry.id} className="swiss-history-card">
+                          <div className="swiss-history-header">
+                            <div>
+                              <h3>
+                                {entry.size || entry.participants.length} image Swiss · {entry.totalRounds} rounds
+                              </h3>
+                              <p>
+                                Finished {formatRelativeTime(entry.completedAt)} · ID {entry.id}
+                              </p>
+                            </div>
+                            <div className="swiss-history-winner">
+                              <span>Winner</span>
+                              <strong>{winner?.name || "—"}</strong>
+                              {typeof winner?.points === "number" ? (
+                                <em>{`${winner.points} pts`}</em>
+                              ) : null}
+                            </div>
+                          </div>
+                          <ol className="swiss-standings">
+                            {entry.participants.map((participant, index) => {
+                              const rank = participant.rank ?? index + 1;
+                              const ratingLabel =
+                                typeof participant.rating === "number"
+                                  ? Math.round(participant.rating)
+                                  : "—";
+                              const buchholzLabel =
+                                typeof participant.buchholz === "number" && participant.buchholz
+                                  ? ` · Buchholz ${roundTo(participant.buchholz, 1)}`
+                                  : "";
+                              return (
+                                <li key={participant.id}>
+                                  <span className="standing-rank">#{rank}</span>
+                                  <div className="standing-meta">
+                                    <span className="standing-name">{participant.name}</span>
+                                    <span className="standing-record">
+                                      {formatRecord(
+                                        participant.wins,
+                                        participant.losses,
+                                        participant.draws,
+                                      )}
+                                      {typeof participant.points === "number"
+                                        ? ` · ${participant.points} pts`
+                                        : ""}
+                                      {buchholzLabel}
+                                    </span>
+                                  </div>
+                                  <div className="standing-right">
+                                    <span className="standing-rating">{ratingLabel}</span>
+                                    <span className="standing-tier">#{participant.tierKey}</span>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <div className="panel-placeholder">Finish a Swiss mini to see it logged here.</div>
