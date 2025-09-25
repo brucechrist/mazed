@@ -1110,7 +1110,11 @@ function loadInitialState() {
     const swissHistory = Array.isArray(parsed.swissHistory)
       ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
       : base.swissHistory;
-    const activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+    let activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+
+    if (activeSwiss && (activeSwiss.status === "completed" || activeSwiss.completedAt)) {
+      activeSwiss = null;
+    }
 
     const imageIds = new Set(images.map((image) => image.id));
     let placementQueue = null;
@@ -2818,7 +2822,10 @@ function TasteT() {
       return null;
     });
     if (summary) {
-      setSwissHistory((current) => [summary, ...current].slice(0, HISTORY_LIMIT));
+      setSwissHistory((current) => {
+        const filtered = current.filter((entry) => entry.id !== summary.id);
+        return [summary, ...filtered].slice(0, HISTORY_LIMIT);
+      });
     }
     setMode("lobby");
   }, [imagesById]);
