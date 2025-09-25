@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
@@ -148,7 +148,7 @@ export default function Library({ onBack }) {
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [palette, setPalette] = useState(DEFAULT_COLORS);
-  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'random'
+  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'random'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [libraryTheme, setLibraryTheme] = useState(() => {
@@ -207,6 +207,50 @@ export default function Library({ onBack }) {
         (img) => getOrientationTag(img.tags) !== hiddenOrientation
       )
     : images;
+
+  const ratingSummary = useMemo(() => {
+    if (!images.length) {
+      return new Map();
+    }
+
+    const annotated = images.map((img) => ({
+      id: img.id,
+      title: typeof img.title === 'string' ? img.title : '',
+      rating: typeof img.rating === 'number' ? img.rating : null,
+      wins: img.stats?.wins ?? 0,
+      totalDuels: img.stats?.totalDuels ?? 0,
+      lastPlayedAt: img.lastPlayedAt ?? 0,
+    }));
+
+    const rankedEntries = annotated
+      .filter((entry) => entry.rating != null)
+      .sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        if (b.totalDuels !== a.totalDuels) return b.totalDuels - a.totalDuels;
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (b.lastPlayedAt !== a.lastPlayedAt) return b.lastPlayedAt - a.lastPlayedAt;
+        return a.title.localeCompare(b.title);
+      });
+
+    const summary = new Map();
+    rankedEntries.forEach((entry, index) => {
+      summary.set(entry.id, {
+        rank: index + 1,
+        rating: entry.rating,
+      });
+    });
+
+    annotated.forEach((entry) => {
+      if (!summary.has(entry.id)) {
+        summary.set(entry.id, {
+          rank: null,
+          rating: entry.rating,
+        });
+      }
+    });
+
+    return summary;
+  }, [images]);
 
   // Restore masonry spans by normalizing stored images to their natural size
   useEffect(() => {
@@ -949,6 +993,22 @@ export default function Library({ onBack }) {
     sortImages(sorted, 'date');
   };
 
+  const sortByRating = () => {
+    const sorted = [...images].sort((a, b) => {
+      const ratingA = typeof a.rating === 'number' ? a.rating : -Infinity;
+      const ratingB = typeof b.rating === 'number' ? b.rating : -Infinity;
+      if (ratingB !== ratingA) return ratingB - ratingA;
+      const duelsA = a.stats?.totalDuels ?? 0;
+      const duelsB = b.stats?.totalDuels ?? 0;
+      if (duelsB !== duelsA) return duelsB - duelsA;
+      const winsA = a.stats?.wins ?? 0;
+      const winsB = b.stats?.wins ?? 0;
+      if (winsB !== winsA) return winsB - winsA;
+      return String(a.title || '').localeCompare(String(b.title || ''));
+    });
+    sortImages(sorted, 'rating');
+  };
+
   const shuffleImages = () => {
     const shuffled = [...images];
     for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -1149,24 +1209,28 @@ export default function Library({ onBack }) {
     const span = getMasonrySpan(scaledHeight);
     const isLoaded = Boolean(img.dataUrl);
     const placeholderHeight = Math.max(scaledHeight, colWidth * 0.75);
+    const ratingInfo = ratingSummary.get(img.id);
+    const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
     return (
       <div
         key={img.id}
         className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
-        draggable={sortMode !== 'title' && sortMode !== 'date'}
+        draggable={
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+        }
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
-          sortMode !== 'title' && sortMode !== 'date'
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? () => setDraggedId(img.id)
             : undefined
         }
         onDragOver={
-          sortMode !== 'title' && sortMode !== 'date'
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? (e) => {
                 if (e.dataTransfer.files?.length) {
                   handleDragOver(e);
@@ -1177,7 +1241,7 @@ export default function Library({ onBack }) {
             : undefined
         }
         onDrop={
-          sortMode !== 'title' && sortMode !== 'date'
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? (e) => {
                 if (e.dataTransfer.files?.length) {
                   handleDrop(e);
@@ -1191,7 +1255,7 @@ export default function Library({ onBack }) {
               : undefined
           }
         onDragEnd={
-          sortMode !== 'title' && sortMode !== 'date'
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? () => setDraggedId(null)
             : undefined
         }
@@ -1239,6 +1303,18 @@ export default function Library({ onBack }) {
             ></span>
             {img.title}
           </h3>
+          {hasRating ? (
+            <p className="image-meta">
+              {ratingInfo.rank ? (
+                <span className="image-meta-rank">#{ratingInfo.rank}</span>
+              ) : null}
+              <span className="image-meta-elo">
+                {`${Math.round(ratingInfo.rating)} Elo`}
+              </span>
+            </p>
+          ) : (
+            <p className="image-meta image-meta-unranked">Unranked</p>
+          )}
         </div>
       </div>
     );
@@ -1472,6 +1548,14 @@ export default function Library({ onBack }) {
                   </button>
                   <button
                     onClick={() => {
+                      sortByRating();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    Elo (High → Low)
+                  </button>
+                  <button
+                    onClick={() => {
                       shuffleImages();
                       setSortMenuOpen(false);
                     }}
@@ -1592,7 +1676,7 @@ export default function Library({ onBack }) {
                 gap: `${gridGap}px`,
               }}
               onDragOver={
-                sortMode !== 'title' && sortMode !== 'date'
+                sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
                   ? (e) => {
                       if (e.dataTransfer.files?.length) {
                         handleDragOver(e);
@@ -1603,7 +1687,7 @@ export default function Library({ onBack }) {
                   : undefined
               }
                 onDrop={
-                  sortMode !== 'title' && sortMode !== 'date'
+                  sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
                     ? (e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDrop(e);
@@ -1855,6 +1939,28 @@ export default function Library({ onBack }) {
                       {lightbox.title || 'Untitled'}
                     </h1>
                   )}
+                  <div className="lightbox-stats">
+                    {(() => {
+                      const info = ratingSummary.get(lightbox.id);
+                      if (!info || typeof info.rating !== 'number') {
+                        return (
+                          <span className="lightbox-unranked">
+                            Unranked in TasteT
+                          </span>
+                        );
+                      }
+                      return (
+                        <>
+                          {info.rank ? (
+                            <span className="lightbox-rank">Rank #{info.rank}</span>
+                          ) : null}
+                          <span className="lightbox-elo">
+                            {`${Math.round(info.rating)} Elo`}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
                   <textarea
                     value={descInput}
                     placeholder="Description"
