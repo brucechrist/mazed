@@ -2021,7 +2021,6 @@ function SwissMiniPanel({
     : null;
   const standings = swiss.latestStandings || computeStandings(swiss.participants).standings;
   const showSummary = swiss.status === "awaiting-finish" || swiss.status === "completed";
-
   const statusLabel = (() => {
     switch (swiss.status) {
       case "awaiting-final":
