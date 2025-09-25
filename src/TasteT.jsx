@@ -1110,7 +1110,11 @@ function loadInitialState() {
     const swissHistory = Array.isArray(parsed.swissHistory)
       ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
       : base.swissHistory;
-    const activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+    let activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+
+    if (activeSwiss && (activeSwiss.status === "completed" || activeSwiss.completedAt)) {
+      activeSwiss = null;
+    }
 
     const imageIds = new Set(images.map((image) => image.id));
     let placementQueue = null;
@@ -1936,42 +1940,63 @@ function DuelCard({
   return (
     <div className="duel-card">
       {contextLabel ? <div className="duel-context">{contextLabel}</div> : null}
-      <div className="duel-combatants">
+      <div className="duel-stage">
         <button
           type="button"
           className="combatant"
           onClick={() => onResolve("left")}
           disabled={disabled}
         >
-          <div className="combatant-art" style={getPreviewStyle(leftImage)} />
-          <div className="combatant-meta">
-            <TierBadge tierKey={leftImage.tierKey} />
-            <h3>{leftImage.name}</h3>
-            <p>{`Rating ${Math.round(leftImage.rating)} · RD ${Math.round(leftImage.rd)}`}</p>
-            <p className="combatant-tags">{leftImage.tags.slice(0, 3).join(" · ")}</p>
+          <div className="combatant-media" style={getPreviewStyle(leftImage)}>
+            <div className="combatant-overlay">
+              <div className="combatant-meta">
+                <TierBadge tierKey={leftImage.tierKey} />
+                <h3>{leftImage.name}</h3>
+                <p>{`Rating ${Math.round(leftImage.rating)} · RD ${Math.round(leftImage.rd)}`}</p>
+                <p className="combatant-tags">{leftImage.tags.slice(0, 3).join(" · ")}</p>
+              </div>
+            </div>
           </div>
           <span className="combatant-callout">Win</span>
         </button>
-        <div className="duel-actions">
-          <span className="expected-label">{`Expected ${Math.round(expected * 100)}%`}</span>
-          <div className="view-buttons">
-            <button
-              type="button"
-              className="ghost view-button"
-              onClick={() => onViewImage?.(leftImage)}
-              disabled={disabled}
-            >
-              View Left
-            </button>
-            <button
-              type="button"
-              className="ghost view-button"
-              onClick={() => onViewImage?.(rightImage)}
-              disabled={disabled}
-            >
-              View Right
-            </button>
+        <button
+          type="button"
+          className="combatant"
+          onClick={() => onResolve("right")}
+          disabled={disabled}
+        >
+          <div className="combatant-media" style={getPreviewStyle(rightImage)}>
+            <div className="combatant-overlay">
+              <div className="combatant-meta">
+                <TierBadge tierKey={rightImage.tierKey} />
+                <h3>{rightImage.name}</h3>
+                <p>{`Rating ${Math.round(rightImage.rating)} · RD ${Math.round(rightImage.rd)}`}</p>
+                <p className="combatant-tags">{rightImage.tags.slice(0, 3).join(" · ")}</p>
+              </div>
+            </div>
           </div>
+          <span className="combatant-callout">Win</span>
+        </button>
+      </div>
+      <div className="duel-controls">
+        <span className="expected-label">{`Expected ${Math.round(expected * 100)}%`}</span>
+        <div className="duel-actions">
+          <button
+            type="button"
+            className="ghost view-button"
+            onClick={() => onViewImage?.(leftImage)}
+            disabled={disabled}
+          >
+            View Left
+          </button>
+          <button
+            type="button"
+            className="ghost view-button"
+            onClick={() => onViewImage?.(rightImage)}
+            disabled={disabled}
+          >
+            View Right
+          </button>
           <button
             type="button"
             onClick={() => onResolve("draw")}
@@ -1981,21 +2006,6 @@ function DuelCard({
             Draw
           </button>
         </div>
-        <button
-          type="button"
-          className="combatant"
-          onClick={() => onResolve("right")}
-          disabled={disabled}
-        >
-          <div className="combatant-art" style={getPreviewStyle(rightImage)} />
-          <div className="combatant-meta">
-            <TierBadge tierKey={rightImage.tierKey} />
-            <h3>{rightImage.name}</h3>
-            <p>{`Rating ${Math.round(rightImage.rating)} · RD ${Math.round(rightImage.rd)}`}</p>
-            <p className="combatant-tags">{rightImage.tags.slice(0, 3).join(" · ")}</p>
-          </div>
-          <span className="combatant-callout">Win</span>
-        </button>
       </div>
     </div>
   );
@@ -2818,7 +2828,10 @@ function TasteT() {
       return null;
     });
     if (summary) {
-      setSwissHistory((current) => [summary, ...current].slice(0, HISTORY_LIMIT));
+      setSwissHistory((current) => {
+        const filtered = current.filter((entry) => entry.id !== summary.id);
+        return [summary, ...filtered].slice(0, HISTORY_LIMIT);
+      });
     }
     setMode("lobby");
   }, [imagesById]);
