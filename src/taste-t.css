@@ -163,7 +163,7 @@
   color: rgba(238, 241, 255, 0.75);
 }
 
-button {
+.taste-t-app button {
   font: inherit;
   border: none;
   border-radius: 14px;
@@ -175,19 +175,19 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-button:hover {
+.taste-t-app button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(255, 144, 171, 0.35);
 }
 
-button:disabled {
+.taste-t-app button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
-button.ghost {
+.taste-t-app button.ghost {
   background: transparent;
   color: rgba(238, 241, 255, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -292,6 +292,9 @@ button.ghost {
   overflow: hidden;
   background: rgba(8, 11, 25, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  justify-self: stretch;
+  min-width: 0;
 }
 
 .combatant .combatant-callout {
@@ -311,6 +314,7 @@ button.ghost {
 
 .combatant-art {
   height: 160px;
+  width: 100%;
   background-size: cover;
   background-position: center;
 }
