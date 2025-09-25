@@ -341,6 +341,88 @@ function mergeLibraryMetadataWithRatings(entries = [], images = []) {
   return changed ? { entries: nextEntries, changed: true } : { entries, changed: false };
 }
 
+function serializeImageForStorage(image) {
+  if (!image || !image.id) return null;
+
+  const rating = typeof image.rating === "number" ? image.rating : 1500;
+  const rd = typeof image.rd === "number" ? image.rd : 260;
+  const tierKey = image.tierKey || getTierByRating(rating);
+  const tierIndex =
+    typeof image.tierIndex === "number" ? image.tierIndex : getTierIndex(tierKey);
+
+  return {
+    id: image.id,
+    name: sanitizeText(image.name || image.title || "Untitled", "Untitled"),
+    imageUrl: typeof image.imageUrl === "string" ? image.imageUrl : null,
+    mimeType: image.mimeType || null,
+    tags: Array.isArray(image.tags) ? image.tags.slice(0, 24) : [],
+    rating,
+    rd,
+    volatility: typeof image.volatility === "number" ? image.volatility : DEFAULT_VOLATILITY,
+    tierKey,
+    tierIndex,
+    stats: image.stats ? { ...image.stats } : {},
+    createdAt: image.createdAt || Date.now(),
+    updatedAt: image.updatedAt || image.createdAt || Date.now(),
+    lastPlayedAt: image.lastPlayedAt || null,
+    tierLog: Array.isArray(image.tierLog) ? image.tierLog.slice(-10) : [],
+    recentMatches: Array.isArray(image.recentMatches)
+      ? image.recentMatches.slice(0, RECENT_MATCHES_LIMIT)
+      : [],
+    libraryColor: image.libraryColor || null,
+    libraryWidth: image.libraryWidth || null,
+    libraryHeight: image.libraryHeight || null,
+  };
+}
+
+function serializeDuelLogEntry(entry) {
+  if (!entry || !entry.id) return null;
+
+  return {
+    id: entry.id,
+    timestamp: entry.timestamp || Date.now(),
+    leftId: entry.leftId,
+    rightId: entry.rightId,
+    leftName: entry.leftName,
+    rightName: entry.rightName,
+    leftScore: typeof entry.leftScore === "number" ? entry.leftScore : null,
+    rightScore: typeof entry.rightScore === "number" ? entry.rightScore : null,
+    outcome: entry.outcome || null,
+    winnerId: entry.winnerId || null,
+    leftDelta: typeof entry.leftDelta === "number" ? entry.leftDelta : 0,
+    rightDelta: typeof entry.rightDelta === "number" ? entry.rightDelta : 0,
+    leftRatingAfter:
+      typeof entry.leftRatingAfter === "number" ? entry.leftRatingAfter : undefined,
+    rightRatingAfter:
+      typeof entry.rightRatingAfter === "number" ? entry.rightRatingAfter : undefined,
+    context: entry.context ? { ...entry.context } : null,
+    tierChanges: entry.tierChanges
+      ? { left: entry.tierChanges.left || null, right: entry.tierChanges.right || null }
+      : { left: null, right: null },
+  };
+}
+
+function prepareStateForStorage(state) {
+  const images = Array.isArray(state.images)
+    ? state.images.map(serializeImageForStorage).filter(Boolean)
+    : [];
+  const duelLog = Array.isArray(state.duelLog)
+    ? state.duelLog.map(serializeDuelLogEntry).filter(Boolean)
+    : [];
+
+  return {
+    images,
+    duelLog,
+    swissHistory: Array.isArray(state.swissHistory)
+      ? state.swissHistory.slice(0, HISTORY_LIMIT)
+      : [],
+    activeSwiss: state.activeSwiss || null,
+    placementQueue: state.placementQueue || null,
+    selectedTag: state.selectedTag || "",
+    miniSize: state.miniSize || MINI_SIZE_OPTIONS[0],
+  };
+}
+
 function buildPlacementQueueForImage(imageId, images, count = 5) {
   if (!imageId) return null;
   const opponents = createPlacementOpponents(imageId, images, count).map((entry) => entry.id);
@@ -2178,7 +2260,7 @@ function TasteT() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const payload = {
+      const payload = prepareStateForStorage({
         images,
         duelLog,
         swissHistory,
@@ -2186,7 +2268,7 @@ function TasteT() {
         placementQueue,
         selectedTag,
         miniSize,
-      };
+      });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (error) {
       console.warn("TierT: unable to persist state", error);
