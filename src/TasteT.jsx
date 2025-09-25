@@ -12,6 +12,7 @@ const PROMOTION_RD_CAP = 125;
 const LOG_LIMIT = 120;
 const HISTORY_LIMIT = 6;
 const RECENT_MATCHES_LIMIT = 6;
+const UNDO_STACK_LIMIT = 8;
 
 const TIER_RULES = [
   {
@@ -96,6 +97,40 @@ function arraysEqual(a = [], b = []) {
     }
   }
   return true;
+}
+
+function deepClone(value) {
+  if (value == null || typeof value !== "object") {
+    return value;
+  }
+
+  if (typeof structuredClone === "function") {
+    try {
+      return structuredClone(value);
+    } catch (error) {
+      // fall back to JSON strategy
+    }
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    console.warn("TierT: unable to clone value", error);
+    return value;
+  }
+}
+
+function valuesEqual(a, b) {
+  if (a === b) return true;
+  if (a == null && b == null) return true;
+  if (typeof a === "object" && typeof b === "object") {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch (error) {
+      return false;
+    }
+  }
+  return false;
 }
 
 function loadLibraryCatalog() {
@@ -221,6 +256,56 @@ function synchronizeImagesWithLibrary(savedImages, libraryEntries) {
   }
 
   return { images: changed ? merged : savedImages, newIds, changed };
+}
+
+function mergeLibraryMetadataWithRatings(entries = [], images = []) {
+  if (!Array.isArray(entries) || !entries.length || !Array.isArray(images) || !images.length) {
+    return { entries, changed: false };
+  }
+
+  const imageMap = new Map(images.map((image) => [coerceLibraryId(image.id), image]));
+  let changed = false;
+
+  const nextEntries = entries.map((entry) => {
+    if (!entry) return entry;
+    const id = coerceLibraryId(entry.id);
+    if (!id || !imageMap.has(id)) {
+      return entry;
+    }
+
+    const image = imageMap.get(id);
+    const updates = {
+      rating: image.rating,
+      rd: image.rd,
+      volatility: image.volatility,
+      tierKey: image.tierKey,
+      tierIndex: image.tierIndex,
+      stats: image.stats,
+      lastPlayedAt: image.lastPlayedAt,
+      updatedAt: image.updatedAt,
+      tierLog: image.tierLog,
+      recentMatches: image.recentMatches,
+    };
+
+    let entryChanged = false;
+    const nextEntry = { ...entry };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!valuesEqual(entry[key], value)) {
+        nextEntry[key] = value;
+        entryChanged = true;
+      }
+    });
+
+    if (entryChanged) {
+      changed = true;
+      return nextEntry;
+    }
+
+    return entry;
+  });
+
+  return changed ? { entries: nextEntries, changed: true } : { entries, changed: false };
 }
 
 function buildPlacementQueueForImage(imageId, images, count = 5) {
@@ -1815,6 +1900,7 @@ function TasteT() {
   });
   const pendingPreviewRef = useRef(new Set());
   const [expandedImage, setExpandedImage] = useState(null);
+  const [undoStack, setUndoStack] = useState([]);
 
   const imagesById = useMemo(() => {
     const map = {};
@@ -1835,6 +1921,20 @@ function TasteT() {
   const showPlacementCallout =
     mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
   const isPlaying = mode === "swiss" || mode === "placement";
+  const canUndo = undoStack.length > 0;
+
+  const createUndoState = useCallback(() => ({
+    images: deepClone(images),
+    duelLog: deepClone(duelLog),
+    activeSwiss: deepClone(activeSwiss),
+    placementQueue: deepClone(placementQueue),
+    mode,
+  }), [images, duelLog, activeSwiss, placementQueue, mode]);
+
+  const pushUndoState = useCallback((snapshot) => {
+    if (!snapshot) return;
+    setUndoStack((current) => [snapshot, ...current].slice(0, UNDO_STACK_LIMIT));
+  }, []);
 
   const handleViewImage = useCallback((image) => {
     if (!image) return;
@@ -1844,6 +1944,20 @@ function TasteT() {
   const handleCloseExpanded = useCallback(() => {
     setExpandedImage(null);
   }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack((current) => {
+      if (!current.length) return current;
+      const [latest, ...rest] = current;
+      setImages(latest?.images ? deepClone(latest.images) : []);
+      setDuelLog(latest?.duelLog ? deepClone(latest.duelLog) : []);
+      setActiveSwiss(latest?.activeSwiss ? deepClone(latest.activeSwiss) : null);
+      setPlacementQueue(latest?.placementQueue ? deepClone(latest.placementQueue) : null);
+      setMode(latest?.mode || "lobby");
+      return rest;
+    });
+    setExpandedImage(null);
+  }, [setImages, setDuelLog, setActiveSwiss, setPlacementQueue, setMode, setExpandedImage]);
 
   useEffect(() => {
     if (!expandedImage || typeof window === "undefined") return undefined;
@@ -1912,6 +2026,47 @@ function TasteT() {
       }
     }
   }, [libraryEntries]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !images.length) {
+      return;
+    }
+
+    let baseEntries = libraryEntries;
+    if (!Array.isArray(baseEntries) || !baseEntries.length) {
+      try {
+        const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            baseEntries = parsed;
+          }
+        }
+      } catch (error) {
+        console.warn("TierT: unable to inspect library storage", error);
+      }
+    }
+
+    if (!Array.isArray(baseEntries) || !baseEntries.length) {
+      return;
+    }
+
+    const { entries: nextEntries, changed } = mergeLibraryMetadataWithRatings(baseEntries, images);
+    if (!changed) {
+      if (baseEntries !== libraryEntries && Array.isArray(baseEntries)) {
+        setLibraryEntries(baseEntries);
+      }
+      return;
+    }
+
+    try {
+      localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(nextEntries));
+    } catch (error) {
+      console.warn("TierT: unable to sync ratings to library", error);
+    }
+
+    setLibraryEntries(nextEntries);
+  }, [images, libraryEntries]);
 
   useEffect(() => {
     if (!placementQueue) return;
@@ -2043,6 +2198,10 @@ function TasteT() {
 
   const handleResolvePairing = useCallback(
     (pairingId, outcome) => {
+      const snapshot = createUndoState();
+      let resolution = null;
+      let resolved = false;
+
       setActiveSwiss((current) => {
         if (!current) return current;
         const round = current.rounds.find((entry) => entry.index === current.currentRound);
@@ -2056,17 +2215,25 @@ function TasteT() {
           return current;
         }
 
-        const resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
+        resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
           mode: "swiss",
           swissId: current.id,
           round: current.currentRound,
           pairingId,
         });
-        applyResolution(resolution);
+        if (!resolution) {
+          return current;
+        }
+        resolved = true;
         return updateSwissWithResult(current, pairingId, resolution);
       });
+
+      if (resolved && resolution) {
+        pushUndoState(snapshot);
+        applyResolution(resolution);
+      }
     },
-    [imagesById, applyResolution],
+    [imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
   const handleAdvanceRound = useCallback(() => {
@@ -2154,27 +2321,31 @@ function TasteT() {
     (outcome) => {
       if (!placementQueue) return;
 
+      const snapshot = createUndoState();
       const queueImage = imagesById[placementQueue.imageId];
       const opponentId = placementQueue.opponents[placementQueue.currentIndex];
       const opponent = imagesById[opponentId];
       let completed = false;
       let historyEntry = null;
+      let resolution = null;
+      let advanced = false;
 
       if (queueImage && opponent) {
-        const resolution = resolveDuelForImages(queueImage, opponent, outcome, {
+        resolution = resolveDuelForImages(queueImage, opponent, outcome, {
           mode: "placement",
         });
-        applyResolution(resolution);
-        const delta =
-          resolution.left.image.id === queueImage.id
-            ? resolution.left.deltaRating
-            : resolution.right.deltaRating;
-        historyEntry = {
-          id: resolution.duelEntry.id,
-          opponentId,
-          outcome: outcome === "left" ? "Win" : outcome === "right" ? "Loss" : "Draw",
-          delta,
-        };
+        if (resolution) {
+          const delta =
+            resolution.left.image.id === queueImage.id
+              ? resolution.left.deltaRating
+              : resolution.right.deltaRating;
+          historyEntry = {
+            id: resolution.duelEntry.id,
+            opponentId,
+            outcome: outcome === "left" ? "Win" : outcome === "right" ? "Loss" : "Draw",
+            delta,
+          };
+        }
       } else {
         historyEntry = {
           id: `placement-${Date.now()}`,
@@ -2190,8 +2361,10 @@ function TasteT() {
         const nextIndex = current.currentIndex + 1;
         if (nextIndex >= current.opponents.length) {
           completed = true;
+          advanced = true;
           return null;
         }
+        advanced = true;
         return {
           ...current,
           currentIndex: nextIndex,
@@ -2199,11 +2372,19 @@ function TasteT() {
         };
       });
 
+      if (advanced) {
+        pushUndoState(snapshot);
+      }
+
+      if (resolution) {
+        applyResolution(resolution);
+      }
+
       if (completed) {
         setMode("lobby");
       }
     },
-    [placementQueue, imagesById, applyResolution],
+    [placementQueue, imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
   const hasActiveSwiss = mode === "swiss" && activeSwiss;
@@ -2214,6 +2395,13 @@ function TasteT() {
   return (
     <div className={`taste-t-app${isPlaying ? " is-playing" : ""}`}>
       <div className="taste-t-frame">
+        {canUndo ? (
+          <div className="taste-t-toolbar">
+            <button type="button" className="ghost" onClick={handleUndo} disabled={!canUndo}>
+              Undo last result
+            </button>
+          </div>
+        ) : null}
         {hasActiveSwiss ? (
           <div className="taste-t-game">
             <SwissMiniPanel

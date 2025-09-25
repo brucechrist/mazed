@@ -68,6 +68,26 @@
   gap: 32px;
 }
 
+.taste-t-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.taste-t-toolbar .ghost {
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.taste-t-toolbar .ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .taste-t-lobby {
   display: flex;
   flex-direction: column;
