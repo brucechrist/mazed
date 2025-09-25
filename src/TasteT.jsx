@@ -1546,6 +1546,7 @@ function DuelCard({
   expected = 0.5,
   contextLabel,
   onResolve,
+  onViewImage,
 }) {
   if (!leftImage || !rightImage) {
     return null;
@@ -1572,6 +1573,24 @@ function DuelCard({
         </button>
         <div className="duel-actions">
           <span className="expected-label">{`Expected ${Math.round(expected * 100)}%`}</span>
+          <div className="view-buttons">
+            <button
+              type="button"
+              className="ghost view-button"
+              onClick={() => onViewImage?.(leftImage)}
+              disabled={disabled}
+            >
+              View Left
+            </button>
+            <button
+              type="button"
+              className="ghost view-button"
+              onClick={() => onViewImage?.(rightImage)}
+              disabled={disabled}
+            >
+              View Right
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => onResolve("draw")}
@@ -1608,12 +1627,14 @@ function SwissMiniPanel({
   onAdvanceRound,
   onFinish,
   onCancel,
+  onViewImage,
 }) {
   if (!swiss) return null;
 
   const currentRound = swiss.rounds.find((round) => round.index === swiss.currentRound);
   const pendingPairing = currentRound?.pairings?.find((pair) => !pair.resolved && !pair.bye);
   const standings = swiss.latestStandings || computeStandings(swiss.participants).standings;
+  const showSummary = swiss.status === "awaiting-finish" || swiss.status === "completed";
 
   const renderPairingStatus = (pair) => {
     if (pair.bye) {
@@ -1665,6 +1686,7 @@ function SwissMiniPanel({
           expected={pendingPairing.expected}
           contextLabel={`Round ${swiss.currentRound}`}
           onResolve={(result) => onResolvePairing(pendingPairing.id, result)}
+          onViewImage={onViewImage}
         />
       ) : (
         <div className="panel-placeholder">
@@ -1673,51 +1695,53 @@ function SwissMiniPanel({
             : "Awaiting next pairing..."}
         </div>
       )}
-      <div className="panel-body">
-        <div>
-          <h3>Round Pairings</h3>
-          <ul className="pairing-list">
-            {currentRound?.pairings?.map((pair) => (
-              <li key={pair.id}>{renderPairingStatus(pair)}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h3>Standings</h3>
-          <table className="standings-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Points</th>
-                <th>Record</th>
-                <th>Buchholz</th>
-              </tr>
-            </thead>
-            <tbody>
-              {standings.map((entry) => (
-                <tr key={entry.id}>
-                  <td>{entry.rank}</td>
-                  <td>
-                    <div className="standings-name">
-                      <TierBadge tierKey={entry.tierKey || imagesById[entry.id]?.tierKey} />
-                      <span>{imagesById[entry.id]?.name || entry.name}</span>
-                    </div>
-                  </td>
-                  <td>{entry.points}</td>
-                  <td>{formatRecord(entry.wins, entry.losses, entry.draws)}</td>
-                  <td>{roundTo(entry.buchholz, 1)}</td>
+      {showSummary ? (
+        <div className="panel-body final-standings">
+          <div>
+            <h3>Final Standings</h3>
+            <table className="standings-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Points</th>
+                  <th>Record</th>
+                  <th>Buchholz</th>
                 </tr>
+              </thead>
+              <tbody>
+                {standings.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{entry.rank}</td>
+                    <td>
+                      <div className="standings-name">
+                        <TierBadge tierKey={entry.tierKey || imagesById[entry.id]?.tierKey} />
+                        <span>{imagesById[entry.id]?.name || entry.name}</span>
+                      </div>
+                    </td>
+                    <td>{entry.points}</td>
+                    <td>{formatRecord(entry.wins, entry.losses, entry.draws)}</td>
+                    <td>{roundTo(entry.buchholz, 1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3>Latest Round</h3>
+            <ul className="pairing-list">
+              {currentRound?.pairings?.map((pair) => (
+                <li key={pair.id}>{renderPairingStatus(pair)}</li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
 
-function PlacementPanel({ queue, imagesById, onResolve, onCancel }) {
+function PlacementPanel({ queue, imagesById, onResolve, onCancel, onViewImage }) {
   if (!queue) return null;
 
   const image = imagesById[queue.imageId];
@@ -1749,6 +1773,7 @@ function PlacementPanel({ queue, imagesById, onResolve, onCancel }) {
           expected={expectedScore(image.rating, opponent.rating)}
           contextLabel="Placement"
           onResolve={onResolve}
+          onViewImage={onViewImage}
         />
       ) : (
         <div className="panel-placeholder">Placement complete!</div>
@@ -1789,6 +1814,7 @@ function TasteT() {
     return "lobby";
   });
   const pendingPreviewRef = useRef(new Set());
+  const [expandedImage, setExpandedImage] = useState(null);
 
   const imagesById = useMemo(() => {
     const map = {};
@@ -1808,6 +1834,29 @@ function TasteT() {
     : 0;
   const showPlacementCallout =
     mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
+  const isPlaying = mode === "swiss" || mode === "placement";
+
+  const handleViewImage = useCallback((image) => {
+    if (!image) return;
+    setExpandedImage(image);
+  }, []);
+
+  const handleCloseExpanded = useCallback(() => {
+    setExpandedImage(null);
+  }, []);
+
+  useEffect(() => {
+    if (!expandedImage || typeof window === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setExpandedImage(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [expandedImage]);
 
   const refreshLibrary = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -2160,8 +2209,10 @@ function TasteT() {
   const hasActiveSwiss = mode === "swiss" && activeSwiss;
   const hasPlacement = mode === "placement" && placementQueue;
 
+  const expandedImageSrc = expandedImage?.dataUrl || expandedImage?.imageUrl;
+
   return (
-    <div className="taste-t-app">
+    <div className={`taste-t-app${isPlaying ? " is-playing" : ""}`}>
       <div className="taste-t-frame">
         {hasActiveSwiss ? (
           <div className="taste-t-game">
@@ -2172,6 +2223,7 @@ function TasteT() {
               onAdvanceRound={handleAdvanceRound}
               onFinish={handleFinishSwiss}
               onCancel={handleCancelSwiss}
+              onViewImage={handleViewImage}
             />
           </div>
         ) : hasPlacement ? (
@@ -2181,6 +2233,7 @@ function TasteT() {
               imagesById={imagesById}
               onResolve={handleResolvePlacement}
               onCancel={handleCancelPlacement}
+              onViewImage={handleViewImage}
             />
           </div>
         ) : (
@@ -2385,6 +2438,23 @@ function TasteT() {
           </div>
         )}
       </div>
+      {expandedImageSrc ? (
+        <div className="taste-t-lightbox" role="dialog" aria-modal="true">
+          <div className="lightbox-backdrop" onClick={handleCloseExpanded} />
+          <div className="lightbox-content" role="document">
+            <button type="button" className="ghost lightbox-close" onClick={handleCloseExpanded}>
+              Close
+            </button>
+            <figure className="lightbox-figure">
+              <img src={expandedImageSrc} alt={expandedImage?.name || "Selected image"} />
+              <figcaption>
+                <strong>{expandedImage?.name}</strong>
+                <span>#{expandedImage?.tierKey}</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

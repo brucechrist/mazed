@@ -11,6 +11,54 @@
   overflow-x: hidden;
 }
 
+.taste-t-app.is-playing {
+  padding: clamp(16px, 4vw, 32px);
+}
+
+.taste-t-app.is-playing .taste-t-frame {
+  align-items: center;
+}
+
+.taste-t-app.is-playing .taste-t-game {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.taste-t-app.is-playing .taste-t-panel {
+  padding: clamp(24px, 4vw, 44px);
+  min-height: clamp(420px, 70vh, 720px);
+}
+
+.taste-t-app.is-playing .duel-card {
+  padding: clamp(24px, 4vw, 48px);
+  gap: clamp(20px, 4vw, 32px);
+}
+
+.taste-t-app.is-playing .duel-context {
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
+}
+
+.taste-t-app.is-playing .duel-combatants {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 18vw) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 32px);
+}
+
+.taste-t-app.is-playing .combatant-art {
+  height: clamp(320px, 60vh, 520px);
+}
+
+.taste-t-app.is-playing .combatant-meta h3 {
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+}
+
+.taste-t-app.is-playing .combatant-meta p {
+  font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+}
+
+.taste-t-app.is-playing .duel-actions {
+  gap: clamp(16px, 3vw, 24px);
+}
+
 .taste-t-frame {
   flex: 1 0 auto;
   width: 100%;
@@ -163,7 +211,7 @@
   color: rgba(238, 241, 255, 0.75);
 }
 
-button {
+.taste-t-app button {
   font: inherit;
   border: none;
   border-radius: 14px;
@@ -175,19 +223,19 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-button:hover {
+.taste-t-app button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(255, 144, 171, 0.35);
 }
 
-button:disabled {
+.taste-t-app button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
-button.ghost {
+.taste-t-app button.ghost {
   background: transparent;
   color: rgba(238, 241, 255, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -278,7 +326,7 @@ button.ghost {
 
 .duel-combatants {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) 110px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 140px;
   gap: 16px;
   align-items: stretch;
 }
@@ -292,6 +340,9 @@ button.ghost {
   overflow: hidden;
   background: rgba(8, 11, 25, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  justify-self: stretch;
+  min-width: 0;
 }
 
 .combatant .combatant-callout {
@@ -311,6 +362,7 @@ button.ghost {
 
 .combatant-art {
   height: 160px;
+  width: 100%;
   background-size: cover;
   background-position: center;
 }
@@ -346,6 +398,7 @@ button.ghost {
   align-items: center;
   gap: 12px;
   padding: 12px 0;
+  width: 100%;
 }
 
 .expected-label {
@@ -353,6 +406,18 @@ button.ghost {
   color: rgba(238, 241, 255, 0.65);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.view-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.view-button {
+  font-size: 0.8rem;
+  padding: 8px 12px;
 }
 
 .draw-button {
@@ -365,6 +430,28 @@ button.ghost {
 .panel-body {
   display: grid;
   gap: 16px;
+}
+
+.final-standings {
+  margin-top: 24px;
+  padding: clamp(16px, 3vw, 24px);
+  border-radius: 18px;
+  background: rgba(12, 16, 32, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.final-standings > div {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.final-standings h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(238, 241, 255, 0.8);
 }
 
 .pairing-list {
@@ -521,6 +608,63 @@ button.ghost {
   display: flex;
   justify-content: space-between;
   color: rgba(238, 241, 255, 0.75);
+}
+
+.taste-t-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 20, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.lightbox-content {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.lightbox-close {
+  align-self: flex-end;
+}
+
+.lightbox-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.lightbox-figure img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.lightbox-figure figcaption {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 1rem;
+  color: rgba(238, 241, 255, 0.9);
+}
+
+.lightbox-figure figcaption strong {
+  font-size: 1.1rem;
 }
 
 .tier-card li.empty {

@@ -511,6 +511,32 @@
   align-items: center;
 }
 
+.image-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--library-muted-text);
+}
+
+.image-meta-rank {
+  font-weight: 700;
+  color: var(--library-accent);
+}
+
+.image-meta-elo {
+  font-weight: 600;
+  color: var(--library-text);
+}
+
+.image-meta-unranked {
+  font-style: italic;
+  opacity: 0.75;
+}
+
 .library-tabs {
   display: flex;
   gap: 10px;
@@ -730,6 +756,32 @@
   margin: 0;
   font-size: 1.2rem;
   cursor: pointer;
+}
+
+.lightbox-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 0.95rem;
+  color: var(--library-muted-text);
+}
+
+.lightbox-rank {
+  font-weight: 700;
+  color: var(--library-accent);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lightbox-elo {
+  font-weight: 600;
+  color: var(--library-text);
+}
+
+.lightbox-unranked {
+  font-style: italic;
+  opacity: 0.75;
 }
 
 .lightbox-info input[type='text'] {
