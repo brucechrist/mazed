@@ -12,6 +12,7 @@ const PROMOTION_RD_CAP = 125;
 const LOG_LIMIT = 120;
 const HISTORY_LIMIT = 6;
 const RECENT_MATCHES_LIMIT = 6;
+const UNDO_STACK_LIMIT = 8;
 
 const TIER_RULES = [
   {
@@ -98,6 +99,40 @@ function arraysEqual(a = [], b = []) {
   return true;
 }
 
+function deepClone(value) {
+  if (value == null || typeof value !== "object") {
+    return value;
+  }
+
+  if (typeof structuredClone === "function") {
+    try {
+      return structuredClone(value);
+    } catch (error) {
+      // fall back to JSON strategy
+    }
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    console.warn("TierT: unable to clone value", error);
+    return value;
+  }
+}
+
+function valuesEqual(a, b) {
+  if (a === b) return true;
+  if (a == null && b == null) return true;
+  if (typeof a === "object" && typeof b === "object") {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch (error) {
+      return false;
+    }
+  }
+  return false;
+}
+
 function loadLibraryCatalog() {
   if (typeof window === "undefined") {
     return [];
@@ -128,6 +163,29 @@ function loadLibraryCatalog() {
             : typeof entry?.timestamp === "number"
             ? entry.timestamp
             : null;
+        const rating = typeof entry?.rating === "number" ? entry.rating : null;
+        const rd = typeof entry?.rd === "number" ? entry.rd : null;
+        const volatility = typeof entry?.volatility === "number" ? entry.volatility : null;
+        let tierKey = sanitizeText(entry?.tierKey || entry?.tier || "", null);
+        if (!tierKey && typeof rating === "number") {
+          tierKey = getTierByRating(rating);
+        }
+        const tierIndex =
+          typeof entry?.tierIndex === "number"
+            ? entry.tierIndex
+            : tierKey
+            ? getTierIndex(tierKey)
+            : 0;
+        const stats =
+          entry?.stats && typeof entry.stats === "object" && !Array.isArray(entry.stats)
+            ? { ...entry.stats }
+            : {};
+        const lastPlayedAt = typeof entry?.lastPlayedAt === "number" ? entry.lastPlayedAt : null;
+        const updatedAt = typeof entry?.updatedAt === "number" ? entry.updatedAt : createdAt;
+        const tierLog = Array.isArray(entry?.tierLog) ? entry.tierLog.slice(-10) : [];
+        const recentMatches = Array.isArray(entry?.recentMatches)
+          ? entry.recentMatches.slice(0, RECENT_MATCHES_LIMIT)
+          : [];
 
         return {
           id,
@@ -139,6 +197,16 @@ function loadLibraryCatalog() {
           height: typeof entry?.height === "number" ? entry.height : null,
           color: sanitizeText(entry?.color || "", null),
           createdAt,
+          rating,
+          rd,
+          volatility,
+          tierKey,
+          tierIndex,
+          stats,
+          lastPlayedAt,
+          updatedAt,
+          tierLog,
+          recentMatches,
         };
       })
       .filter(Boolean);
@@ -221,6 +289,56 @@ function synchronizeImagesWithLibrary(savedImages, libraryEntries) {
   }
 
   return { images: changed ? merged : savedImages, newIds, changed };
+}
+
+function mergeLibraryMetadataWithRatings(entries = [], images = []) {
+  if (!Array.isArray(entries) || !entries.length || !Array.isArray(images) || !images.length) {
+    return { entries, changed: false };
+  }
+
+  const imageMap = new Map(images.map((image) => [coerceLibraryId(image.id), image]));
+  let changed = false;
+
+  const nextEntries = entries.map((entry) => {
+    if (!entry) return entry;
+    const id = coerceLibraryId(entry.id);
+    if (!id || !imageMap.has(id)) {
+      return entry;
+    }
+
+    const image = imageMap.get(id);
+    const updates = {
+      rating: image.rating,
+      rd: image.rd,
+      volatility: image.volatility,
+      tierKey: image.tierKey,
+      tierIndex: image.tierIndex,
+      stats: image.stats,
+      lastPlayedAt: image.lastPlayedAt,
+      updatedAt: image.updatedAt,
+      tierLog: image.tierLog,
+      recentMatches: image.recentMatches,
+    };
+
+    let entryChanged = false;
+    const nextEntry = { ...entry };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!valuesEqual(entry[key], value)) {
+        nextEntry[key] = value;
+        entryChanged = true;
+      }
+    });
+
+    if (entryChanged) {
+      changed = true;
+      return nextEntry;
+    }
+
+    return entry;
+  });
+
+  return changed ? { entries: nextEntries, changed: true } : { entries, changed: false };
 }
 
 function buildPlacementQueueForImage(imageId, images, count = 5) {
@@ -1459,8 +1577,9 @@ function createSwissSummary(swiss, imagesById) {
   if (!swiss) return null;
 
   const standings = swiss.finalStandings || swiss.latestStandings || [];
-  const enriched = standings.map((entry) => {
+  const enriched = standings.map((entry, index) => {
     const image = imagesById[entry.id];
+    const fallbackRank = typeof entry.rank === "number" ? entry.rank : index + 1;
     return {
       id: entry.id,
       name: image?.name || entry.name,
@@ -1471,16 +1590,29 @@ function createSwissSummary(swiss, imagesById) {
       draws: entry.draws,
       points: entry.points,
       buchholz: entry.buchholz || 0,
-      rank: entry.rank,
+      rank: fallbackRank,
     };
   });
+
+  const sorted = enriched
+    .slice()
+    .sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      if ((b.points ?? 0) !== (a.points ?? 0)) return (b.points ?? 0) - (a.points ?? 0);
+      const aDiff = (a.wins || 0) - (a.losses || 0);
+      const bDiff = (b.wins || 0) - (b.losses || 0);
+      if (bDiff !== aDiff) return bDiff - aDiff;
+      return a.name.localeCompare(b.name);
+    });
 
   return {
     id: swiss.id,
     createdAt: swiss.createdAt,
     completedAt: swiss.completedAt || Date.now(),
     totalRounds: swiss.totalRounds,
-    participants: enriched,
+    participants: sorted,
+    size: sorted.length,
+    winnerId: sorted[0]?.id || null,
   };
 }
 
@@ -1546,6 +1678,7 @@ function DuelCard({
   expected = 0.5,
   contextLabel,
   onResolve,
+  onViewImage,
 }) {
   if (!leftImage || !rightImage) {
     return null;
@@ -1572,6 +1705,24 @@ function DuelCard({
         </button>
         <div className="duel-actions">
           <span className="expected-label">{`Expected ${Math.round(expected * 100)}%`}</span>
+          <div className="view-buttons">
+            <button
+              type="button"
+              className="ghost view-button"
+              onClick={() => onViewImage?.(leftImage)}
+              disabled={disabled}
+            >
+              View Left
+            </button>
+            <button
+              type="button"
+              className="ghost view-button"
+              onClick={() => onViewImage?.(rightImage)}
+              disabled={disabled}
+            >
+              View Right
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => onResolve("draw")}
@@ -1608,12 +1759,14 @@ function SwissMiniPanel({
   onAdvanceRound,
   onFinish,
   onCancel,
+  onViewImage,
 }) {
   if (!swiss) return null;
 
   const currentRound = swiss.rounds.find((round) => round.index === swiss.currentRound);
   const pendingPairing = currentRound?.pairings?.find((pair) => !pair.resolved && !pair.bye);
   const standings = swiss.latestStandings || computeStandings(swiss.participants).standings;
+  const showSummary = swiss.status === "awaiting-finish" || swiss.status === "completed";
 
   const renderPairingStatus = (pair) => {
     if (pair.bye) {
@@ -1665,6 +1818,7 @@ function SwissMiniPanel({
           expected={pendingPairing.expected}
           contextLabel={`Round ${swiss.currentRound}`}
           onResolve={(result) => onResolvePairing(pendingPairing.id, result)}
+          onViewImage={onViewImage}
         />
       ) : (
         <div className="panel-placeholder">
@@ -1673,51 +1827,53 @@ function SwissMiniPanel({
             : "Awaiting next pairing..."}
         </div>
       )}
-      <div className="panel-body">
-        <div>
-          <h3>Round Pairings</h3>
-          <ul className="pairing-list">
-            {currentRound?.pairings?.map((pair) => (
-              <li key={pair.id}>{renderPairingStatus(pair)}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h3>Standings</h3>
-          <table className="standings-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Points</th>
-                <th>Record</th>
-                <th>Buchholz</th>
-              </tr>
-            </thead>
-            <tbody>
-              {standings.map((entry) => (
-                <tr key={entry.id}>
-                  <td>{entry.rank}</td>
-                  <td>
-                    <div className="standings-name">
-                      <TierBadge tierKey={entry.tierKey || imagesById[entry.id]?.tierKey} />
-                      <span>{imagesById[entry.id]?.name || entry.name}</span>
-                    </div>
-                  </td>
-                  <td>{entry.points}</td>
-                  <td>{formatRecord(entry.wins, entry.losses, entry.draws)}</td>
-                  <td>{roundTo(entry.buchholz, 1)}</td>
+      {showSummary ? (
+        <div className="panel-body final-standings">
+          <div>
+            <h3>Final Standings</h3>
+            <table className="standings-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Points</th>
+                  <th>Record</th>
+                  <th>Buchholz</th>
                 </tr>
+              </thead>
+              <tbody>
+                {standings.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{entry.rank}</td>
+                    <td>
+                      <div className="standings-name">
+                        <TierBadge tierKey={entry.tierKey || imagesById[entry.id]?.tierKey} />
+                        <span>{imagesById[entry.id]?.name || entry.name}</span>
+                      </div>
+                    </td>
+                    <td>{entry.points}</td>
+                    <td>{formatRecord(entry.wins, entry.losses, entry.draws)}</td>
+                    <td>{roundTo(entry.buchholz, 1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3>Latest Round</h3>
+            <ul className="pairing-list">
+              {currentRound?.pairings?.map((pair) => (
+                <li key={pair.id}>{renderPairingStatus(pair)}</li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
 
-function PlacementPanel({ queue, imagesById, onResolve, onCancel }) {
+function PlacementPanel({ queue, imagesById, onResolve, onCancel, onViewImage }) {
   if (!queue) return null;
 
   const image = imagesById[queue.imageId];
@@ -1749,6 +1905,7 @@ function PlacementPanel({ queue, imagesById, onResolve, onCancel }) {
           expected={expectedScore(image.rating, opponent.rating)}
           contextLabel="Placement"
           onResolve={onResolve}
+          onViewImage={onViewImage}
         />
       ) : (
         <div className="panel-placeholder">Placement complete!</div>
@@ -1789,6 +1946,8 @@ function TasteT() {
     return "lobby";
   });
   const pendingPreviewRef = useRef(new Set());
+  const [expandedImage, setExpandedImage] = useState(null);
+  const [undoStack, setUndoStack] = useState([]);
 
   const imagesById = useMemo(() => {
     const map = {};
@@ -1808,6 +1967,57 @@ function TasteT() {
     : 0;
   const showPlacementCallout =
     mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
+  const isPlaying = mode === "swiss" || mode === "placement";
+  const canUndo = undoStack.length > 0;
+
+  const createUndoState = useCallback(() => ({
+    images: deepClone(images),
+    duelLog: deepClone(duelLog),
+    activeSwiss: deepClone(activeSwiss),
+    placementQueue: deepClone(placementQueue),
+    mode,
+  }), [images, duelLog, activeSwiss, placementQueue, mode]);
+
+  const pushUndoState = useCallback((snapshot) => {
+    if (!snapshot) return;
+    setUndoStack((current) => [snapshot, ...current].slice(0, UNDO_STACK_LIMIT));
+  }, []);
+
+  const handleViewImage = useCallback((image) => {
+    if (!image) return;
+    setExpandedImage(image);
+  }, []);
+
+  const handleCloseExpanded = useCallback(() => {
+    setExpandedImage(null);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack((current) => {
+      if (!current.length) return current;
+      const [latest, ...rest] = current;
+      setImages(latest?.images ? deepClone(latest.images) : []);
+      setDuelLog(latest?.duelLog ? deepClone(latest.duelLog) : []);
+      setActiveSwiss(latest?.activeSwiss ? deepClone(latest.activeSwiss) : null);
+      setPlacementQueue(latest?.placementQueue ? deepClone(latest.placementQueue) : null);
+      setMode(latest?.mode || "lobby");
+      return rest;
+    });
+    setExpandedImage(null);
+  }, [setImages, setDuelLog, setActiveSwiss, setPlacementQueue, setMode, setExpandedImage]);
+
+  useEffect(() => {
+    if (!expandedImage || typeof window === "undefined") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setExpandedImage(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [expandedImage]);
 
   const refreshLibrary = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -1863,6 +2073,47 @@ function TasteT() {
       }
     }
   }, [libraryEntries]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !images.length) {
+      return;
+    }
+
+    let baseEntries = libraryEntries;
+    if (!Array.isArray(baseEntries) || !baseEntries.length) {
+      try {
+        const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            baseEntries = parsed;
+          }
+        }
+      } catch (error) {
+        console.warn("TierT: unable to inspect library storage", error);
+      }
+    }
+
+    if (!Array.isArray(baseEntries) || !baseEntries.length) {
+      return;
+    }
+
+    const { entries: nextEntries, changed } = mergeLibraryMetadataWithRatings(baseEntries, images);
+    if (!changed) {
+      if (baseEntries !== libraryEntries && Array.isArray(baseEntries)) {
+        setLibraryEntries(baseEntries);
+      }
+      return;
+    }
+
+    try {
+      localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(nextEntries));
+    } catch (error) {
+      console.warn("TierT: unable to sync ratings to library", error);
+    }
+
+    setLibraryEntries(nextEntries);
+  }, [images, libraryEntries]);
 
   useEffect(() => {
     if (!placementQueue) return;
@@ -1994,6 +2245,10 @@ function TasteT() {
 
   const handleResolvePairing = useCallback(
     (pairingId, outcome) => {
+      const snapshot = createUndoState();
+      let resolution = null;
+      let resolved = false;
+
       setActiveSwiss((current) => {
         if (!current) return current;
         const round = current.rounds.find((entry) => entry.index === current.currentRound);
@@ -2007,17 +2262,25 @@ function TasteT() {
           return current;
         }
 
-        const resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
+        resolution = resolveDuelForImages(leftImage, rightImage, outcome, {
           mode: "swiss",
           swissId: current.id,
           round: current.currentRound,
           pairingId,
         });
-        applyResolution(resolution);
+        if (!resolution) {
+          return current;
+        }
+        resolved = true;
         return updateSwissWithResult(current, pairingId, resolution);
       });
+
+      if (resolved && resolution) {
+        pushUndoState(snapshot);
+        applyResolution(resolution);
+      }
     },
-    [imagesById, applyResolution],
+    [imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
   const handleAdvanceRound = useCallback(() => {
@@ -2105,27 +2368,31 @@ function TasteT() {
     (outcome) => {
       if (!placementQueue) return;
 
+      const snapshot = createUndoState();
       const queueImage = imagesById[placementQueue.imageId];
       const opponentId = placementQueue.opponents[placementQueue.currentIndex];
       const opponent = imagesById[opponentId];
       let completed = false;
       let historyEntry = null;
+      let resolution = null;
+      let advanced = false;
 
       if (queueImage && opponent) {
-        const resolution = resolveDuelForImages(queueImage, opponent, outcome, {
+        resolution = resolveDuelForImages(queueImage, opponent, outcome, {
           mode: "placement",
         });
-        applyResolution(resolution);
-        const delta =
-          resolution.left.image.id === queueImage.id
-            ? resolution.left.deltaRating
-            : resolution.right.deltaRating;
-        historyEntry = {
-          id: resolution.duelEntry.id,
-          opponentId,
-          outcome: outcome === "left" ? "Win" : outcome === "right" ? "Loss" : "Draw",
-          delta,
-        };
+        if (resolution) {
+          const delta =
+            resolution.left.image.id === queueImage.id
+              ? resolution.left.deltaRating
+              : resolution.right.deltaRating;
+          historyEntry = {
+            id: resolution.duelEntry.id,
+            opponentId,
+            outcome: outcome === "left" ? "Win" : outcome === "right" ? "Loss" : "Draw",
+            delta,
+          };
+        }
       } else {
         historyEntry = {
           id: `placement-${Date.now()}`,
@@ -2141,8 +2408,10 @@ function TasteT() {
         const nextIndex = current.currentIndex + 1;
         if (nextIndex >= current.opponents.length) {
           completed = true;
+          advanced = true;
           return null;
         }
+        advanced = true;
         return {
           ...current,
           currentIndex: nextIndex,
@@ -2150,19 +2419,36 @@ function TasteT() {
         };
       });
 
+      if (advanced) {
+        pushUndoState(snapshot);
+      }
+
+      if (resolution) {
+        applyResolution(resolution);
+      }
+
       if (completed) {
         setMode("lobby");
       }
     },
-    [placementQueue, imagesById, applyResolution],
+    [placementQueue, imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
   const hasActiveSwiss = mode === "swiss" && activeSwiss;
   const hasPlacement = mode === "placement" && placementQueue;
 
+  const expandedImageSrc = expandedImage?.dataUrl || expandedImage?.imageUrl;
+
   return (
-    <div className="taste-t-app">
+    <div className={`taste-t-app${isPlaying ? " is-playing" : ""}`}>
       <div className="taste-t-frame">
+        {canUndo ? (
+          <div className="taste-t-toolbar">
+            <button type="button" className="ghost" onClick={handleUndo} disabled={!canUndo}>
+              Undo last result
+            </button>
+          </div>
+        ) : null}
         {hasActiveSwiss ? (
           <div className="taste-t-game">
             <SwissMiniPanel
@@ -2172,6 +2458,7 @@ function TasteT() {
               onAdvanceRound={handleAdvanceRound}
               onFinish={handleFinishSwiss}
               onCancel={handleCancelSwiss}
+              onViewImage={handleViewImage}
             />
           </div>
         ) : hasPlacement ? (
@@ -2181,6 +2468,7 @@ function TasteT() {
               imagesById={imagesById}
               onResolve={handleResolvePlacement}
               onCancel={handleCancelPlacement}
+              onViewImage={handleViewImage}
             />
           </div>
         ) : (
@@ -2365,17 +2653,66 @@ function TasteT() {
                 <h2>Swiss History</h2>
                 {swissHistory.length ? (
                   <ul className="swiss-history">
-                    {swissHistory.map((entry) => (
-                      <li key={entry.id}>
-                        <div>
-                          <strong>{entry.id}</strong>
-                          <span>
-                            {entry.participants[0]?.name || "Swiss"} · {entry.totalRounds} rounds · {entry.participants.length} images
-                          </span>
-                        </div>
-                        <div>Winner: {entry.participants.find((p) => p.rank === 1)?.name || ""}</div>
-                      </li>
-                    ))}
+                    {swissHistory.map((entry) => {
+                      const winner = entry.participants[0];
+                      return (
+                        <li key={entry.id} className="swiss-history-card">
+                          <div className="swiss-history-header">
+                            <div>
+                              <h3>
+                                {entry.size || entry.participants.length} image Swiss · {entry.totalRounds} rounds
+                              </h3>
+                              <p>
+                                Finished {formatRelativeTime(entry.completedAt)} · ID {entry.id}
+                              </p>
+                            </div>
+                            <div className="swiss-history-winner">
+                              <span>Winner</span>
+                              <strong>{winner?.name || "—"}</strong>
+                              {typeof winner?.points === "number" ? (
+                                <em>{`${winner.points} pts`}</em>
+                              ) : null}
+                            </div>
+                          </div>
+                          <ol className="swiss-standings">
+                            {entry.participants.map((participant, index) => {
+                              const rank = participant.rank ?? index + 1;
+                              const ratingLabel =
+                                typeof participant.rating === "number"
+                                  ? Math.round(participant.rating)
+                                  : "—";
+                              const buchholzLabel =
+                                typeof participant.buchholz === "number" && participant.buchholz
+                                  ? ` · Buchholz ${roundTo(participant.buchholz, 1)}`
+                                  : "";
+                              return (
+                                <li key={participant.id}>
+                                  <span className="standing-rank">#{rank}</span>
+                                  <div className="standing-meta">
+                                    <span className="standing-name">{participant.name}</span>
+                                    <span className="standing-record">
+                                      {formatRecord(
+                                        participant.wins,
+                                        participant.losses,
+                                        participant.draws,
+                                      )}
+                                      {typeof participant.points === "number"
+                                        ? ` · ${participant.points} pts`
+                                        : ""}
+                                      {buchholzLabel}
+                                    </span>
+                                  </div>
+                                  <div className="standing-right">
+                                    <span className="standing-rating">{ratingLabel}</span>
+                                    <span className="standing-tier">#{participant.tierKey}</span>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <div className="panel-placeholder">Finish a Swiss mini to see it logged here.</div>
@@ -2385,6 +2722,23 @@ function TasteT() {
           </div>
         )}
       </div>
+      {expandedImageSrc ? (
+        <div className="taste-t-lightbox" role="dialog" aria-modal="true">
+          <div className="lightbox-backdrop" onClick={handleCloseExpanded} />
+          <div className="lightbox-content" role="document">
+            <button type="button" className="ghost lightbox-close" onClick={handleCloseExpanded}>
+              Close
+            </button>
+            <figure className="lightbox-figure">
+              <img src={expandedImageSrc} alt={expandedImage?.name || "Selected image"} />
+              <figcaption>
+                <strong>{expandedImage?.name}</strong>
+                <span>#{expandedImage?.tierKey}</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
