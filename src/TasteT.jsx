@@ -1865,7 +1865,15 @@ function createSwissSummary(swiss, imagesById) {
     winnerId: championId,
     championId,
     finalMatch: resolvedFinal,
-    gallery: sorted.slice(0, 6).map((entry) => ({ id: entry.id, rank: entry.rank, name: entry.name })),
+    gallery: sorted.slice(0, 6).map((entry) => {
+      const image = imagesById[entry.id];
+      return {
+        id: entry.id,
+        rank: entry.rank,
+        name: entry.name,
+        preview: image?.dataUrl || image?.imageUrl || null,
+      };
+    }),
   };
 }
 
@@ -2254,7 +2262,9 @@ function TasteT() {
   const [miniSize, setMiniSize] = useState(initialState.miniSize || 8);
   const [libraryEntries, setLibraryEntries] = useState(initialState.libraryEntries);
   const [mode, setMode] = useState(() => {
-    if (initialState.activeSwiss) return "swiss";
+    if (initialState.activeSwiss) {
+      return initialState.activeSwiss.status === "awaiting-finish" ? "lobby" : "swiss";
+    }
     if (initialState.placementQueue && initialState.placementQueueRestored) return "placement";
     return "lobby";
   });
@@ -2809,22 +2819,25 @@ function TasteT() {
     [imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
-  const handleFinishSwiss = useCallback(() => {
+  const finalizeCurrentSwiss = useCallback(() => {
     let summary = null;
+    let finalized = false;
     setActiveSwiss((current) => {
       if (!current) return current;
       if (current.finalMatch && !current.finalMatch.resolved) {
         return current;
       }
       const { standings } = computeStandings(current.participants);
+      const completedAt = current.completedAt || Date.now();
       const completed = {
         ...current,
         status: "completed",
-        completedAt: Date.now(),
+        completedAt,
         finalStandings: standings,
         latestStandings: standings,
       };
       summary = createSwissSummary(completed, imagesById);
+      finalized = true;
       return null;
     });
     if (summary) {
@@ -2833,8 +2846,22 @@ function TasteT() {
         return [summary, ...filtered].slice(0, HISTORY_LIMIT);
       });
     }
-    setMode("lobby");
-  }, [imagesById]);
+    if (finalized) {
+      setMode("lobby");
+    }
+    return summary;
+  }, [imagesById, setSwissHistory, setMode]);
+
+  const handleFinishSwiss = useCallback(() => {
+    finalizeCurrentSwiss();
+  }, [finalizeCurrentSwiss]);
+
+  useEffect(() => {
+    if (!activeSwiss) return;
+    if (activeSwiss.status !== "awaiting-finish") return;
+    if (mode === "swiss") return;
+    finalizeCurrentSwiss();
+  }, [activeSwiss, mode, finalizeCurrentSwiss]);
 
   const handleCancelSwiss = useCallback(() => {
     setActiveSwiss(null);
@@ -3201,7 +3228,7 @@ function TasteT() {
                           </div>
                           <div className="swiss-history-gallery">
                             {galleryItems.slice(0, 4).map((participant) => {
-                              const preview = getPreviewFor(participant.id);
+                              const preview = participant.preview || getPreviewFor(participant.id);
                               return (
                                 <figure key={participant.id} className="swiss-history-figure">
                                   {preview ? (
