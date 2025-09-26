@@ -2131,7 +2131,7 @@ function SwissMiniPanel({
         </div>
         <div className="panel-actions">
           <button type="button" className="ghost" onClick={onCancel}>
-            Abandon
+            {swiss.status === "completed" ? "Close summary" : "Abandon"}
           </button>
           {swiss.awaitingAdvance && swiss.status === "awaiting-final" ? (
             <button type="button" onClick={onAdvanceRound}>
@@ -2173,7 +2173,9 @@ function SwissMiniPanel({
         />
       ) : (
         <div className="panel-placeholder">
-          {swiss.awaitingAdvance
+          {swiss.status === "completed"
+            ? "Swiss mini completed! Review the final standings below."
+            : swiss.awaitingAdvance
             ? "All pairings resolved. Continue when ready."
             : "Awaiting next pairing..."}
         </div>
@@ -2869,7 +2871,7 @@ function TasteT() {
 
   const finalizeCurrentSwiss = useCallback(() => {
     let summary = null;
-    let finalized = false;
+    let finalized = null;
     setActiveSwiss((current) => {
       if (!current) return current;
       if (current.status !== "awaiting-finish") {
@@ -2886,10 +2888,11 @@ function TasteT() {
         completedAt,
         finalStandings: standings,
         latestStandings: standings,
+        awaitingAdvance: false,
       };
       summary = createSwissSummary(completed, imagesById);
-      finalized = true;
-      return null;
+      finalized = completed;
+      return completed;
     });
     if (summary) {
       setSwissHistory((current) => {
@@ -2897,11 +2900,11 @@ function TasteT() {
         return [summary, ...filtered].slice(0, HISTORY_LIMIT);
       });
     }
-    if (finalized) {
+    if (finalized && mode !== "swiss") {
       setMode("lobby");
     }
     return summary;
-  }, [imagesById, setSwissHistory, setMode]);
+  }, [imagesById, setSwissHistory, setMode, mode]);
 
   const handleFinishSwiss = useCallback(() => {
     finalizeCurrentSwiss();
@@ -2910,9 +2913,8 @@ function TasteT() {
   useEffect(() => {
     if (!activeSwiss) return;
     if (activeSwiss.status !== "awaiting-finish") return;
-    if (mode === "swiss") return;
     finalizeCurrentSwiss();
-  }, [activeSwiss, mode, finalizeCurrentSwiss]);
+  }, [activeSwiss, finalizeCurrentSwiss]);
 
   const handleCancelSwiss = useCallback(() => {
     setActiveSwiss(null);
