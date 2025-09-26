@@ -2917,7 +2917,7 @@ function TasteT() {
 
       summary = completedSummary;
       finalized = completedSwiss;
-      return completedSwiss;
+      return null;
     });
     if (summary) {
       setSwissHistory((current) => {
@@ -2925,11 +2925,11 @@ function TasteT() {
         return [summary, ...filtered].slice(0, HISTORY_LIMIT);
       });
     }
-    if (finalized && finalized.status === "completed" && mode !== "swiss") {
+    if (finalized) {
       setMode("lobby");
     }
     return summary;
-  }, [imagesById, setSwissHistory, setMode, mode]);
+  }, [imagesById, setSwissHistory, setMode]);
 
   const handleFinishSwiss = useCallback(() => {
     finalizeCurrentSwiss();
