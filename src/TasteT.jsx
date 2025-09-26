@@ -518,13 +518,38 @@ function prepareStateForStorage(state) {
     ? state.duelLog.map(serializeDuelLogEntry).filter(Boolean)
     : [];
 
+  let swissHistory = Array.isArray(state.swissHistory)
+    ? state.swissHistory.slice(0, HISTORY_LIMIT)
+    : [];
+  let activeSwiss = state.activeSwiss || null;
+
+  if (activeSwiss && activeSwiss.status === "awaiting-finish") {
+    const finalStandings =
+      activeSwiss.finalStandings || activeSwiss.latestStandings || computeStandings(activeSwiss.participants).standings;
+    const completedAt = activeSwiss.completedAt || Date.now();
+    const completedSwiss = {
+      ...activeSwiss,
+      status: "completed",
+      completedAt,
+      finalStandings,
+      latestStandings: finalStandings,
+    };
+    const imagesById = images.reduce((acc, image) => {
+      acc[image.id] = image;
+      return acc;
+    }, {});
+    const summary = createSwissSummary(completedSwiss, imagesById);
+    if (summary) {
+      swissHistory = [summary, ...swissHistory.filter((entry) => entry.id !== summary.id)].slice(0, HISTORY_LIMIT);
+    }
+    activeSwiss = null;
+  }
+
   return {
     images,
     duelLog,
-    swissHistory: Array.isArray(state.swissHistory)
-      ? state.swissHistory.slice(0, HISTORY_LIMIT)
-      : [],
-    activeSwiss: state.activeSwiss || null,
+    swissHistory,
+    activeSwiss,
     placementQueue: state.placementQueue || null,
     selectedTag: state.selectedTag || "",
     miniSize: state.miniSize || MINI_SIZE_OPTIONS[0],
@@ -1107,10 +1132,33 @@ function loadInitialState() {
     const duelLog = Array.isArray(parsed.duelLog)
       ? parsed.duelLog.slice(0, LOG_LIMIT)
       : base.duelLog;
-    const swissHistory = Array.isArray(parsed.swissHistory)
+    let swissHistory = Array.isArray(parsed.swissHistory)
       ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
       : base.swissHistory;
     let activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+
+    const imagesById = images.reduce((acc, image) => {
+      acc[image.id] = image;
+      return acc;
+    }, {});
+
+    if (activeSwiss && activeSwiss.status === "awaiting-finish") {
+      const finalStandings =
+        activeSwiss.finalStandings || activeSwiss.latestStandings || computeStandings(activeSwiss.participants).standings;
+      const completedAt = activeSwiss.completedAt || Date.now();
+      const completedSwiss = {
+        ...activeSwiss,
+        status: "completed",
+        completedAt,
+        finalStandings,
+        latestStandings: finalStandings,
+      };
+      const summary = createSwissSummary(completedSwiss, imagesById);
+      if (summary) {
+        swissHistory = [summary, ...swissHistory.filter((entry) => entry.id !== summary.id)].slice(0, HISTORY_LIMIT);
+      }
+      activeSwiss = null;
+    }
 
     if (activeSwiss && (activeSwiss.status === "completed" || activeSwiss.completedAt)) {
       activeSwiss = null;
@@ -2824,6 +2872,9 @@ function TasteT() {
     let finalized = false;
     setActiveSwiss((current) => {
       if (!current) return current;
+      if (current.status !== "awaiting-finish") {
+        return current;
+      }
       if (current.finalMatch && !current.finalMatch.resolved) {
         return current;
       }
