@@ -518,13 +518,38 @@ function prepareStateForStorage(state) {
     ? state.duelLog.map(serializeDuelLogEntry).filter(Boolean)
     : [];
 
+  let swissHistory = Array.isArray(state.swissHistory)
+    ? state.swissHistory.slice(0, HISTORY_LIMIT)
+    : [];
+  let activeSwiss = state.activeSwiss || null;
+
+  if (activeSwiss && activeSwiss.status === "awaiting-finish") {
+    const finalStandings =
+      activeSwiss.finalStandings || activeSwiss.latestStandings || computeStandings(activeSwiss.participants).standings;
+    const completedAt = activeSwiss.completedAt || Date.now();
+    const completedSwiss = {
+      ...activeSwiss,
+      status: "completed",
+      completedAt,
+      finalStandings,
+      latestStandings: finalStandings,
+    };
+    const imagesById = images.reduce((acc, image) => {
+      acc[image.id] = image;
+      return acc;
+    }, {});
+    const summary = createSwissSummary(completedSwiss, imagesById);
+    if (summary) {
+      swissHistory = [summary, ...swissHistory.filter((entry) => entry.id !== summary.id)].slice(0, HISTORY_LIMIT);
+    }
+    activeSwiss = null;
+  }
+
   return {
     images,
     duelLog,
-    swissHistory: Array.isArray(state.swissHistory)
-      ? state.swissHistory.slice(0, HISTORY_LIMIT)
-      : [],
-    activeSwiss: state.activeSwiss || null,
+    swissHistory,
+    activeSwiss,
     placementQueue: state.placementQueue || null,
     selectedTag: state.selectedTag || "",
     miniSize: state.miniSize || MINI_SIZE_OPTIONS[0],
@@ -1107,10 +1132,33 @@ function loadInitialState() {
     const duelLog = Array.isArray(parsed.duelLog)
       ? parsed.duelLog.slice(0, LOG_LIMIT)
       : base.duelLog;
-    const swissHistory = Array.isArray(parsed.swissHistory)
+    let swissHistory = Array.isArray(parsed.swissHistory)
       ? parsed.swissHistory.slice(0, HISTORY_LIMIT)
       : base.swissHistory;
     let activeSwiss = parsed.activeSwiss ? normalizeSwiss(parsed.activeSwiss) : null;
+
+    const imagesById = images.reduce((acc, image) => {
+      acc[image.id] = image;
+      return acc;
+    }, {});
+
+    if (activeSwiss && activeSwiss.status === "awaiting-finish") {
+      const finalStandings =
+        activeSwiss.finalStandings || activeSwiss.latestStandings || computeStandings(activeSwiss.participants).standings;
+      const completedAt = activeSwiss.completedAt || Date.now();
+      const completedSwiss = {
+        ...activeSwiss,
+        status: "completed",
+        completedAt,
+        finalStandings,
+        latestStandings: finalStandings,
+      };
+      const summary = createSwissSummary(completedSwiss, imagesById);
+      if (summary) {
+        swissHistory = [summary, ...swissHistory.filter((entry) => entry.id !== summary.id)].slice(0, HISTORY_LIMIT);
+      }
+      activeSwiss = null;
+    }
 
     if (activeSwiss && (activeSwiss.status === "completed" || activeSwiss.completedAt)) {
       activeSwiss = null;
@@ -1865,7 +1913,15 @@ function createSwissSummary(swiss, imagesById) {
     winnerId: championId,
     championId,
     finalMatch: resolvedFinal,
-    gallery: sorted.slice(0, 6).map((entry) => ({ id: entry.id, rank: entry.rank, name: entry.name })),
+    gallery: sorted.slice(0, 6).map((entry) => {
+      const image = imagesById[entry.id];
+      return {
+        id: entry.id,
+        rank: entry.rank,
+        name: entry.name,
+        preview: image?.dataUrl || image?.imageUrl || null,
+      };
+    }),
   };
 }
 
@@ -2075,7 +2131,7 @@ function SwissMiniPanel({
         </div>
         <div className="panel-actions">
           <button type="button" className="ghost" onClick={onCancel}>
-            Abandon
+            {swiss.status === "completed" ? "Close summary" : "Abandon"}
           </button>
           {swiss.awaitingAdvance && swiss.status === "awaiting-final" ? (
             <button type="button" onClick={onAdvanceRound}>
@@ -2117,7 +2173,9 @@ function SwissMiniPanel({
         />
       ) : (
         <div className="panel-placeholder">
-          {swiss.awaitingAdvance
+          {swiss.status === "completed"
+            ? "Swiss mini completed! Review the final standings below."
+            : swiss.awaitingAdvance
             ? "All pairings resolved. Continue when ready."
             : "Awaiting next pairing..."}
         </div>
@@ -2254,7 +2312,9 @@ function TasteT() {
   const [miniSize, setMiniSize] = useState(initialState.miniSize || 8);
   const [libraryEntries, setLibraryEntries] = useState(initialState.libraryEntries);
   const [mode, setMode] = useState(() => {
-    if (initialState.activeSwiss) return "swiss";
+    if (initialState.activeSwiss) {
+      return initialState.activeSwiss.status === "awaiting-finish" ? "lobby" : "swiss";
+    }
     if (initialState.placementQueue && initialState.placementQueueRestored) return "placement";
     return "lobby";
   });
@@ -2809,23 +2869,30 @@ function TasteT() {
     [imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
-  const handleFinishSwiss = useCallback(() => {
+  const finalizeCurrentSwiss = useCallback(() => {
     let summary = null;
+    let finalized = null;
     setActiveSwiss((current) => {
       if (!current) return current;
+      if (current.status !== "awaiting-finish") {
+        return current;
+      }
       if (current.finalMatch && !current.finalMatch.resolved) {
         return current;
       }
       const { standings } = computeStandings(current.participants);
+      const completedAt = current.completedAt || Date.now();
       const completed = {
         ...current,
         status: "completed",
-        completedAt: Date.now(),
+        completedAt,
         finalStandings: standings,
         latestStandings: standings,
+        awaitingAdvance: false,
       };
       summary = createSwissSummary(completed, imagesById);
-      return null;
+      finalized = completed;
+      return completed;
     });
     if (summary) {
       setSwissHistory((current) => {
@@ -2833,8 +2900,21 @@ function TasteT() {
         return [summary, ...filtered].slice(0, HISTORY_LIMIT);
       });
     }
-    setMode("lobby");
-  }, [imagesById]);
+    if (finalized && mode !== "swiss") {
+      setMode("lobby");
+    }
+    return summary;
+  }, [imagesById, setSwissHistory, setMode, mode]);
+
+  const handleFinishSwiss = useCallback(() => {
+    finalizeCurrentSwiss();
+  }, [finalizeCurrentSwiss]);
+
+  useEffect(() => {
+    if (!activeSwiss) return;
+    if (activeSwiss.status !== "awaiting-finish") return;
+    finalizeCurrentSwiss();
+  }, [activeSwiss, finalizeCurrentSwiss]);
 
   const handleCancelSwiss = useCallback(() => {
     setActiveSwiss(null);
@@ -3201,7 +3281,7 @@ function TasteT() {
                           </div>
                           <div className="swiss-history-gallery">
                             {galleryItems.slice(0, 4).map((participant) => {
-                              const preview = getPreviewFor(participant.id);
+                              const preview = participant.preview || getPreviewFor(participant.id);
                               return (
                                 <figure key={participant.id} className="swiss-history-figure">
                                   {preview ? (
