@@ -27,6 +27,7 @@ import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
+import Weakness from './Weakness.jsx';
 import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
 import FormlessCharacter from './FormlessCharacter.jsx';
 import SettingsModal from './SettingsModal.jsx';
@@ -81,6 +82,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showCharacterEvolve, setShowCharacterEvolve] = useState(false);
+  const [showWeakness, setShowWeakness] = useState(false);
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
   const [showImplementationIdeas, setShowImplementationIdeas] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
@@ -117,6 +119,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       todoGoals: 'Form',
       activity: 'Form',
       characterEvolve: 'Form',
+      weakness: 'Semi-Formless',
       ideaBoard: 'Form',
       implementationIdeas: 'Form',
       orb: 'Form',
@@ -186,6 +189,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showTodoGoals ||
     showActivity ||
     showCharacterEvolve ||
+    showWeakness ||
     showSemiCharacter ||
     showIdeaBoard ||
     showImplementationIdeas ||
@@ -216,6 +220,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowTodoGoals(false);
     setShowActivity(false);
     setShowCharacterEvolve(false);
+    setShowWeakness(false);
     setShowSemiCharacter(false);
     setShowIdeaBoard(false);
     setShowImplementationIdeas(false);
@@ -686,6 +691,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <ActivityApp onBack={() => setShowActivity(false)} />
             ) : showCharacterEvolve ? (
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
+            ) : showWeakness ? (
+              <Weakness onBack={() => setShowWeakness(false)} />
             ) : showSemiCharacter ? (
               <SemiFormlessCharacter onBack={() => setShowSemiCharacter(false)} />
             ) : showIdeaBoard ? (
@@ -926,6 +933,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">🌱</div>
                     <span>Character Evolve</span>
+                  </div>
+                )}
+                {appLayers.weakness === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowWeakness(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'weakness')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'weakness')}
+                  >
+                    <div className="star-icon">⚡</div>
+                    <span>Weakness</span>
                   </div>
                 )}
                 {appLayers.semiCharacter === activeLayer && (
