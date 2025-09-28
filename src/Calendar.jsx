@@ -5,7 +5,7 @@ import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./calendar-app.css";
-import EventModal from "../EventModal.jsx";
+import EventModal from "./EventModal.jsx";
 import BlockModal from "./BlockModal.jsx";
 
 const localizer = momentLocalizer(moment);

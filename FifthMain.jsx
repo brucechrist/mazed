@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import NoteModal from './NoteModal.jsx';
-import NotesListModal from './NotesListModal.jsx';
+import NoteModal from './src/NoteModal.jsx';
+import NotesListModal from './src/NotesListModal.jsx';
 import './main-page.css';
-import QuadrantMenu from './QuadrantMenu.jsx';
+import QuadrantMenu from './src/QuadrantMenu.jsx';
 import DayPlanner from './src/DayPlanner.jsx';
 
 export default function FifthMain({ onSelectQuadrant }) {

@@ -14,6 +14,14 @@ export default function SemiFormlessCharacter({ onBack }) {
     savePalette(colors);
   }, [colors]);
 
+  // Ensure full-screen character layout like the Form layer
+  useEffect(() => {
+    document.body.classList.add('character-page');
+    return () => {
+      document.body.classList.remove('character-page');
+    };
+  }, []);
+
   const nodes = [
     { id: 0, type: 'circle', top: 0, left: 50, colorIndex: 6, label: '1' },
     { id: 1, type: 'circle', top: 15, left: 20, colorIndex: 5, label: '2' },
@@ -25,7 +33,7 @@ export default function SemiFormlessCharacter({ onBack }) {
     { id: 7, type: 'circle', top: 75, left: 20, colorIndex: 0, label: '8' },
     { id: 8, type: 'circle', top: 75, left: 80, colorIndex: 1, label: '9' },
     { id: 9, type: 'circle', top: 90, left: 50, colorIndex: 6, label: '10' },
-    { id: 10, type: 'circle', top: 'calc(100% - 60px)', left: 50, colorIndex: 6, label: '11' },
+    { id: 10, type: 'circle', top: 'calc(100% - var(--node-size))', left: 50, colorIndex: 6, label: '11' },
   ];
 
   return (

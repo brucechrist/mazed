@@ -1,24 +1,32 @@
 .semi-formless-character {
+  --node-size: clamp(40px, 6vmin, 90px);
   padding: 20px;
   color: #fff;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .semi-formless-character .diagram {
   position: relative;
-  width: 300px;
-  height: 720px;
-  margin: 0 auto 20px;
+  width: min(1200px, 100%);
+  height: clamp(420px, calc(100vh - 180px), 1000px);
+  margin: 0 auto;
 }
 
 .semi-formless-character .node {
   position: absolute;
-  width: 60px;
-  height: 60px;
+  width: var(--node-size);
+  height: var(--node-size);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #000;
   text-align: center;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
 .semi-formless-character .node.circle {
@@ -30,9 +38,20 @@
 }
 
 .semi-formless-character .color-edit-toggle {
-  margin-bottom: 10px;
+  margin-top: 8px;
+}
+
+.semi-formless-character .color-edit-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 8px;
+  width: min(100%, 720px);
 }
 
 .semi-formless-character .color-edit-list input {
-  margin-right: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
