@@ -493,11 +493,12 @@ export default function NofapCalendar({ onBack }) {
           <button type="button" className="back-button" onClick={onBack}>
             Back
           </button>
-          <div>
-            <h1>NoFap Lab</h1>
+          <div className="header-copy">
+            <span className="celestial-pill">Celestial mode</span>
+            <h1>Celestial NoFap Lab</h1>
             <p>
-              Keep shaping the contribution heart. Every day logged builds a
-              stronger baseline.
+              Lift your streak into the aurora—each check-in leaves light across
+              the maze of stars.
             </p>
           </div>
         </div>
@@ -533,15 +534,15 @@ export default function NofapCalendar({ onBack }) {
         <div className="main-column">
           <div className="streak-card">
             <div className="streak-heart" aria-hidden="true">
-              ❤️
+              ✶
             </div>
             <div className="streak-details">
               {run ? (
                 <>
                   <h2>Active streak</h2>
                   <p>
-                    {daysSinceStart} days in. Stay focused—the contribution
-                    heart glows brighter with each win.
+                    {daysSinceStart} days in. Stay focused—the aurora brightens
+                    with every micro-win.
                   </p>
                   <div className="streak-count">
                     <span>{formatDuration(currentStreakMs)}</span>
@@ -582,13 +583,13 @@ export default function NofapCalendar({ onBack }) {
             </div>
           </div>
 
-          <div className="heatmap-card">
+          <div className="heatmap-card aurora-card">
             <div className="heatmap-header">
               <div>
-                <h2>Contribution Heart</h2>
+                <h2>Aurora Field</h2>
                 <p>
-                  A GitHub-style snapshot of the past year. Darker squares
-                  represent longer streak segments, while ✕ marks relapses.
+                  Watch the cosmic lattice fill in—intensity reflects the glow
+                  of your streak energy.
                 </p>
               </div>
               <div className="legend">
@@ -636,25 +637,27 @@ export default function NofapCalendar({ onBack }) {
           <div className="runs-card">
             <h2>Recent runs</h2>
             {recentRuns.length ? (
-              <ul className="runs-timeline">
-                {recentRuns.map((entry) => (
-                  <li key={entry.start}>
-                    <div className="timeline-header">
-                      <span className={`status-dot ${entry.relapsed ? 'relapse' : 'victory'}`} />
-                      <strong>{formatDateRange(entry.start, entry.end)}</strong>
-                    </div>
-                    <div className="timeline-body">
-                      <span className="duration">{formatDuration(entry.end - entry.start)}</span>
-                      {entry.reason && (
-                        <p className="reason">{entry.reason}</p>
-                      )}
-                      {entry.relapseTime && (
-                        <p className="reason subtle">Relapse at {entry.relapseTime}</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="runs-scroll">
+                <ul className="runs-timeline">
+                  {recentRuns.map((entry) => (
+                    <li key={entry.start}>
+                      <div className="timeline-header">
+                        <span className={`status-dot ${entry.relapsed ? 'relapse' : 'victory'}`} />
+                        <strong>{formatDateRange(entry.start, entry.end)}</strong>
+                      </div>
+                      <div className="timeline-body">
+                        <span className="duration">{formatDuration(entry.end - entry.start)}</span>
+                        {entry.reason && (
+                          <p className="reason">{entry.reason}</p>
+                        )}
+                        {entry.relapseTime && (
+                          <p className="reason subtle">Relapse at {entry.relapseTime}</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : (
               <p className="empty-state">
                 No runs logged yet. Start one and your history will live here.
