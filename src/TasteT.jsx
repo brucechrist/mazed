@@ -70,6 +70,10 @@ const TIER_LOOKUP = TIER_RULES.reduce((acc, tier, index) => {
 
 const MINI_SIZE_OPTIONS = [4, 6, 8, 10, 12, 16];
 
+export function shouldFinalizeSwissStatus(status) {
+  return status === "awaiting-finish" || status === "completed";
+}
+
 function coerceLibraryId(value) {
   if (value == null) return null;
   return String(value);
@@ -523,7 +527,7 @@ function prepareStateForStorage(state) {
     : [];
   let activeSwiss = state.activeSwiss || null;
 
-  if (activeSwiss && (activeSwiss.status === "awaiting-finish" || activeSwiss.status === "completed")) {
+  if (activeSwiss && shouldFinalizeSwissStatus(activeSwiss.status)) {
     const imagesById = images.reduce((acc, image) => {
       acc[image.id] = image;
       return acc;
@@ -2889,7 +2893,7 @@ function TasteT() {
         });
       }
 
-      if (finalized && finalized.status === "completed" && mode !== "swiss") {
+      if (finalized && finalized.status === "completed") {
         setMode("lobby");
       }
 
@@ -2937,7 +2941,9 @@ function TasteT() {
 
   useEffect(() => {
     if (!activeSwiss) return;
-    if (activeSwiss.status !== "awaiting-finish") return;
+    if (!shouldFinalizeSwissStatus(activeSwiss.status)) {
+      return;
+    }
     finalizeCurrentSwiss();
   }, [activeSwiss, finalizeCurrentSwiss]);
 
