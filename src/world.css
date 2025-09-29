@@ -5,6 +5,7 @@
   flex-direction: column;
   align-items: center;
   overflow: hidden;
+  width: 100%;
 }
 
 .resource-box {
@@ -262,6 +263,20 @@
 }
 
 .world-tastet-container {
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
   align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  width: 100%;
+}
+
+.world-tastet-container .taste-t-app {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+}
+
+.world-tastet-container .taste-t-frame {
+  width: 100%;
 }
