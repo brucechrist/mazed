@@ -74,6 +74,61 @@ export function shouldFinalizeSwissStatus(status) {
   return status === "awaiting-finish" || status === "completed";
 }
 
+export const STALE_SWISS_THRESHOLD_MS = 6 * 60 * 60 * 1000;
+
+function considerTimestamp(latest, value) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return latest;
+  }
+  if (latest == null) {
+    return value;
+  }
+  return Math.max(latest, value);
+}
+
+function getSwissLastActivityTimestamp(swiss) {
+  if (!swiss || typeof swiss !== "object") {
+    return null;
+  }
+
+  let latest = null;
+  latest = considerTimestamp(latest, swiss.completedAt);
+  latest = considerTimestamp(latest, swiss.createdAt);
+
+  if (Array.isArray(swiss.rounds)) {
+    swiss.rounds.forEach((round) => {
+      latest = considerTimestamp(latest, round?.completedAt);
+      if (Array.isArray(round?.pairings)) {
+        round.pairings.forEach((pair) => {
+          latest = considerTimestamp(latest, pair?.timestamp);
+        });
+      }
+    });
+  }
+
+  if (swiss.finalMatch) {
+    latest = considerTimestamp(latest, swiss.finalMatch.timestamp);
+  }
+
+  if (swiss.finalResult) {
+    latest = considerTimestamp(latest, swiss.finalResult.timestamp);
+  }
+
+  return latest;
+}
+
+export function isSwissSessionStale(swiss, now = Date.now()) {
+  if (!swiss) return false;
+  const lastActivity = getSwissLastActivityTimestamp(swiss);
+  if (lastActivity == null) {
+    return false;
+  }
+  if (now <= lastActivity) {
+    return false;
+  }
+  return now - lastActivity > STALE_SWISS_THRESHOLD_MS;
+}
+
 function coerceLibraryId(value) {
   if (value == null) return null;
   return String(value);
@@ -537,6 +592,10 @@ function prepareStateForStorage(state) {
       swissHistory = [summary, ...swissHistory.filter((entry) => entry.id !== summary.id)].slice(0, HISTORY_LIMIT);
     }
     activeSwiss = finalizedSwiss && finalizedSwiss.status === "completed" ? null : finalizedSwiss;
+  }
+
+  if (activeSwiss && isSwissSessionStale(activeSwiss)) {
+    activeSwiss = null;
   }
 
   return {
@@ -2946,6 +3005,17 @@ function TasteT() {
     }
     finalizeCurrentSwiss();
   }, [activeSwiss, finalizeCurrentSwiss]);
+
+  useEffect(() => {
+    if (!activeSwiss) return;
+    if (!isSwissSessionStale(activeSwiss)) {
+      return;
+    }
+    setActiveSwiss(null);
+    if (mode === "swiss") {
+      setMode("lobby");
+    }
+  }, [activeSwiss, mode]);
 
   const handleCancelSwiss = useCallback(() => {
     setActiveSwiss(null);
