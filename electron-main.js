@@ -1,9 +1,11 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, Tray, nativeImage } = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
 let mainWindow;
+let tray;
+let isQuitting = false;
 
 const LIBRARY_DIR_NAME = 'LibraryStorage';
 const LIBRARY_IMAGES_SUBDIR = 'images';
@@ -124,6 +126,67 @@ const findFallbackImageData = async (dir) => {
   return null;
 };
 
+function findTrayIcon() {
+  const candidates = [
+    path.join(__dirname, 'src/assets/icons/mazed_logo_hd.png'),
+    path.join(__dirname, 'src/assets/backgrounds/Viego_0.jpg'),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const img = nativeImage.createFromPath(p);
+        if (!img.isEmpty()) return img;
+      }
+    } catch {}
+  }
+  return nativeImage.createEmpty();
+}
+
+function createTray() {
+  if (tray) return tray;
+  const icon = findTrayIcon();
+  tray = new Tray(icon);
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show',
+      click: () => {
+        if (!mainWindow) return;
+        mainWindow.show();
+        if (process.platform === 'darwin') app.dock && app.dock.show();
+      },
+    },
+    {
+      label: 'Hide',
+      click: () => {
+        if (!mainWindow) return;
+        if (process.platform === 'darwin') app.hide();
+        else mainWindow.hide();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  tray.setToolTip('Mazed');
+  tray.setContextMenu(contextMenu);
+  tray.on('click', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isVisible()) {
+      if (process.platform === 'darwin') app.hide();
+      else mainWindow.hide();
+    } else {
+      mainWindow.show();
+      if (process.platform === 'darwin') app.dock && app.dock.show();
+    }
+  });
+  return tray;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1600,
@@ -140,6 +203,14 @@ function createWindow() {
   });
 
   mainWindow.center();
+
+  // Intercept close: hide to tray instead of quitting
+  mainWindow.on('close', (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    if (process.platform === 'darwin') app.hide();
+    else mainWindow.hide();
+  });
 
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
   if (devServerURL) {
@@ -344,9 +415,24 @@ ipcMain.handle('library-delete-image', async (_event, id) => {
 });
 
 app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createTray();
+});
 
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+// Keep app running in tray even when all windows closed
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  // Do not quit to allow tray persistence; typical macOS behavior keeps app running
+});
+
+app.on('activate', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    if (process.platform === 'darwin') app.dock && app.dock.show();
+  } else {
+    createWindow();
   }
 });
