@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, Tray, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, Tray, nativeImage, globalShortcut } = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
 const fs = require('fs');
@@ -276,6 +276,53 @@ function createWindow() {
   setInterval(poll, 10000);
 }
 
+function showMainWindow() {
+  if (!mainWindow) {
+    createWindow();
+  }
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  if (process.platform === 'darwin') app.dock && app.dock.show();
+  mainWindow.focus();
+}
+
+function hideMainWindow() {
+  if (!mainWindow) return;
+  if (process.platform === 'darwin') app.hide();
+  else mainWindow.hide();
+}
+
+function toggleMainWindow() {
+  if (!mainWindow || !mainWindow.isVisible()) {
+    showMainWindow();
+  } else {
+    hideMainWindow();
+  }
+}
+
+function registerGlobalShortcuts() {
+  const shortcuts = [
+    'Shift+`',
+    'Shift+~',
+    'Shift+Backquote',
+  ];
+  for (const acc of shortcuts) {
+    try {
+      const ok = globalShortcut.register(acc, () => toggleMainWindow());
+      if (!ok) {
+        console.warn(`Global shortcut registration failed for: ${acc}`);
+      }
+    } catch (err) {
+      console.warn(`Error registering global shortcut ${acc}`, err);
+    }
+  }
+}
+
 ipcMain.removeHandler('set-window-size');
 ipcMain.handle('set-window-size', (_e, { width, height }) => {
   if (mainWindow) {
@@ -432,9 +479,18 @@ app.whenReady().then(() => {
 
 // Enable auto launch at login and start hidden when supported
 app.whenReady().then(() => enableAutoLaunch());
+// Register global hotkeys to toggle show/hide (like Steam): Shift + `
+app.whenReady().then(() => registerGlobalShortcuts());
 
 app.on('before-quit', () => {
   isQuitting = true;
+});
+
+// Ensure shortcuts are released on quit
+app.on('will-quit', () => {
+  try {
+    globalShortcut.unregisterAll();
+  } catch {}
 });
 
 // Keep app running in tray even when all windows closed
