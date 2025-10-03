@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, ipcMain, Tray, nativeImage } = require('electr
 const activeWindow = require('active-win');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const fsp = fs.promises;
 let mainWindow;
 let tray;
@@ -188,6 +189,7 @@ function createTray() {
 }
 
 function createWindow() {
+  const startHidden = shouldStartHidden();
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 900,
@@ -196,6 +198,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: 'hidden',
     icon: path.join(__dirname, 'src/assets/icons/mazed_logo_hd.png'),
+    show: !startHidden,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -217,6 +220,14 @@ function createWindow() {
     mainWindow.loadURL(devServerURL);
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+  }
+
+  if (!startHidden) {
+    // Ensure shown when not starting hidden
+    mainWindow.once('ready-to-show', () => {
+      if (!mainWindow) return;
+      mainWindow.show();
+    });
   }
 
   const template = [
@@ -419,6 +430,9 @@ app.whenReady().then(() => {
   createTray();
 });
 
+// Enable auto launch at login and start hidden when supported
+app.whenReady().then(() => enableAutoLaunch());
+
 app.on('before-quit', () => {
   isQuitting = true;
 });
@@ -436,3 +450,57 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+function shouldStartHidden() {
+  try {
+    // CLI flag or env var override
+    if (process.argv.includes('--hidden') || process.env.MAZED_START_HIDDEN === '1') {
+      return true;
+    }
+    if (typeof app.getLoginItemSettings === 'function') {
+      const s = app.getLoginItemSettings();
+      if (s && (s.wasOpenedAsHidden || s.wasOpenedAtLogin)) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
+async function enableAutoLaunch() {
+  try {
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+      // Configure OS login items
+      if (typeof app.setLoginItemSettings === 'function') {
+        app.setLoginItemSettings({
+          openAtLogin: true,
+          openAsHidden: true,
+        });
+      }
+      return;
+    }
+
+    // Linux: create XDG autostart .desktop if packaged
+    if (process.platform === 'linux' && app.isPackaged) {
+      const autostartDir = path.join(os.homedir(), '.config', 'autostart');
+      const desktopPath = path.join(autostartDir, 'mazed.desktop');
+      await fsp.mkdir(autostartDir, { recursive: true });
+      const execPath = process.execPath;
+      const desktop = `[
+Desktop Entry]
+Type=Application
+Version=1.0
+Name=Mazed
+Comment=Mazed background helper
+Exec=\"${execPath}\" --hidden
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+Terminal=false
+`; 
+      await fsp.writeFile(desktopPath, desktop, 'utf8');
+    }
+  } catch (err) {
+    // Non-fatal if auto-launch setup fails
+    console.error('Auto-launch setup failed', err);
+  }
+}
