@@ -3,16 +3,36 @@
   "version": "1.0.0",
   "description": "The idea is to build the Mazed app for PC, it will be built in react electron, so it's useable through web, app. mobile, while being highly customizable and alive",
   "main": "electron-main.js",
+  "type": "commonjs",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
     "start": "electron .",
-    "test": "jest"
+    "test": "jest",
+    "dist": "npm run build && electron-builder",
+    "pack": "npm run build && electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.yourcompany.mazed",
+    "productName": "Mazed",
+    "files": [
+      "dist/**",
+      "electron-main.js",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "mac": { "target": ["dmg", "zip"] },
+    "win": { "target": ["nsis", "zip"] },
+    "linux": { "target": ["AppImage", "deb"] },
+    "directories": { "output": "release" }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2",
     "active-win": "^8.2.1",
@@ -38,9 +58,11 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.5.2",
+    "@electron/rebuild": "4.0.1",
     "babel-jest": "^30.0.2",
     "concurrently": "^9.1.2",
-    "electron": "^36.4.0",
+    "electron": "^36.9.2",
+    "electron-builder": "^26.0.12",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.0.2",
     "jest-environment-jsdom": "^30.0.2",
