@@ -1,9 +1,12 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, Tray, nativeImage, globalShortcut } = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const fsp = fs.promises;
 let mainWindow;
+let tray;
+let isQuitting = false;
 
 const LIBRARY_DIR_NAME = 'LibraryStorage';
 const LIBRARY_IMAGES_SUBDIR = 'images';
@@ -124,7 +127,69 @@ const findFallbackImageData = async (dir) => {
   return null;
 };
 
+function findTrayIcon() {
+  const candidates = [
+    path.join(__dirname, 'src/assets/icons/mazed_logo_hd.png'),
+    path.join(__dirname, 'src/assets/backgrounds/Viego_0.jpg'),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const img = nativeImage.createFromPath(p);
+        if (!img.isEmpty()) return img;
+      }
+    } catch {}
+  }
+  return nativeImage.createEmpty();
+}
+
+function createTray() {
+  if (tray) return tray;
+  const icon = findTrayIcon();
+  tray = new Tray(icon);
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show',
+      click: () => {
+        if (!mainWindow) return;
+        mainWindow.show();
+        if (process.platform === 'darwin') app.dock && app.dock.show();
+      },
+    },
+    {
+      label: 'Hide',
+      click: () => {
+        if (!mainWindow) return;
+        if (process.platform === 'darwin') app.hide();
+        else mainWindow.hide();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  tray.setToolTip('Mazed');
+  tray.setContextMenu(contextMenu);
+  tray.on('click', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isVisible()) {
+      if (process.platform === 'darwin') app.hide();
+      else mainWindow.hide();
+    } else {
+      mainWindow.show();
+      if (process.platform === 'darwin') app.dock && app.dock.show();
+    }
+  });
+  return tray;
+}
+
 function createWindow() {
+  const startHidden = shouldStartHidden();
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 900,
@@ -133,6 +198,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: 'hidden',
     icon: path.join(__dirname, 'src/assets/icons/mazed_logo_hd.png'),
+    show: !startHidden,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -141,11 +207,27 @@ function createWindow() {
 
   mainWindow.center();
 
+  // Intercept close: hide to tray instead of quitting
+  mainWindow.on('close', (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    if (process.platform === 'darwin') app.hide();
+    else mainWindow.hide();
+  });
+
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
   if (devServerURL) {
     mainWindow.loadURL(devServerURL);
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+  }
+
+  if (!startHidden) {
+    // Ensure shown when not starting hidden
+    mainWindow.once('ready-to-show', () => {
+      if (!mainWindow) return;
+      mainWindow.show();
+    });
   }
 
   const template = [
@@ -192,6 +274,59 @@ function createWindow() {
     } catch {}
   };
   setInterval(poll, 10000);
+}
+
+function showMainWindow() {
+  if (!mainWindow) {
+    createWindow();
+  }
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+  if (process.platform === 'darwin') app.dock && app.dock.show();
+  mainWindow.focus();
+}
+
+function hideMainWindow() {
+  if (!mainWindow) return;
+  if (process.platform === 'darwin') app.hide();
+  else mainWindow.hide();
+}
+
+function toggleMainWindow() {
+  if (!mainWindow || !mainWindow.isVisible()) {
+    showMainWindow();
+  } else {
+    hideMainWindow();
+  }
+}
+
+function registerGlobalShortcuts() {
+  const platform = process.platform;
+  const candidatesByPlatform = {
+    win32: ['Shift+`'],
+    darwin: ['Shift+`', 'Shift+~'],
+  };
+  const candidates = candidatesByPlatform[platform] || ['Shift+`'];
+  const tried = [];
+  for (const acc of candidates) {
+    tried.push(acc);
+    try {
+      if (globalShortcut.register(acc, () => toggleMainWindow())) {
+        return;
+      }
+      console.warn(`Global shortcut registration failed for: ${acc}`);
+    } catch (err) {
+      console.warn(`Error registering global shortcut ${acc}`, err);
+    }
+  }
+  console.warn(
+    `Failed to register a global shortcut to toggle Mazed. Tried: ${tried.join(', ')}`
+  );
 }
 
 ipcMain.removeHandler('set-window-size');
@@ -344,9 +479,90 @@ ipcMain.handle('library-delete-image', async (_event, id) => {
 });
 
 app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createTray();
+});
 
+// Enable auto launch at login and start hidden when supported
+app.whenReady().then(() => enableAutoLaunch());
+// Register global hotkeys to toggle show/hide (like Steam): Shift + `
+app.whenReady().then(() => registerGlobalShortcuts());
+
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+// Ensure shortcuts are released on quit
+app.on('will-quit', () => {
+  try {
+    globalShortcut.unregisterAll();
+  } catch {}
+});
+
+// Keep app running in tray even when all windows closed
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  // Do not quit to allow tray persistence; typical macOS behavior keeps app running
+});
+
+app.on('activate', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    if (process.platform === 'darwin') app.dock && app.dock.show();
+  } else {
+    createWindow();
   }
 });
+
+function shouldStartHidden() {
+  try {
+    // CLI flag or env var override
+    if (process.argv.includes('--hidden') || process.env.MAZED_START_HIDDEN === '1') {
+      return true;
+    }
+    if (typeof app.getLoginItemSettings === 'function') {
+      const s = app.getLoginItemSettings();
+      if (s && (s.wasOpenedAsHidden || s.wasOpenedAtLogin)) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
+async function enableAutoLaunch() {
+  try {
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+      // Configure OS login items
+      if (typeof app.setLoginItemSettings === 'function') {
+        app.setLoginItemSettings({
+          openAtLogin: true,
+          openAsHidden: true,
+        });
+      }
+      return;
+    }
+
+    // Linux: create XDG autostart .desktop if packaged
+    if (process.platform === 'linux' && app.isPackaged) {
+      const autostartDir = path.join(os.homedir(), '.config', 'autostart');
+      const desktopPath = path.join(autostartDir, 'mazed.desktop');
+      await fsp.mkdir(autostartDir, { recursive: true });
+      const execPath = process.execPath;
+      const desktop = `[
+Desktop Entry]
+Type=Application
+Version=1.0
+Name=Mazed
+Comment=Mazed background helper
+Exec=\"${execPath}\" --hidden
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+Terminal=false
+`; 
+      await fsp.writeFile(desktopPath, desktop, 'utf8');
+    }
+  } catch (err) {
+    // Non-fatal if auto-launch setup fails
+    console.error('Auto-launch setup failed', err);
+  }
+}
