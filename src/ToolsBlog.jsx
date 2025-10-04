@@ -440,8 +440,12 @@ export default function ToolsBlog({ onBack }) {
     };
   }, [openMenuPostId]);
 
+  const blogClassName = ['tools-blog', `tools-blog--${viewMode}`]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className="tools-blog">
+    <div className={blogClassName}>
       <header className="blog-header">
         <div className="blog-header-top">
           <button
