@@ -225,6 +225,7 @@ export default function PageRouter() {
       trinities: <Trinities onBack={goBack} />,
       anima: <Anima onBack={goBack} />,
       blog: <ToolsBlog onBack={goBack} />,
+      library: <Library onBack={goBack} />,
       todoGoals: <TodoGoals onBack={goBack} />,
       activity: <ActivityApp onBack={goBack} />,
       characterEvolve: <CharacterEvolve onBack={goBack} />,

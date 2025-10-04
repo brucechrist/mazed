@@ -14,6 +14,7 @@ import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './ToolsBlog.jsx';
+import Library from './Library.jsx';
 import MomentoMori from '../MomentoMori.jsx';
 import Watchdog from './Watchdog.jsx';
 import QuadrantCombinaisons from './QuadrantCombinaisons.jsx';
@@ -75,6 +76,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   // Blog visibility starts hidden and becomes visible when on the Form layer.
   // Use a unique name to avoid clashes with the top-level App component.
   const [showToolsBlog, setShowToolsBlog] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
   const [showBlog, setShowBlog] = useState(false);
   const [showQuadrantComb, setShowQuadrantComb] = useState(false);
@@ -116,6 +118,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       trinities: 'Form',
       anima: 'Form',
       blog: 'Form',
+      library: 'Form',
       todoGoals: 'Form',
       activity: 'Form',
       characterEvolve: 'Form',
@@ -186,6 +189,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showTrinities ||
     showAnima ||
     showBlog ||
+    showLibrary ||
     showTodoGoals ||
     showActivity ||
     showCharacterEvolve ||
@@ -217,6 +221,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowTrinities(false);
     setShowAnima(false);
     setShowBlog(false);
+    setShowLibrary(false);
     setShowTodoGoals(false);
     setShowActivity(false);
     setShowCharacterEvolve(false);
@@ -685,6 +690,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <Anima onBack={() => setShowAnima(false)} />
             ) : showBlog ? (
               <ToolsBlog onBack={() => setShowBlog(false)} />
+            ) : showLibrary ? (
+              <Library onBack={() => setShowLibrary(false)} />
             ) : showTodoGoals ? (
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
@@ -897,6 +904,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">📰</div>
                     <span>Tools Blog</span>
+                  </div>
+                )}
+                {appLayers.library === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowLibrary(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'library')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'library')}
+                  >
+                    <div className="star-icon">📚</div>
+                    <span>Library</span>
                   </div>
                 )}
                 {appLayers.todoGoals === activeLayer && (
