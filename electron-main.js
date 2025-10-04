@@ -306,21 +306,27 @@ function toggleMainWindow() {
 }
 
 function registerGlobalShortcuts() {
-  const shortcuts = [
-    'Shift+`',
-    'Shift+~',
-    'Shift+Backquote',
-  ];
-  for (const acc of shortcuts) {
+  const platform = process.platform;
+  const candidatesByPlatform = {
+    win32: ['Shift+`'],
+    darwin: ['Shift+`', 'Shift+~'],
+  };
+  const candidates = candidatesByPlatform[platform] || ['Shift+`'];
+  const tried = [];
+  for (const acc of candidates) {
+    tried.push(acc);
     try {
-      const ok = globalShortcut.register(acc, () => toggleMainWindow());
-      if (!ok) {
-        console.warn(`Global shortcut registration failed for: ${acc}`);
+      if (globalShortcut.register(acc, () => toggleMainWindow())) {
+        return;
       }
+      console.warn(`Global shortcut registration failed for: ${acc}`);
     } catch (err) {
       console.warn(`Error registering global shortcut ${acc}`, err);
     }
   }
+  console.warn(
+    `Failed to register a global shortcut to toggle Mazed. Tried: ${tried.join(', ')}`
+  );
 }
 
 ipcMain.removeHandler('set-window-size');
