@@ -183,25 +183,28 @@
 
 .blog-feed--classic {
   position: relative;
-  max-width: min(1600px, 96vw);
-  margin: 0 auto;
-  padding: clamp(48px, 6vw, 96px);
-  border-radius: 42px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  align-self: stretch;
+  min-height: clamp(720px, 80vh, 1280px);
+  padding: clamp(48px, 8vw, 120px);
+  border-radius: clamp(28px, 5vw, 60px);
   background: radial-gradient(140% 120% at 50% 0%, rgba(65, 65, 85, 0.28) 0%, rgba(8, 8, 12, 0.92) 65%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 40px 120px -60px rgba(0, 0, 0, 0.9);
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: clamp(22px, 4vw, 52px);
+  gap: clamp(24px, 4vw, 56px);
   overflow: hidden;
 }
 
 .blog-feed--classic::before {
   content: '';
   position: absolute;
-  inset: 18px;
-  border-radius: 32px;
+  inset: clamp(18px, 3vw, 48px);
+  border-radius: clamp(20px, 3.5vw, 48px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: linear-gradient(
       135deg,
@@ -235,8 +238,8 @@
 }
 
 .blog-card--classic {
-  width: clamp(240px, 26vw, 360px);
-  min-height: 240px;
+  width: clamp(280px, 28vw, 420px);
+  min-height: clamp(260px, 32vh, 480px);
   backdrop-filter: blur(4px);
   background: linear-gradient(170deg, rgba(24, 24, 28, 0.92), rgba(12, 12, 16, 0.88));
   box-shadow: 0 40px 90px -65px rgba(8, 8, 12, 0.9);
