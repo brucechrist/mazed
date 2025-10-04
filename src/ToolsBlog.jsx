@@ -254,6 +254,7 @@ const buildInitialPosts = () => {
 const VIEW_MODES = {
   LIST: 'list',
   GRID: 'grid',
+  CLASSIC: 'classic',
 };
 
 export default function ToolsBlog({ onBack }) {
@@ -489,6 +490,18 @@ export default function ToolsBlog({ onBack }) {
                   ⧉
                 </span>
               </button>
+              <button
+                type="button"
+                className={`blog-view-button ${viewMode === VIEW_MODES.CLASSIC ? 'blog-view-button--active' : ''}`}
+                onClick={() => handleViewModeChange(VIEW_MODES.CLASSIC)}
+                aria-pressed={viewMode === VIEW_MODES.CLASSIC}
+                aria-label="Show posts on the classic canvas"
+                title="Classic view"
+              >
+                <span className="blog-view-icon" aria-hidden="true">
+                  ✦
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -506,6 +519,7 @@ export default function ToolsBlog({ onBack }) {
           const articleClassName = [
             'blog-card',
             viewMode === VIEW_MODES.GRID ? 'blog-card--grid' : '',
+            viewMode === VIEW_MODES.CLASSIC ? 'blog-card--classic' : '',
             isEditing ? 'blog-card--editing' : '',
           ]
             .filter(Boolean)
