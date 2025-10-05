@@ -19,11 +19,16 @@
     "files": [
       "dist/**",
       "electron-main.js",
+      "preload.js",
+      "native/**",
+      "runtime/**",
       "package.json"
     ],
     "asar": true,
     "asarUnpack": [
-      "**/*.node"
+      "**/*.node",
+      "native/**",
+      "runtime/**"
     ],
     "mac": { "target": ["dmg", "zip"] },
     "win": { "target": ["nsis", "zip"] },
