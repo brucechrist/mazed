@@ -19,7 +19,20 @@
     "files": [
       "dist/**",
       "electron-main.js",
-      "package.json"
+      "preload.js",
+      "package.json",
+      "!native{,/**}",
+      "!runtime{,/**}"
+    ],
+    "extraResources": [
+      {
+        "from": "native",
+        "to": "native"
+      },
+      {
+        "from": "runtime",
+        "to": "runtime"
+      }
     ],
     "asar": true,
     "asarUnpack": [
