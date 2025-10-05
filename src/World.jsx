@@ -25,6 +25,7 @@ export default function World({ activeLayer = "Form" }) {
   const [showMainQuest, setShowMainQuest] = useState(false);
   const [showPublished, setShowPublished] = useState(false);
   const isSemiFormless = activeLayer === "Semi-Formless";
+  const isFormless = activeLayer === "Formless";
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -104,6 +105,10 @@ export default function World({ activeLayer = "Form" }) {
         <TasteT />
       </div>
     );
+  }
+
+  if (isFormless) {
+    return <div className="world-container world-formless-empty" />;
   }
 
   return (
