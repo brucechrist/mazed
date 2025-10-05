@@ -20,23 +20,15 @@
       "dist/**",
       "electron-main.js",
       "preload.js",
-      "package.json",
-      "!native{,/**}",
-      "!runtime{,/**}"
-    ],
-    "extraResources": [
-      {
-        "from": "native",
-        "to": "native"
-      },
-      {
-        "from": "runtime",
-        "to": "runtime"
-      }
+      "native/**",
+      "runtime/**",
+      "package.json"
     ],
     "asar": true,
     "asarUnpack": [
-      "**/*.node"
+      "**/*.node",
+      "native/**",
+      "runtime/**"
     ],
     "mac": { "target": ["dmg", "zip"] },
     "win": { "target": ["nsis", "zip"] },

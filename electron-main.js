@@ -157,13 +157,9 @@ let unityResizeTimer = null;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function resolveBundledPath(...segments) {
+function resolveUnpackedPath(...segments) {
   if (app.isPackaged) {
-    const unpacked = path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
-    if (fs.existsSync(unpacked)) {
-      return unpacked;
-    }
-    return path.join(process.resourcesPath, ...segments);
+    return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
   }
   return path.join(__dirname, ...segments);
 }
@@ -184,7 +180,7 @@ async function resolveUnityConfig() {
   if (!isWindows) return null;
   if (unityConfigCache) return unityConfigCache;
 
-  const runtimeDir = resolveBundledPath(...UNITY_RUNTIME_SEGMENTS);
+  const runtimeDir = resolveUnpackedPath(...UNITY_RUNTIME_SEGMENTS);
   try {
     const stat = await fsp.stat(runtimeDir);
     if (!stat.isDirectory()) {
@@ -291,7 +287,7 @@ function getHostWindowHandle() {
 }
 
 async function resolveEmbedderPath() {
-  const embedderPath = resolveBundledPath('native', UNITY_EMBEDDER_NAME);
+  const embedderPath = resolveUnpackedPath('native', UNITY_EMBEDDER_NAME);
   try {
     await fsp.access(embedderPath);
     return embedderPath;
