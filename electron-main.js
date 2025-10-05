@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const fsp = fs.promises;
+const { spawn } = require('child_process');
 let mainWindow;
 let tray;
 let isQuitting = false;
@@ -141,6 +142,244 @@ function findTrayIcon() {
     } catch {}
   }
   return nativeImage.createEmpty();
+}
+
+const isWindows = process.platform === 'win32';
+const UNITY_RUNTIME_SEGMENTS = ['runtime', 'win', 'UnityPlayer'];
+const UNITY_CONFIG_FILE = 'unity.config.json';
+const UNITY_EMBEDDER_NAME = isWindows ? 'UnityEmbedder.exe' : 'UnityEmbedder';
+
+let unityProcess = null;
+let unityMounted = false;
+let unityLastRect = null;
+let unityConfigCache = null;
+let unityResizeTimer = null;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function resolveUnpackedPath(...segments) {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
+  }
+  return path.join(__dirname, ...segments);
+}
+
+async function readJsonSafeLocal(filePath) {
+  try {
+    const raw = await fsp.readFile(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to read JSON file', filePath, err);
+    }
+    return null;
+  }
+}
+
+async function resolveUnityConfig() {
+  if (!isWindows) return null;
+  if (unityConfigCache) return unityConfigCache;
+
+  const runtimeDir = resolveUnpackedPath(...UNITY_RUNTIME_SEGMENTS);
+  try {
+    const stat = await fsp.stat(runtimeDir);
+    if (!stat.isDirectory()) {
+      return null;
+    }
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to access Unity runtime directory', err);
+    }
+    return null;
+  }
+
+  const cfg = (await readJsonSafeLocal(path.join(runtimeDir, UNITY_CONFIG_FILE))) || {};
+  let exeName = cfg.exe || cfg.executable;
+  const args = Array.isArray(cfg.args) ? cfg.args : [];
+
+  if (typeof exeName !== 'string' || !exeName.trim()) {
+    try {
+      const files = await fsp.readdir(runtimeDir);
+      const ignore = new Set(['unityembedder.exe', 'unitycrashhandler64.exe']);
+      const candidate = files.find((name) => {
+        if (!name.toLowerCase().endsWith('.exe')) return false;
+        return !ignore.has(name.toLowerCase());
+      });
+      if (!candidate) {
+        return null;
+      }
+      exeName = candidate;
+    } catch (err) {
+      console.error('Failed to list Unity runtime directory', err);
+      return null;
+    }
+  }
+
+  const exePath = path.isAbsolute(exeName) ? exeName : path.join(runtimeDir, exeName);
+  try {
+    await fsp.access(exePath);
+  } catch (err) {
+    console.error('Unity executable not found', exePath, err);
+    return null;
+  }
+
+  const title = typeof cfg.title === 'string' && cfg.title.trim() ? cfg.title.trim() : path.parse(exePath).name;
+  unityConfigCache = { runtimeDir, exePath, args, title };
+  return unityConfigCache;
+}
+
+async function ensureUnityProcess() {
+  if (unityProcess && !unityProcess.killed) {
+    return unityProcess;
+  }
+  const config = await resolveUnityConfig();
+  if (!config) {
+    throw new Error('Unity runtime not found.');
+  }
+  try {
+    unityProcess = spawn(config.exePath, config.args || [], {
+      cwd: path.dirname(config.exePath),
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+  } catch (err) {
+    unityProcess = null;
+    throw err;
+  }
+
+  unityProcess.once('exit', () => {
+    unityProcess = null;
+    unityMounted = false;
+  });
+  unityProcess.once('error', (err) => {
+    console.error('Unity process error', err);
+    unityProcess = null;
+    unityMounted = false;
+  });
+  return unityProcess;
+}
+
+function killUnityProcess() {
+  if (unityProcess && !unityProcess.killed) {
+    try {
+      unityProcess.kill();
+    } catch (err) {
+      console.error('Failed to kill Unity process', err);
+    }
+  }
+  unityProcess = null;
+  unityMounted = false;
+}
+
+function getHostWindowHandle() {
+  if (!isWindows || !mainWindow) return null;
+  try {
+    const buf = mainWindow.getNativeWindowHandle();
+    if (!buf) return null;
+    if (typeof buf.readBigUInt64LE === 'function' && buf.length >= 8) {
+      return buf.readBigUInt64LE(0).toString();
+    }
+    return BigInt(buf.readUInt32LE(0)).toString();
+  } catch (err) {
+    console.error('Failed to read native window handle', err);
+    return null;
+  }
+}
+
+async function resolveEmbedderPath() {
+  const embedderPath = resolveUnpackedPath('native', UNITY_EMBEDDER_NAME);
+  try {
+    await fsp.access(embedderPath);
+    return embedderPath;
+  } catch (err) {
+    console.error('Unity embedder executable missing', embedderPath, err);
+    return null;
+  }
+}
+
+async function runUnityEmbedder(args) {
+  const embedder = await resolveEmbedderPath();
+  if (!embedder) {
+    return 1;
+  }
+  return new Promise((resolve) => {
+    const child = spawn(embedder, args, {
+      cwd: path.dirname(embedder),
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    child.on('error', (err) => {
+      console.error('Unity embedder failed', err);
+      resolve(1);
+    });
+    child.on('exit', (code) => {
+      resolve(typeof code === 'number' ? code : 1);
+    });
+  });
+}
+
+async function embedUnity(rect) {
+  if (!rect || typeof rect.width === 'undefined' || typeof rect.height === 'undefined') {
+    throw new Error('Invalid Unity mount rectangle');
+  }
+  const config = await resolveUnityConfig();
+  if (!config) {
+    throw new Error('Unity runtime is missing.');
+  }
+  await ensureUnityProcess();
+
+  const hostHandle = getHostWindowHandle();
+  if (!hostHandle) {
+    throw new Error('Failed to obtain host window handle.');
+  }
+
+  const width = Math.max(0, Math.floor(rect.width));
+  const height = Math.max(0, Math.floor(rect.height));
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const code = await runUnityEmbedder([
+      'embed',
+      config.title,
+      hostHandle,
+      String(width),
+      String(height),
+    ]);
+    if (code === 0) {
+      unityMounted = true;
+      unityLastRect = { width, height };
+      return true;
+    }
+    await delay(400);
+  }
+  return false;
+}
+
+function scheduleUnityResize(rect) {
+  if (!unityMounted || !rect) return;
+  unityLastRect = { width: rect.width, height: rect.height };
+  if (unityResizeTimer) {
+    clearTimeout(unityResizeTimer);
+  }
+  unityResizeTimer = setTimeout(() => {
+    unityResizeTimer = null;
+    (async () => {
+      const config = await resolveUnityConfig();
+      if (!config) return;
+      const width = Math.max(0, Math.floor(unityLastRect.width));
+      const height = Math.max(0, Math.floor(unityLastRect.height));
+      const code = await runUnityEmbedder([
+        'resize',
+        config.title,
+        String(width),
+        String(height),
+      ]);
+      if (code !== 0) {
+        console.warn('Unity resize command failed with code', code);
+      }
+    })().catch((err) => {
+      console.error('Unity resize failed', err);
+    });
+  }, 120);
 }
 
 function createTray() {
@@ -478,6 +717,50 @@ ipcMain.handle('library-delete-image', async (_event, id) => {
   }
 });
 
+ipcMain.handle('unity:mount', async (_event, rect) => {
+  if (!isWindows) {
+    return { ok: false, error: 'Unity embedding is only supported on Windows.' };
+  }
+  try {
+    const success = await embedUnity(rect || {});
+    if (!success) {
+      return { ok: false, error: 'Failed to locate the Unity window.' };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error('Unity mount failed', err);
+    return { ok: false, error: err?.message || 'Unity mount failed.' };
+  }
+});
+
+ipcMain.handle('unity:hide', async () => {
+  if (!isWindows) return false;
+  const config = await resolveUnityConfig();
+  if (!config) return false;
+  const code = await runUnityEmbedder(['hide', config.title]);
+  if (code === 0) {
+    unityMounted = false;
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('unity:quit', async () => {
+  if (isWindows) {
+    const config = await resolveUnityConfig();
+    if (config) {
+      await runUnityEmbedder(['hide', config.title]);
+    }
+  }
+  killUnityProcess();
+  return true;
+});
+
+ipcMain.on('unity:panel-resize', (_event, rect) => {
+  if (!isWindows) return;
+  scheduleUnityResize(rect);
+});
+
 app.whenReady().then(createWindow);
 app.whenReady().then(() => {
   createTray();
@@ -490,6 +773,7 @@ app.whenReady().then(() => registerGlobalShortcuts());
 
 app.on('before-quit', () => {
   isQuitting = true;
+  killUnityProcess();
 });
 
 // Ensure shortcuts are released on quit
