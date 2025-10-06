@@ -632,14 +632,18 @@ function scheduleUnityResize(rect) {
   }
   unityResizeTimer = setTimeout(() => {
     unityResizeTimer = null;
+    const rectToResize = unityLastRect;
+    if (!unityMounted || !rectToResize) {
+      return;
+    }
     (async () => {
       const config = await resolveUnityConfig();
       if (!config) return;
       const orderedTitles = orderedUnityTitles(config);
       if (orderedTitles.length === 0) return;
-      updateUnityHostWindowBounds(unityLastRect);
-      const width = Math.max(0, Math.floor(unityLastRect.width));
-      const height = Math.max(0, Math.floor(unityLastRect.height));
+      updateUnityHostWindowBounds(rectToResize);
+      const width = Math.max(0, Math.floor(rectToResize.width));
+      const height = Math.max(0, Math.floor(rectToResize.height));
       if (width <= 0 || height <= 0) {
         return;
       }
