@@ -11,7 +11,28 @@ const tools = [
   { id: 'overview', label: 'Overview', icon: '📊' },
   { id: 'lexicon', label: 'Lexicon', icon: '🔤' },
   { id: 'sentences', label: 'Sentences', icon: '🧭' },
+  { id: 'annotations', label: 'Annotations', icon: '📝' },
   { id: 'vocabulary', label: 'Vocabulary', icon: '📚' },
+];
+
+const ANNOTATIONS_STORAGE_KEY = 'typomancy:annotations';
+
+const annotationToneOptions = [
+  {
+    id: 'critical',
+    label: 'Needs change',
+    description: 'Flag wording that carries the wrong vibe.',
+  },
+  {
+    id: 'caution',
+    label: 'Watch closely',
+    description: 'Moments to monitor or soften.',
+  },
+  {
+    id: 'celebrate',
+    label: 'Keep it',
+    description: 'Phrases that land well and deserve to stay.',
+  },
 ];
 
 export default function Typomancy({ onBack }) {
@@ -20,6 +41,17 @@ export default function Typomancy({ onBack }) {
   const [activeTool, setActiveTool] = useState(tools[0].id);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [lastAnalyzed, setLastAnalyzed] = useState(null);
+  const [annotations, setAnnotations] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = window.localStorage.getItem(ANNOTATIONS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.warn('Unable to read Typomancy annotations', error);
+      return [];
+    }
+  });
+  const [annotationDraft, setAnnotationDraft] = useState(null);
 
   const applyTextUpdate = useCallback(
     (valueOrUpdater) => {
@@ -35,6 +67,18 @@ export default function Typomancy({ onBack }) {
     },
     [autoAnalyze]
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        ANNOTATIONS_STORAGE_KEY,
+        JSON.stringify(annotations)
+      );
+    } catch (error) {
+      console.warn('Unable to persist Typomancy annotations', error);
+    }
+  }, [annotations]);
 
   const runAnalysis = useCallback(() => {
     const trimmed = text.trim();
@@ -147,11 +191,206 @@ export default function Typomancy({ onBack }) {
     }
   }, [text, autoAnalyze, runAnalysis]);
 
+  const annotationSummary = useMemo(() => {
+    if (!annotations.length) return null;
+    return annotations.reduce(
+      (acc, annotation) => {
+        acc.total += 1;
+        acc.byTone[annotation.tone] = (acc.byTone[annotation.tone] || 0) + 1;
+        return acc;
+      },
+      { total: 0, byTone: {} }
+    );
+  }, [annotations]);
+
   const formatMinutes = useCallback((minutes) => {
     if (!minutes) return 'Less than a minute';
     if (minutes < 1) return `${Math.max(1, Math.round(minutes * 60))} sec`;
     return minutes < 10 ? `${minutes.toFixed(1)} min` : `${Math.round(minutes)} min`;
   }, []);
+
+  const computeAnnotationIndices = useCallback((sentenceText, annotation) => {
+    if (!annotation?.selection) return null;
+    const normalizedSentence = sentenceText.toLowerCase();
+    const target = annotation.selection.toLowerCase();
+
+    if (
+      typeof annotation.startIndex === 'number' &&
+      normalizedSentence.slice(
+        annotation.startIndex,
+        annotation.startIndex + target.length
+      ) === target
+    ) {
+      return {
+        start: annotation.startIndex,
+        end: annotation.startIndex + target.length,
+      };
+    }
+
+    const dynamicIndex = normalizedSentence.indexOf(target);
+    if (dynamicIndex === -1) {
+      return null;
+    }
+    return { start: dynamicIndex, end: dynamicIndex + target.length };
+  }, []);
+
+  const renderSentenceWithAnnotations = useCallback(
+    (sentenceText, sentenceAnnotations) => {
+      if (!sentenceAnnotations?.length) {
+        return sentenceText;
+      }
+
+      const segments = [];
+      let cursor = 0;
+
+      const matches = sentenceAnnotations
+        .map((annotation) => {
+          const indices = computeAnnotationIndices(sentenceText, annotation);
+          if (!indices) {
+            return null;
+          }
+          return { ...indices, annotation };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.start - b.start);
+
+      matches.forEach(({ start, end, annotation }) => {
+        if (start > cursor) {
+          segments.push(sentenceText.slice(cursor, start));
+        }
+        if (start < cursor) {
+          return;
+        }
+        segments.push(
+          <span
+            key={`${annotation.id}-highlight`}
+            className={`annotation-highlight ${annotation.tone}`}
+          >
+            [{sentenceText.slice(start, end)}]
+          </span>
+        );
+        cursor = Math.max(cursor, end);
+      });
+
+      if (cursor < sentenceText.length) {
+        segments.push(sentenceText.slice(cursor));
+      }
+
+      return segments;
+    },
+    [computeAnnotationIndices]
+  );
+
+  const startAnnotation = useCallback((sentence) => {
+    setAnnotationDraft({
+      sentenceIndex: sentence.index,
+      selection: '',
+      note: '',
+      tone: annotationToneOptions[0].id,
+      error: null,
+    });
+  }, []);
+
+  const cancelAnnotation = useCallback(() => {
+    setAnnotationDraft(null);
+  }, []);
+
+  const updateAnnotationDraft = useCallback((field, value) => {
+    setAnnotationDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            [field]: value,
+            error: null,
+          }
+        : prev
+    );
+  }, []);
+
+  const removeAnnotation = useCallback((id) => {
+    setAnnotations((prev) => prev.filter((annotation) => annotation.id !== id));
+  }, []);
+
+  const handleAnnotationSubmit = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (!annotationDraft || !results?.sentences?.items?.length) {
+        return;
+      }
+
+      const sentence = results.sentences.items.find(
+        (item) => item.index === annotationDraft.sentenceIndex
+      );
+
+      if (!sentence) {
+        return;
+      }
+
+      const selection = annotationDraft.selection.trim();
+      const note = annotationDraft.note.trim();
+
+      if (!selection) {
+        setAnnotationDraft((prev) => ({ ...prev, error: 'Select the words to isolate.' }));
+        return;
+      }
+
+      const indices = computeAnnotationIndices(sentence.text, {
+        selection,
+        startIndex: sentence.text
+          .toLowerCase()
+          .indexOf(selection.toLowerCase()),
+      });
+
+      if (!indices) {
+        setAnnotationDraft((prev) => ({
+          ...prev,
+          error: 'That phrasing is not present in this sentence.',
+        }));
+        return;
+      }
+
+      if (!note) {
+        setAnnotationDraft((prev) => ({
+          ...prev,
+          error: 'Add a short note explaining the change.',
+        }));
+        return;
+      }
+
+      const newAnnotation = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        sentenceIndex: sentence.index,
+        sentenceText: sentence.text,
+        selection,
+        tone: annotationDraft.tone,
+        note,
+        startIndex: indices.start,
+        createdAt: new Date().toISOString(),
+      };
+
+      setAnnotations((prev) => [...prev, newAnnotation]);
+      setAnnotationDraft(null);
+    },
+    [annotationDraft, computeAnnotationIndices, results]
+  );
+
+  const renderAnnotationBadges = useCallback((sentenceAnnotations, sentenceText) => {
+    const missing = sentenceAnnotations.filter(
+      (annotation) => !computeAnnotationIndices(sentenceText, annotation)
+    );
+
+    if (!missing.length) {
+      return null;
+    }
+
+    return (
+      <div className="annotation-warning">
+        {missing.length === 1
+          ? 'A stored annotation no longer matches this sentence.'
+          : 'Some stored annotations no longer match this sentence.'}
+      </div>
+    );
+  }, [computeAnnotationIndices]);
 
   const sentenceSummary = useMemo(() => {
     if (!results?.sentences?.items?.length) return null;
@@ -323,20 +562,194 @@ export default function Typomancy({ onBack }) {
               </div>
             )}
             <ul className="sentence-list">
-              {results.sentences.items.map((sentence) => (
-                <li
-                  key={sentence.index}
-                  className={`sentence-item ${
-                    sentence === results.sentences.longest ? 'longest' : ''
-                  }`}
-                >
-                  <span className="sentence-index">#{sentence.index}</span>
-                  <div className="sentence-body">
-                    <p>{sentence.text}</p>
+              {results.sentences.items.map((sentence) => {
+                const sentenceAnnotations = annotations.filter(
+                  (annotation) => annotation.sentenceIndex === sentence.index
+                );
+
+                return (
+                  <li
+                    key={sentence.index}
+                    className={`sentence-item ${
+                      sentence === results.sentences.longest ? 'longest' : ''
+                    }`}
+                  >
+                    <span className="sentence-index">#{sentence.index}</span>
+                    <div className="sentence-body">
+                      <p>
+                        {renderSentenceWithAnnotations(
+                          sentence.text,
+                          sentenceAnnotations
+                        )}
+                      </p>
                     <span>
                       {sentence.wordCount} words • {sentence.charCount} characters
                     </span>
-                  </div>
+                    <div className="sentence-actions">
+                      <button
+                        className="pill-button tertiary inline"
+                        type="button"
+                        onClick={() => startAnnotation(sentence)}
+                      >
+                        Annotate
+                      </button>
+                    </div>
+                    {annotationDraft?.sentenceIndex === sentence.index && (
+                      <form
+                        className="annotation-form"
+                        onSubmit={handleAnnotationSubmit}
+                      >
+                        <label>
+                          <span>Words to isolate</span>
+                          <input
+                            type="text"
+                            value={annotationDraft.selection}
+                            onChange={(event) =>
+                              updateAnnotationDraft('selection', event.target.value)
+                            }
+                            placeholder="Type the exact words to capture"
+                          />
+                        </label>
+                        <label>
+                          <span>Reflection</span>
+                          <textarea
+                            value={annotationDraft.note}
+                            onChange={(event) =>
+                              updateAnnotationDraft('note', event.target.value)
+                            }
+                            rows={3}
+                            placeholder="Explain why this phrasing should change."
+                          />
+                        </label>
+                        <fieldset>
+                          <legend>How does it feel?</legend>
+                          <div className="tone-options">
+                            {annotationToneOptions.map((option) => (
+                              <label key={option.id}>
+                                <input
+                                  type="radio"
+                                  name="annotation-tone"
+                                  value={option.id}
+                                  checked={annotationDraft.tone === option.id}
+                                  onChange={() =>
+                                    updateAnnotationDraft('tone', option.id)
+                                  }
+                                />
+                                <span className={`tone-label ${option.id}`}>
+                                  {option.label}
+                                </span>
+                                <span className="tone-description">
+                                  {option.description}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                        {annotationDraft.error && (
+                          <p className="annotation-error">{annotationDraft.error}</p>
+                        )}
+                        <div className="annotation-form-actions">
+                          <button className="pill-button" type="submit">
+                            Save annotation
+                          </button>
+                          <button
+                            className="pill-button tertiary"
+                            type="button"
+                            onClick={cancelAnnotation}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                      <div className="sentence-annotations">
+                        {sentenceAnnotations.map((annotation) => (
+                          <div key={annotation.id} className="annotation-card">
+                            <div className="annotation-card-header">
+                              <span className={`annotation-tag ${annotation.tone}`}>
+                                {annotationToneOptions.find(
+                                  (option) => option.id === annotation.tone
+                                )?.label || 'Annotation'}
+                              </span>
+                              <span className="annotation-time">
+                                {new Date(annotation.createdAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="annotation-note">{annotation.note}</p>
+                            <button
+                              type="button"
+                              className="annotation-remove"
+                              onClick={() => removeAnnotation(annotation.id)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      {renderAnnotationBadges(sentenceAnnotations, sentence.text)}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      }
+      case 'annotations': {
+        if (!annotations.length) {
+          return (
+            <div className="panel-section empty-state">
+              <h3>No annotations yet</h3>
+              <p>
+                Choose a sentence and isolate the words that need attention to build
+                your personal writing lexicon.
+              </p>
+            </div>
+          );
+        }
+
+        const summary =
+          annotationSummary || {
+            total: annotations.length,
+            byTone: {},
+          };
+
+        return (
+          <div className="panel-section annotations-panel">
+            <div className="annotation-summary-grid">
+              <div className="summary-card">
+                <span className="summary-value">{summary.total}</span>
+                <span className="summary-label">Total annotations</span>
+              </div>
+              {annotationToneOptions.map((option) => (
+                <div key={option.id} className="summary-card subtle">
+                  <span className="summary-value">
+                    {summary.byTone[option.id] || 0}
+                  </span>
+                  <span className="summary-label">{option.label}</span>
+                </div>
+              ))}
+            </div>
+            <ul className="annotation-collection">
+              {annotations.map((annotation) => (
+                <li key={annotation.id} className="annotation-collection-item">
+                  <header>
+                    <span className={`annotation-tag ${annotation.tone}`}>
+                      {annotationToneOptions.find(
+                        (option) => option.id === annotation.tone
+                      )?.label || 'Annotation'}
+                    </span>
+                    <span className="annotation-time">
+                      {new Date(annotation.createdAt).toLocaleString()}
+                    </span>
+                  </header>
+                  <p className="annotation-sentence">
+                    {renderSentenceWithAnnotations(
+                      annotation.sentenceText,
+                      [annotation]
+                    )}
+                  </p>
+                  <p className="annotation-note">{annotation.note}</p>
                 </li>
               ))}
             </ul>
