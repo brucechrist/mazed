@@ -19,10 +19,12 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR pCmdLine, int nCmdSh
     if (!unity) return 1;
 
     if (lstrcmpiW(mode, L"embed") == 0) {
-        if (argc < 6) return 2;
+        if (argc < 8) return 2;
         ULONGLONG hostVal = _wcstoui64(argv[3], NULL, 10);
         int w = _wtoi(argv[4]);
         int h = _wtoi(argv[5]);
+        int x = _wtoi(argv[6]);
+        int y = _wtoi(argv[7]);
         HWND host = (HWND)(ULONG_PTR)hostVal;
 
         ShowWindow(unity, SW_HIDE);
@@ -33,14 +35,16 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR pCmdLine, int nCmdSh
         style &= ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
         SetWindowLongPtrW(unity, GWL_STYLE, style);
 
-        SetWindowPos(unity, NULL, 0, 0, w, h, SWP_NOZORDER | SWP_SHOWWINDOW);
+        SetWindowPos(unity, NULL, x, y, w, h, SWP_NOZORDER | SWP_SHOWWINDOW);
         ShowWindow(unity, SW_SHOW);
         return 0;
     } else if (lstrcmpiW(mode, L"resize") == 0) {
-        if (argc < 5) return 2;
+        if (argc < 7) return 2;
         int w = _wtoi(argv[3]);
         int h = _wtoi(argv[4]);
-        MoveWindow(unity, 0, 0, w, h, TRUE);
+        int x = _wtoi(argv[5]);
+        int y = _wtoi(argv[6]);
+        MoveWindow(unity, x, y, w, h, TRUE);
         return 0;
     } else if (lstrcmpiW(mode, L"show") == 0) {
         ShowWindow(unity, SW_SHOW);
