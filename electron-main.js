@@ -155,6 +155,9 @@ let unityLastRect = null;
 let unityConfigCache = null;
 let unityResizeTimer = null;
 let unityActiveTitle = null;
+let unityHostWindow = null;
+let unityHostHandle = null;
+let unityHostLastRect = null;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -297,12 +300,14 @@ async function ensureUnityProcess() {
     unityProcess = null;
     unityMounted = false;
     unityActiveTitle = null;
+    destroyUnityHostWindow();
   });
   unityProcess.once('error', (err) => {
     console.error('Unity process error', err);
     unityProcess = null;
     unityMounted = false;
     unityActiveTitle = null;
+    destroyUnityHostWindow();
   });
   return unityProcess;
 }
@@ -318,21 +323,112 @@ function killUnityProcess() {
   unityProcess = null;
   unityMounted = false;
   unityActiveTitle = null;
+  destroyUnityHostWindow();
 }
 
-function getHostWindowHandle() {
-  if (!isWindows || !mainWindow) return null;
+function readWindowHandle(win) {
+  if (!win) return null;
   try {
-    const buf = mainWindow.getNativeWindowHandle();
+    const buf = win.getNativeWindowHandle();
     if (!buf) return null;
     if (typeof buf.readBigUInt64LE === 'function' && buf.length >= 8) {
       return buf.readBigUInt64LE(0).toString();
     }
-    return BigInt(buf.readUInt32LE(0)).toString();
+    if (typeof buf.readUInt32LE === 'function' && buf.length >= 4) {
+      return BigInt(buf.readUInt32LE(0)).toString();
+    }
   } catch (err) {
     console.error('Failed to read native window handle', err);
+  }
+  return null;
+}
+
+function destroyUnityHostWindow() {
+  if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+    try {
+      unityHostWindow.destroy();
+    } catch (err) {
+      console.error('Failed to destroy Unity host window', err);
+    }
+  }
+  unityHostWindow = null;
+  unityHostHandle = null;
+  unityHostLastRect = null;
+}
+
+function ensureUnityHostWindow() {
+  if (!isWindows || !mainWindow) return null;
+  if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+    return unityHostWindow;
+  }
+  unityHostWindow = new BrowserWindow({
+    parent: mainWindow,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    focusable: true,
+    backgroundColor: '#00000000',
+  });
+  unityHostWindow.setMenuBarVisibility(false);
+  unityHostWindow.setAlwaysOnTop(true, 'screen-saver');
+  unityHostWindow.on('closed', () => {
+    unityHostWindow = null;
+    unityHostHandle = null;
+    unityHostLastRect = null;
+  });
+  unityHostHandle = readWindowHandle(unityHostWindow);
+  return unityHostWindow;
+}
+
+function getUnityHostWindowHandle() {
+  const hostWindow = ensureUnityHostWindow();
+  if (!hostWindow) return null;
+  if (!unityHostHandle) {
+    unityHostHandle = readWindowHandle(hostWindow);
+  }
+  return unityHostHandle;
+}
+
+function applyUnityHostBounds() {
+  if (!isWindows || !mainWindow || !unityHostLastRect) return;
+  const width = Math.max(0, Math.floor(unityHostLastRect.width));
+  const height = Math.max(0, Math.floor(unityHostLastRect.height));
+  if (width <= 0 || height <= 0) {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+    return;
+  }
+  const contentBounds = mainWindow.getContentBounds();
+  const x = Math.floor(contentBounds.x + Math.floor(unityHostLastRect.left));
+  const y = Math.floor(contentBounds.y + Math.floor(unityHostLastRect.top));
+  const hostWindow = ensureUnityHostWindow();
+  if (!hostWindow) return;
+  hostWindow.setBounds({ x, y, width, height });
+  hostWindow.setAlwaysOnTop(true, 'screen-saver');
+  if (!hostWindow.isVisible()) {
+    hostWindow.showInactive();
+  } else {
+    try {
+      hostWindow.moveTop();
+    } catch {}
+  }
+}
+
+function syncUnityHostRect(rect) {
+  const hostBounds = normalizeRect(rect);
+  if (!hostBounds) {
     return null;
   }
+  unityHostLastRect = hostBounds;
+  applyUnityHostBounds();
+  return hostBounds;
 }
 
 async function resolveEmbedderPath() {
@@ -383,15 +479,24 @@ async function embedUnity(rect) {
   }
   await ensureUnityProcess();
 
-  const hostHandle = getHostWindowHandle();
+  const mountRect = syncUnityHostRect(rect);
+  if (!mountRect) {
+    throw new Error('Invalid Unity mount rectangle');
+  }
+
+  const width = Math.max(0, Math.floor(mountRect.width));
+  const height = Math.max(0, Math.floor(mountRect.height));
+  const left = Math.floor(mountRect.left);
+  const top = Math.floor(mountRect.top);
+
+  if (width <= 0 || height <= 0) {
+    throw new Error('Unity mount rectangle has no area.');
+  }
+
+  const hostHandle = getUnityHostWindowHandle();
   if (!hostHandle) {
     throw new Error('Failed to obtain host window handle.');
   }
-
-  const width = Math.max(0, Math.floor(rect.width));
-  const height = Math.max(0, Math.floor(rect.height));
-  const left = Math.floor(rect.left);
-  const top = Math.floor(rect.top);
 
   const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
   if (titles.length === 0) {
@@ -407,8 +512,6 @@ async function embedUnity(rect) {
         hostHandle,
         String(width),
         String(height),
-        String(left),
-        String(top),
       ]);
       if (code === 0) {
         unityMounted = true;
@@ -419,6 +522,7 @@ async function embedUnity(rect) {
     }
     await delay(400);
   }
+  destroyUnityHostWindow();
   return false;
 }
 
@@ -449,23 +553,30 @@ function orderedUnityTitles(config) {
   return ordered;
 }
 
+function normalizeRect(rect) {
+  if (!rect || typeof rect !== 'object') {
+    return null;
+  }
+  const toNumber = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const left = toNumber(rect.left);
+  const top = toNumber(rect.top);
+  const width = Math.max(0, toNumber(rect.width));
+  const height = Math.max(0, toNumber(rect.height));
+  return { left, top, width, height };
+}
+
 function scheduleUnityResize(rect) {
-  if (
-    !unityMounted ||
-    !rect ||
-    typeof rect.width === 'undefined' ||
-    typeof rect.height === 'undefined' ||
-    typeof rect.left === 'undefined' ||
-    typeof rect.top === 'undefined'
-  ) {
+  const resizeRect = syncUnityHostRect(rect);
+  if (!resizeRect) {
     return;
   }
-  unityLastRect = {
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
-  };
+  unityLastRect = resizeRect;
+  if (!unityMounted) {
+    return;
+  }
   if (unityResizeTimer) {
     clearTimeout(unityResizeTimer);
   }
@@ -478,16 +589,15 @@ function scheduleUnityResize(rect) {
       if (orderedTitles.length === 0) return;
       const width = Math.max(0, Math.floor(unityLastRect.width));
       const height = Math.max(0, Math.floor(unityLastRect.height));
-      const left = Math.floor(unityLastRect.left);
-      const top = Math.floor(unityLastRect.top);
+      if (width <= 0 || height <= 0) {
+        return;
+      }
       for (const title of orderedTitles) {
         const code = await runUnityEmbedder([
           'resize',
           title,
           String(width),
           String(height),
-          String(left),
-          String(top),
         ]);
         if (code === 0) {
           if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
@@ -573,6 +683,33 @@ function createWindow() {
     e.preventDefault();
     if (process.platform === 'darwin') app.hide();
     else mainWindow.hide();
+  });
+
+  mainWindow.on('move', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('resize', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('minimize', () => {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+  });
+  mainWindow.on('restore', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('hide', () => {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+  });
+  mainWindow.on('show', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('closed', () => {
+    destroyUnityHostWindow();
+    mainWindow = null;
   });
 
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
@@ -864,6 +1001,7 @@ ipcMain.handle('unity:hide', async () => {
     if (code === 0) {
       unityMounted = false;
       unityActiveTitle = title;
+      destroyUnityHostWindow();
       return true;
     }
   }
