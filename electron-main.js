@@ -368,7 +368,13 @@ async function runUnityEmbedder(args) {
 }
 
 async function embedUnity(rect) {
-  if (!rect || typeof rect.width === 'undefined' || typeof rect.height === 'undefined') {
+  if (
+    !rect ||
+    typeof rect.width === 'undefined' ||
+    typeof rect.height === 'undefined' ||
+    typeof rect.left === 'undefined' ||
+    typeof rect.top === 'undefined'
+  ) {
     throw new Error('Invalid Unity mount rectangle');
   }
   const config = await resolveUnityConfig();
@@ -384,6 +390,8 @@ async function embedUnity(rect) {
 
   const width = Math.max(0, Math.floor(rect.width));
   const height = Math.max(0, Math.floor(rect.height));
+  const left = Math.floor(rect.left);
+  const top = Math.floor(rect.top);
 
   const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
   if (titles.length === 0) {
@@ -399,10 +407,12 @@ async function embedUnity(rect) {
         hostHandle,
         String(width),
         String(height),
+        String(left),
+        String(top),
       ]);
       if (code === 0) {
         unityMounted = true;
-        unityLastRect = { width, height };
+        unityLastRect = { left, top, width, height };
         unityActiveTitle = title;
         return true;
       }
@@ -440,8 +450,22 @@ function orderedUnityTitles(config) {
 }
 
 function scheduleUnityResize(rect) {
-  if (!unityMounted || !rect) return;
-  unityLastRect = { width: rect.width, height: rect.height };
+  if (
+    !unityMounted ||
+    !rect ||
+    typeof rect.width === 'undefined' ||
+    typeof rect.height === 'undefined' ||
+    typeof rect.left === 'undefined' ||
+    typeof rect.top === 'undefined'
+  ) {
+    return;
+  }
+  unityLastRect = {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
   if (unityResizeTimer) {
     clearTimeout(unityResizeTimer);
   }
@@ -454,12 +478,16 @@ function scheduleUnityResize(rect) {
       if (orderedTitles.length === 0) return;
       const width = Math.max(0, Math.floor(unityLastRect.width));
       const height = Math.max(0, Math.floor(unityLastRect.height));
+      const left = Math.floor(unityLastRect.left);
+      const top = Math.floor(unityLastRect.top);
       for (const title of orderedTitles) {
         const code = await runUnityEmbedder([
           'resize',
           title,
           String(width),
           String(height),
+          String(left),
+          String(top),
         ]);
         if (code === 0) {
           if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
