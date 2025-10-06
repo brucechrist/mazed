@@ -371,6 +371,13 @@ function disposeUnityHostWindow() {
   unityHostBounds = null;
 }
 
+function destroyUnityHostWindow() {
+  disposeUnityHostWindow();
+  unityMounted = false;
+  unityActiveTitle = null;
+  unityLastRect = null;
+}
+
 function ensureUnityHostWindow() {
   if (!isWindows || !mainWindow) return null;
   if (unityHostWindow && unityHostWindow.isDestroyed()) {
