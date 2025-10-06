@@ -300,12 +300,14 @@ async function ensureUnityProcess() {
     unityProcess = null;
     unityMounted = false;
     unityActiveTitle = null;
+    destroyUnityHostWindow();
   });
   unityProcess.once('error', (err) => {
     console.error('Unity process error', err);
     unityProcess = null;
     unityMounted = false;
     unityActiveTitle = null;
+    destroyUnityHostWindow();
   });
   return unityProcess;
 }
@@ -335,6 +337,9 @@ function readWindowHandleBuffer(buf) {
     console.error('Failed to interpret native window handle buffer', err);
     return null;
   }
+  unityHostLastRect = normalized;
+  applyUnityHostBounds();
+  return normalized;
 }
 
 function disposeUnityHostWindow() {
@@ -534,8 +539,6 @@ async function embedUnity(rect) {
         hostHandle,
         String(width),
         String(height),
-        String(left),
-        String(top),
       ]);
         if (code === 0) {
           unityMounted = true;
@@ -546,6 +549,7 @@ async function embedUnity(rect) {
     }
     await delay(400);
   }
+  destroyUnityHostWindow();
   return false;
 }
 
@@ -594,14 +598,12 @@ function normalizeRect(rect) {
 }
 
 function scheduleUnityResize(rect) {
-  if (
-    !unityMounted ||
-    !rect ||
-    typeof rect.width === 'undefined' ||
-    typeof rect.height === 'undefined' ||
-    typeof rect.left === 'undefined' ||
-    typeof rect.top === 'undefined'
-  ) {
+  const normalized = updateUnityHostFromRect(rect);
+  if (!normalized) {
+    return;
+  }
+  unityLastRect = normalized;
+  if (!unityMounted) {
     return;
   }
   const normalized = normalizeRect(rect);
@@ -622,16 +624,15 @@ function scheduleUnityResize(rect) {
       updateUnityHostWindowBounds(unityLastRect);
       const width = Math.max(0, Math.floor(unityLastRect.width));
       const height = Math.max(0, Math.floor(unityLastRect.height));
-      const left = Math.floor(unityLastRect.left);
-      const top = Math.floor(unityLastRect.top);
+      if (width <= 0 || height <= 0) {
+        return;
+      }
       for (const title of orderedTitles) {
         const code = await runUnityEmbedder([
           'resize',
           title,
           String(width),
           String(height),
-          String(left),
-          String(top),
         ]);
         if (code === 0) {
           if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
@@ -717,6 +718,33 @@ function createWindow() {
     e.preventDefault();
     if (process.platform === 'darwin') app.hide();
     else mainWindow.hide();
+  });
+
+  mainWindow.on('move', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('resize', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('minimize', () => {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+  });
+  mainWindow.on('restore', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('hide', () => {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+  });
+  mainWindow.on('show', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('closed', () => {
+    destroyUnityHostWindow();
+    mainWindow = null;
   });
 
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
