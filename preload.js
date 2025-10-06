@@ -32,11 +32,13 @@ function getPanelRect() {
   const el = getPanelEl();
   if (!el) return null;
   const r = el.getBoundingClientRect();
+  const scale = Number(window.devicePixelRatio) || 1;
   return {
-    left: Math.round(r.left),
-    top: Math.round(r.top),
-    width: Math.round(r.width),
-    height: Math.round(r.height),
+    left: Math.round(r.left * scale),
+    top: Math.round(r.top * scale),
+    width: Math.max(0, Math.round(r.width * scale)),
+    height: Math.max(0, Math.round(r.height * scale)),
+    scale,
   };
 }
 
@@ -78,6 +80,7 @@ contextBridge.exposeInMainWorld('unity', {
     startObservingPanel();
     const rect = getPanelRect();
     if (!rect) throw new Error('Failed to measure unity-panel');
+    ipcRenderer.send('unity:panel-resize', rect);
     return ipcRenderer.invoke('unity:mount', rect);
   },
   /** Hide the embedded Unity view */

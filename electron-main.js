@@ -388,10 +388,15 @@ async function embedUnity(rect) {
     throw new Error('Failed to obtain host window handle.');
   }
 
-  const width = Math.max(0, Math.floor(rect.width));
-  const height = Math.max(0, Math.floor(rect.height));
-  const left = Math.floor(rect.left);
-  const top = Math.floor(rect.top);
+  const normalized = normalizeRect(rect);
+  if (!normalized) {
+    throw new Error('Invalid Unity mount rectangle');
+  }
+
+  const width = Math.max(0, Math.floor(normalized.width));
+  const height = Math.max(0, Math.floor(normalized.height));
+  const left = Math.floor(normalized.left);
+  const top = Math.floor(normalized.top);
 
   const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
   if (titles.length === 0) {
@@ -449,6 +454,21 @@ function orderedUnityTitles(config) {
   return ordered;
 }
 
+function normalizeRect(rect) {
+  if (!rect || typeof rect !== 'object') {
+    return null;
+  }
+  const toNumber = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const left = toNumber(rect.left);
+  const top = toNumber(rect.top);
+  const width = Math.max(0, toNumber(rect.width));
+  const height = Math.max(0, toNumber(rect.height));
+  return { left, top, width, height };
+}
+
 function scheduleUnityResize(rect) {
   if (
     !unityMounted ||
@@ -460,12 +480,11 @@ function scheduleUnityResize(rect) {
   ) {
     return;
   }
-  unityLastRect = {
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
-  };
+  const normalized = normalizeRect(rect);
+  if (!normalized) {
+    return;
+  }
+  unityLastRect = normalized;
   if (unityResizeTimer) {
     clearTimeout(unityResizeTimer);
   }
