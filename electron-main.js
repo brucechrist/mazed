@@ -412,8 +412,6 @@ async function embedUnity(rect) {
         hostHandle,
         String(width),
         String(height),
-        String(left),
-        String(top),
       ]);
       if (code === 0) {
         unityMounted = true;
@@ -505,8 +503,6 @@ function scheduleUnityResize(rect) {
           title,
           String(width),
           String(height),
-          String(left),
-          String(top),
         ]);
         if (code === 0) {
           if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
