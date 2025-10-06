@@ -337,7 +337,21 @@ function readWindowHandleBuffer(buf) {
     console.error('Failed to interpret native window handle buffer', err);
     return null;
   }
-  unityHostLastRect = normalized;
+}
+
+function applyUnityHostBounds() {
+  if (!isWindows || !mainWindow || !unityLastRect) {
+    return;
+  }
+  updateUnityHostWindowBounds(unityLastRect);
+}
+
+function updateUnityHostFromRect(rect) {
+  const normalized = rect && rect.__normalized ? rect : normalizeRect(rect);
+  if (!normalized) {
+    return null;
+  }
+  unityLastRect = normalized;
   applyUnityHostBounds();
   return normalized;
 }
@@ -355,6 +369,13 @@ function disposeUnityHostWindow() {
   unityHostWindow = null;
   unityHostHandle = null;
   unityHostBounds = null;
+}
+
+function destroyUnityHostWindow() {
+  disposeUnityHostWindow();
+  unityMounted = false;
+  unityActiveTitle = null;
+  unityLastRect = null;
 }
 
 function ensureUnityHostWindow() {
@@ -606,11 +627,6 @@ function scheduleUnityResize(rect) {
   if (!unityMounted) {
     return;
   }
-  const normalized = normalizeRect(rect);
-  if (!normalized) {
-    return;
-  }
-  unityLastRect = normalized;
   if (unityResizeTimer) {
     clearTimeout(unityResizeTimer);
   }
