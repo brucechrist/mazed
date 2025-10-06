@@ -154,6 +154,7 @@ let unityMounted = false;
 let unityLastRect = null;
 let unityConfigCache = null;
 let unityResizeTimer = null;
+let unityActiveTitle = null;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -196,6 +197,17 @@ async function resolveUnityConfig() {
   const cfg = (await readJsonSafeLocal(path.join(runtimeDir, UNITY_CONFIG_FILE))) || {};
   let exeName = cfg.exe || cfg.executable;
   const args = Array.isArray(cfg.args) ? cfg.args : [];
+  const rawTitles = [];
+  const addTitle = (value) => {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    if (rawTitles.some((existing) => existing.toLowerCase() === lower)) {
+      return;
+    }
+    rawTitles.push(trimmed);
+  };
 
   if (typeof exeName !== 'string' || !exeName.trim()) {
     try {
@@ -223,8 +235,42 @@ async function resolveUnityConfig() {
     return null;
   }
 
-  const title = typeof cfg.title === 'string' && cfg.title.trim() ? cfg.title.trim() : path.parse(exePath).name;
-  unityConfigCache = { runtimeDir, exePath, args, title };
+  addTitle(cfg.title);
+  if (Array.isArray(cfg.titles)) {
+    for (const candidate of cfg.titles) {
+      addTitle(candidate);
+    }
+  }
+  if (rawTitles.length === 0) {
+    addTitle(path.parse(exePath).name);
+  }
+
+  const titles = [];
+  const seen = new Set();
+  const devSuffix = ' (Development Build)';
+  const pushTitle = (value) => {
+    if (typeof value !== 'string' || !value) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    titles.push(trimmed);
+  };
+
+  for (const title of rawTitles) {
+    pushTitle(title);
+  }
+
+  for (const title of rawTitles) {
+    if (title.toLowerCase().endsWith(devSuffix.toLowerCase())) {
+      pushTitle(title.slice(0, -devSuffix.length));
+    } else {
+      pushTitle(`${title}${devSuffix}`);
+    }
+  }
+
+  unityConfigCache = { runtimeDir, exePath, args, titles };
   return unityConfigCache;
 }
 
@@ -250,11 +296,13 @@ async function ensureUnityProcess() {
   unityProcess.once('exit', () => {
     unityProcess = null;
     unityMounted = false;
+    unityActiveTitle = null;
   });
   unityProcess.once('error', (err) => {
     console.error('Unity process error', err);
     unityProcess = null;
     unityMounted = false;
+    unityActiveTitle = null;
   });
   return unityProcess;
 }
@@ -269,6 +317,7 @@ function killUnityProcess() {
   }
   unityProcess = null;
   unityMounted = false;
+  unityActiveTitle = null;
 }
 
 function getHostWindowHandle() {
@@ -336,22 +385,58 @@ async function embedUnity(rect) {
   const width = Math.max(0, Math.floor(rect.width));
   const height = Math.max(0, Math.floor(rect.height));
 
+  const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
+  if (titles.length === 0) {
+    throw new Error('Unity configuration is missing window titles.');
+  }
+  unityActiveTitle = null;
+
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const code = await runUnityEmbedder([
-      'embed',
-      config.title,
-      hostHandle,
-      String(width),
-      String(height),
-    ]);
-    if (code === 0) {
-      unityMounted = true;
-      unityLastRect = { width, height };
-      return true;
+    for (const title of titles) {
+      const code = await runUnityEmbedder([
+        'embed',
+        title,
+        hostHandle,
+        String(width),
+        String(height),
+      ]);
+      if (code === 0) {
+        unityMounted = true;
+        unityLastRect = { width, height };
+        unityActiveTitle = title;
+        return true;
+      }
     }
     await delay(400);
   }
   return false;
+}
+
+function orderedUnityTitles(config) {
+  if (!config || !Array.isArray(config.titles) || config.titles.length === 0) {
+    return [];
+  }
+  if (!unityActiveTitle) {
+    return config.titles;
+  }
+  const lowerActive = unityActiveTitle.toLowerCase();
+  const ordered = [];
+  const seen = new Set();
+  for (const title of config.titles) {
+    const lower = title.toLowerCase();
+    if (seen.has(lower)) continue;
+    if (lower === lowerActive) {
+      ordered.unshift(title);
+      seen.add(lower);
+    }
+  }
+  for (const title of config.titles) {
+    const lower = title.toLowerCase();
+    if (seen.has(lower)) continue;
+    ordered.push(title);
+    seen.add(lower);
+  }
+  return ordered;
 }
 
 function scheduleUnityResize(rect) {
@@ -365,17 +450,25 @@ function scheduleUnityResize(rect) {
     (async () => {
       const config = await resolveUnityConfig();
       if (!config) return;
+      const orderedTitles = orderedUnityTitles(config);
+      if (orderedTitles.length === 0) return;
       const width = Math.max(0, Math.floor(unityLastRect.width));
       const height = Math.max(0, Math.floor(unityLastRect.height));
-      const code = await runUnityEmbedder([
-        'resize',
-        config.title,
-        String(width),
-        String(height),
-      ]);
-      if (code !== 0) {
-        console.warn('Unity resize command failed with code', code);
+      for (const title of orderedTitles) {
+        const code = await runUnityEmbedder([
+          'resize',
+          title,
+          String(width),
+          String(height),
+        ]);
+        if (code === 0) {
+          if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
+            unityActiveTitle = title;
+          }
+          return;
+        }
       }
+      console.warn('Unity resize command failed for all configured titles');
     })().catch((err) => {
       console.error('Unity resize failed', err);
     });
@@ -737,10 +830,14 @@ ipcMain.handle('unity:hide', async () => {
   if (!isWindows) return false;
   const config = await resolveUnityConfig();
   if (!config) return false;
-  const code = await runUnityEmbedder(['hide', config.title]);
-  if (code === 0) {
-    unityMounted = false;
-    return true;
+  const titles = orderedUnityTitles(config);
+  for (const title of titles) {
+    const code = await runUnityEmbedder(['hide', title]);
+    if (code === 0) {
+      unityMounted = false;
+      unityActiveTitle = title;
+      return true;
+    }
   }
   return false;
 });
@@ -749,7 +846,14 @@ ipcMain.handle('unity:quit', async () => {
   if (isWindows) {
     const config = await resolveUnityConfig();
     if (config) {
-      await runUnityEmbedder(['hide', config.title]);
+      const titles = orderedUnityTitles(config);
+      for (const title of titles) {
+        const code = await runUnityEmbedder(['hide', title]);
+        if (code === 0) {
+          unityActiveTitle = title;
+          break;
+        }
+      }
     }
   }
   killUnityProcess();

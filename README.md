@@ -64,6 +64,13 @@ npm start
 
 Make sure the `.env` file with your Supabase credentials exists before running either command.
 
+### Unity runtime
+
+If you want the Formless layer to embed a Unity scene, place your Windows
+player build inside `runtime/win/UnityPlayer/` and describe its executable and
+window title in `unity.config.json`. See [UNITY_SETUP.md](UNITY_SETUP.md) for the
+step-by-step guide.
+
 ### Profile Pictures
 
 Create a public storage bucket named `avatars` in Supabase. The `profiles`
