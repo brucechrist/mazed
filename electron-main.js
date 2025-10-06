@@ -340,10 +340,10 @@ function readWindowHandleBuffer(buf) {
 }
 
 function applyUnityHostBounds() {
-  if (!isWindows || !mainWindow || !unityLastRect) {
+  if (!isWindows || !mainWindow || !unityHostLastRect) {
     return;
   }
-  updateUnityHostWindowBounds(unityLastRect);
+  updateUnityHostWindowBounds(unityHostLastRect);
 }
 
 function updateUnityHostFromRect(rect) {
@@ -351,7 +351,7 @@ function updateUnityHostFromRect(rect) {
   if (!normalized) {
     return null;
   }
-  unityLastRect = normalized;
+  unityHostLastRect = normalized;
   applyUnityHostBounds();
   return normalized;
 }
