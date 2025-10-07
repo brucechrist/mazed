@@ -158,6 +158,7 @@ let unityActiveTitle = null;
 let unityHostWindow = null;
 let unityHostHandle = null;
 let unityHostBounds = null;
+let unityHostLastRect = null;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -376,6 +377,7 @@ function destroyUnityHostWindow() {
   unityMounted = false;
   unityActiveTitle = null;
   unityLastRect = null;
+  unityHostLastRect = null;
 }
 
 function ensureUnityHostWindow() {
