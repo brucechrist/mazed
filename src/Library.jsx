@@ -1362,23 +1362,15 @@ export default function Library({ onBack }) {
   const openSoundModalForEdit = (snd) => {
     if (!snd) return;
     const tags = parseSoundTags(snd);
-    const orientation = findPresetTag(tags, SOUND_ORIENTATION_TAGS);
-    const position = findPresetTag(tags, SOUND_POSITION_TAGS);
-    const customTags = extractCustomSoundTags(tags);
     setSoundModal(snd.dataUrl);
     setSoundTitle(snd.title || '');
     setSoundThumb(null);
     setSoundThumbPreview(snd.thumbnail || null);
     setSoundColor(snd.color || '');
-    setSoundOrientation(orientation);
-    setSoundPosition(position);
-    setSoundCustomTags(customTags.join(', '));
+    setSoundOrientation(findPresetTag(tags, SOUND_ORIENTATION_TAGS));
+    setSoundPosition(findPresetTag(tags, SOUND_POSITION_TAGS));
+    setSoundCustomTags(extractCustomSoundTags(tags).join(', '));
     setEditingSoundId(snd.id);
-    soundInitialTagsRef.current = createSoundTagDraft(
-      orientation,
-      position,
-      customTags
-    );
   };
 
   const resetSoundModalState = () => {
@@ -1391,27 +1383,6 @@ export default function Library({ onBack }) {
     setSoundPosition('');
     setSoundCustomTags('');
     setEditingSoundId(null);
-    soundInitialTagsRef.current = null;
-  };
-
-  const hasPendingSoundTagChanges = () => {
-    if (!editingSoundId) return false;
-    const initial = soundInitialTagsRef.current;
-    if (!initial) return false;
-    const current = createSoundTagDraft(
-      soundOrientation,
-      soundPosition,
-      soundCustomTags
-    );
-    return !areSoundTagDraftsEqual(initial, current);
-  };
-
-  const handleSoundModalClose = async (autoSave = false) => {
-    if (autoSave && hasPendingSoundTagChanges()) {
-      await saveDroppedSound();
-      return;
-    }
-    resetSoundModalState();
   };
 
   const getMasonrySpan = (targetHeight) => {
@@ -2013,10 +1984,7 @@ export default function Library({ onBack }) {
           </div>
         )}
         {soundModal && (
-          <div
-            className="sound-modal"
-            onClick={() => handleSoundModalClose(true)}
-          >
+          <div className="sound-modal" onClick={resetSoundModalState}>
             <div
               className="sound-modal-content"
               onClick={(e) => e.stopPropagation()}
@@ -2114,7 +2082,7 @@ export default function Library({ onBack }) {
                 />
               </div>
               <div className="sound-modal-actions">
-                <button onClick={() => handleSoundModalClose(false)}>
+                <button onClick={resetSoundModalState}>
                   Cancel
                 </button>
                 <button onClick={saveDroppedSound}>Save</button>
