@@ -452,6 +452,7 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 32px;
   align-items: stretch;
+  height: 100%;
 }
 
 .notes-grid {
@@ -462,6 +463,11 @@
   overflow-y: auto;
   padding-right: 12px;
   min-height: 0;
+}
+
+.notes-grid,
+.notes-detail {
+  height: 100%;
 }
 
 .notes-card {
@@ -687,16 +693,19 @@
   .notes-body {
     grid-template-columns: 1fr;
     gap: 24px;
+    height: auto;
   }
 
   .notes-detail {
     order: -1;
+    height: auto;
   }
 
   .notes-grid {
     max-height: 45vh;
     grid-template-columns: minmax(0, 1fr);
     padding-right: 0;
+    height: auto;
   }
 }
 
