@@ -7,6 +7,65 @@ import { useQuests } from "./QuestContext.jsx";
 import TasteT from "./TasteT.jsx";
 import "./world.css";
 
+function FormlessUnityStage() {
+  const [status, setStatus] = useState("loading");
+  const [message, setMessage] = useState("Launching Mazed Unity...");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const mountUnity = async () => {
+      if (!window.unity?.mount) {
+        setStatus("unsupported");
+        setMessage("Unity bridge is unavailable in this build.");
+        return;
+      }
+      try {
+        setStatus("loading");
+        setMessage("Launching Mazed Unity...");
+        const result = await window.unity.mount();
+        if (cancelled) return;
+        if (result && result.ok === false) {
+          throw new Error(result.error || "Unity mount failed");
+        }
+        setStatus("ready");
+      } catch (err) {
+        console.error("Unity mount failed", err);
+        if (cancelled) return;
+        setStatus("error");
+        setMessage(err?.message || "Failed to embed the Unity experience.");
+      }
+    };
+
+    mountUnity();
+
+    return () => {
+      cancelled = true;
+      if (window.unity?.hide) {
+        window.unity
+          .hide()
+          .catch(() => {
+            /* ignore */
+          });
+      }
+    };
+  }, []);
+
+  return (
+    <div className="world-container world-formless-stage">
+      <div id="unity-panel" className="unity-panel" />
+      {status !== "ready" && (
+        <div className={`unity-status unity-status-${status}`}>
+          <span>{message}</span>
+          {status === "unsupported" && (
+            <small>Desktop build is missing the Unity runtime.</small>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function World({ activeLayer = "Form" }) {
   const [resource, setResource] = useState(() => {
     const stored = localStorage.getItem("resourceR");
@@ -108,7 +167,7 @@ export default function World({ activeLayer = "Form" }) {
   }
 
   if (isFormless) {
-    return <div className="world-container world-formless-empty" />;
+    return <FormlessUnityStage />;
   }
 
   return (

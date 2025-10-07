@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const fsp = fs.promises;
+const { spawn } = require('child_process');
 let mainWindow;
 let tray;
 let isQuitting = false;
@@ -143,6 +144,532 @@ function findTrayIcon() {
   return nativeImage.createEmpty();
 }
 
+const isWindows = process.platform === 'win32';
+const UNITY_RUNTIME_SEGMENTS = ['runtime', 'win', 'UnityPlayer'];
+const UNITY_CONFIG_FILE = 'unity.config.json';
+const UNITY_EMBEDDER_NAME = isWindows ? 'UnityEmbedder.exe' : 'UnityEmbedder';
+
+let unityProcess = null;
+let unityMounted = false;
+let unityLastRect = null;
+let unityConfigCache = null;
+let unityResizeTimer = null;
+let unityActiveTitle = null;
+let unityHostWindow = null;
+let unityHostHandle = null;
+let unityHostBounds = null;
+let unityHostLastRect = null;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function resolveUnpackedPath(...segments) {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
+  }
+  return path.join(__dirname, ...segments);
+}
+
+async function readJsonSafeLocal(filePath) {
+  try {
+    const raw = await fsp.readFile(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to read JSON file', filePath, err);
+    }
+    return null;
+  }
+}
+
+async function resolveUnityConfig() {
+  if (!isWindows) return null;
+  if (unityConfigCache) return unityConfigCache;
+
+  const runtimeDir = resolveUnpackedPath(...UNITY_RUNTIME_SEGMENTS);
+  try {
+    const stat = await fsp.stat(runtimeDir);
+    if (!stat.isDirectory()) {
+      return null;
+    }
+  } catch (err) {
+    if (err && err.code !== 'ENOENT') {
+      console.error('Failed to access Unity runtime directory', err);
+    }
+    return null;
+  }
+
+  const cfg = (await readJsonSafeLocal(path.join(runtimeDir, UNITY_CONFIG_FILE))) || {};
+  let exeName = cfg.exe || cfg.executable;
+  const args = Array.isArray(cfg.args) ? cfg.args : [];
+  const rawTitles = [];
+  const addTitle = (value) => {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    if (rawTitles.some((existing) => existing.toLowerCase() === lower)) {
+      return;
+    }
+    rawTitles.push(trimmed);
+  };
+
+  if (typeof exeName !== 'string' || !exeName.trim()) {
+    try {
+      const files = await fsp.readdir(runtimeDir);
+      const ignore = new Set(['unityembedder.exe', 'unitycrashhandler64.exe']);
+      const candidate = files.find((name) => {
+        if (!name.toLowerCase().endsWith('.exe')) return false;
+        return !ignore.has(name.toLowerCase());
+      });
+      if (!candidate) {
+        return null;
+      }
+      exeName = candidate;
+    } catch (err) {
+      console.error('Failed to list Unity runtime directory', err);
+      return null;
+    }
+  }
+
+  const exePath = path.isAbsolute(exeName) ? exeName : path.join(runtimeDir, exeName);
+  try {
+    await fsp.access(exePath);
+  } catch (err) {
+    console.error('Unity executable not found', exePath, err);
+    return null;
+  }
+
+  addTitle(cfg.title);
+  if (Array.isArray(cfg.titles)) {
+    for (const candidate of cfg.titles) {
+      addTitle(candidate);
+    }
+  }
+  if (rawTitles.length === 0) {
+    addTitle(path.parse(exePath).name);
+  }
+
+  const titles = [];
+  const seen = new Set();
+  const devSuffix = ' (Development Build)';
+  const pushTitle = (value) => {
+    if (typeof value !== 'string' || !value) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    titles.push(trimmed);
+  };
+
+  for (const title of rawTitles) {
+    pushTitle(title);
+  }
+
+  for (const title of rawTitles) {
+    if (title.toLowerCase().endsWith(devSuffix.toLowerCase())) {
+      pushTitle(title.slice(0, -devSuffix.length));
+    } else {
+      pushTitle(`${title}${devSuffix}`);
+    }
+  }
+
+  unityConfigCache = { runtimeDir, exePath, args, titles };
+  return unityConfigCache;
+}
+
+async function ensureUnityProcess() {
+  if (unityProcess && !unityProcess.killed) {
+    return unityProcess;
+  }
+  const config = await resolveUnityConfig();
+  if (!config) {
+    throw new Error('Unity runtime not found.');
+  }
+  try {
+    unityProcess = spawn(config.exePath, config.args || [], {
+      cwd: path.dirname(config.exePath),
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+  } catch (err) {
+    unityProcess = null;
+    throw err;
+  }
+
+  unityProcess.once('exit', () => {
+    unityProcess = null;
+    unityMounted = false;
+    unityActiveTitle = null;
+    destroyUnityHostWindow();
+  });
+  unityProcess.once('error', (err) => {
+    console.error('Unity process error', err);
+    unityProcess = null;
+    unityMounted = false;
+    unityActiveTitle = null;
+    destroyUnityHostWindow();
+  });
+  return unityProcess;
+}
+
+function killUnityProcess() {
+  if (unityProcess && !unityProcess.killed) {
+    try {
+      unityProcess.kill();
+    } catch (err) {
+      console.error('Failed to kill Unity process', err);
+    }
+  }
+  unityProcess = null;
+  unityMounted = false;
+  unityActiveTitle = null;
+  disposeUnityHostWindow();
+}
+
+function readWindowHandleBuffer(buf) {
+  if (!buf) return null;
+  if (typeof buf.readBigUInt64LE === 'function' && buf.length >= 8) {
+    return buf.readBigUInt64LE(0).toString();
+  }
+  try {
+    return BigInt(buf.readUInt32LE(0)).toString();
+  } catch (err) {
+    console.error('Failed to interpret native window handle buffer', err);
+    return null;
+  }
+}
+
+function applyUnityHostBounds() {
+  if (!isWindows || !mainWindow || !unityHostLastRect) {
+    return;
+  }
+  updateUnityHostWindowBounds(unityHostLastRect);
+}
+
+function updateUnityHostFromRect(rect) {
+  const normalized = rect && rect.__normalized ? rect : normalizeRect(rect);
+  if (!normalized) {
+    return null;
+  }
+  unityHostLastRect = normalized;
+  applyUnityHostBounds();
+  return normalized;
+}
+
+function disposeUnityHostWindow() {
+  if (unityHostWindow) {
+    try {
+      if (!unityHostWindow.isDestroyed()) {
+        unityHostWindow.destroy();
+      }
+    } catch (err) {
+      console.error('Failed to destroy Unity host window', err);
+    }
+  }
+  unityHostWindow = null;
+  unityHostHandle = null;
+  unityHostBounds = null;
+}
+
+function destroyUnityHostWindow() {
+  disposeUnityHostWindow();
+  unityMounted = false;
+  unityActiveTitle = null;
+  unityLastRect = null;
+  unityHostLastRect = null;
+}
+
+function ensureUnityHostWindow() {
+  if (!isWindows || !mainWindow) return null;
+  if (unityHostWindow && unityHostWindow.isDestroyed()) {
+    unityHostWindow = null;
+    unityHostHandle = null;
+    unityHostBounds = null;
+  }
+  if (!unityHostWindow) {
+    try {
+      unityHostWindow = new BrowserWindow({
+        parent: mainWindow,
+        modal: false,
+        show: false,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        movable: false,
+        minimizable: false,
+        maximizable: false,
+        closable: false,
+        skipTaskbar: true,
+        hasShadow: false,
+        focusable: true,
+        backgroundColor: '#00000000',
+        webPreferences: {
+          sandbox: true,
+        },
+      });
+      unityHostWindow.once('closed', () => {
+        unityHostWindow = null;
+        unityHostHandle = null;
+        unityHostBounds = null;
+      });
+      if (typeof unityHostWindow.setMenuBarVisibility === 'function') {
+        unityHostWindow.setMenuBarVisibility(false);
+      }
+      if (typeof unityHostWindow.setAlwaysOnTop === 'function') {
+        unityHostWindow.setAlwaysOnTop(true, 'screen-saver');
+      }
+      if (typeof unityHostWindow.showInactive === 'function') {
+        unityHostWindow.showInactive();
+      } else {
+        unityHostWindow.show();
+      }
+    } catch (err) {
+      console.error('Failed to create Unity host window', err);
+      disposeUnityHostWindow();
+      return null;
+    }
+  }
+  return unityHostWindow;
+}
+
+function getUnityHostWindowHandle() {
+  const host = ensureUnityHostWindow();
+  if (!host) return null;
+  if (unityHostHandle) return unityHostHandle;
+  try {
+    unityHostHandle = readWindowHandleBuffer(host.getNativeWindowHandle());
+  } catch (err) {
+    console.error('Failed to obtain Unity host window handle', err);
+    unityHostHandle = null;
+  }
+  return unityHostHandle;
+}
+
+function updateUnityHostWindowBounds(rect) {
+  if (!isWindows || !mainWindow) return null;
+  const normalized = rect && rect.__normalized ? rect : normalizeRect(rect);
+  if (!normalized) {
+    return null;
+  }
+  const host = ensureUnityHostWindow();
+  if (!host) return null;
+  const scale = Number.isFinite(normalized.scale) && normalized.scale > 0 ? normalized.scale : 1;
+  const relativeBounds = {
+    x: Math.floor(normalized.left / scale),
+    y: Math.floor(normalized.top / scale),
+    width: Math.max(0, Math.floor(normalized.width / scale)),
+    height: Math.max(0, Math.floor(normalized.height / scale)),
+  };
+  const parentContent = mainWindow.getContentBounds();
+  const screenBounds = {
+    x: Math.floor((parentContent?.x || 0) + relativeBounds.x),
+    y: Math.floor((parentContent?.y || 0) + relativeBounds.y),
+    width: relativeBounds.width,
+    height: relativeBounds.height,
+  };
+  try {
+    host.setBounds(screenBounds, false);
+    if (typeof host.moveTop === 'function') {
+      host.moveTop();
+    }
+  } catch (err) {
+    console.error('Failed to update Unity host window bounds', err);
+  }
+  unityHostBounds = { ...screenBounds, scale };
+  return screenBounds;
+}
+
+async function resolveEmbedderPath() {
+  const embedderPath = resolveUnpackedPath('native', UNITY_EMBEDDER_NAME);
+  try {
+    await fsp.access(embedderPath);
+    return embedderPath;
+  } catch (err) {
+    console.error('Unity embedder executable missing', embedderPath, err);
+    return null;
+  }
+}
+
+async function runUnityEmbedder(args) {
+  const embedder = await resolveEmbedderPath();
+  if (!embedder) {
+    return 1;
+  }
+  return new Promise((resolve) => {
+    const child = spawn(embedder, args, {
+      cwd: path.dirname(embedder),
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    child.on('error', (err) => {
+      console.error('Unity embedder failed', err);
+      resolve(1);
+    });
+    child.on('exit', (code) => {
+      resolve(typeof code === 'number' ? code : 1);
+    });
+  });
+}
+
+async function embedUnity(rect) {
+  if (
+    !rect ||
+    typeof rect.width === 'undefined' ||
+    typeof rect.height === 'undefined' ||
+    typeof rect.left === 'undefined' ||
+    typeof rect.top === 'undefined'
+  ) {
+    throw new Error('Invalid Unity mount rectangle');
+  }
+  const config = await resolveUnityConfig();
+  if (!config) {
+    throw new Error('Unity runtime is missing.');
+  }
+  await ensureUnityProcess();
+
+  const normalized = normalizeRect(rect);
+  if (!normalized) {
+    throw new Error('Invalid Unity mount rectangle');
+  }
+
+  const hostBounds = updateUnityHostWindowBounds(normalized);
+  if (!hostBounds) {
+    throw new Error('Failed to position Unity host window.');
+  }
+
+  const hostHandle = getUnityHostWindowHandle();
+  if (!hostHandle) {
+    throw new Error('Failed to obtain host window handle.');
+  }
+
+  const width = Math.max(0, Math.floor(normalized.width));
+  const height = Math.max(0, Math.floor(normalized.height));
+  const left = Math.floor(normalized.left);
+  const top = Math.floor(normalized.top);
+
+  const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
+  if (titles.length === 0) {
+    throw new Error('Unity configuration is missing window titles.');
+  }
+  unityActiveTitle = null;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    for (const title of titles) {
+      const code = await runUnityEmbedder([
+        'embed',
+        title,
+        hostHandle,
+        String(width),
+        String(height),
+      ]);
+        if (code === 0) {
+          unityMounted = true;
+          unityLastRect = normalized;
+          unityActiveTitle = title;
+          return true;
+        }
+    }
+    await delay(400);
+  }
+  destroyUnityHostWindow();
+  return false;
+}
+
+function orderedUnityTitles(config) {
+  if (!config || !Array.isArray(config.titles) || config.titles.length === 0) {
+    return [];
+  }
+  if (!unityActiveTitle) {
+    return config.titles;
+  }
+  const lowerActive = unityActiveTitle.toLowerCase();
+  const ordered = [];
+  const seen = new Set();
+  for (const title of config.titles) {
+    const lower = title.toLowerCase();
+    if (seen.has(lower)) continue;
+    if (lower === lowerActive) {
+      ordered.unshift(title);
+      seen.add(lower);
+    }
+  }
+  for (const title of config.titles) {
+    const lower = title.toLowerCase();
+    if (seen.has(lower)) continue;
+    ordered.push(title);
+    seen.add(lower);
+  }
+  return ordered;
+}
+
+function normalizeRect(rect) {
+  if (!rect || typeof rect !== 'object') {
+    return null;
+  }
+  const toNumber = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const left = toNumber(rect.left);
+  const top = toNumber(rect.top);
+  const width = Math.max(0, toNumber(rect.width));
+  const height = Math.max(0, toNumber(rect.height));
+  const rawScale = Number(rect.scale);
+  const scale = Number.isFinite(rawScale) && rawScale > 0 ? rawScale : 1;
+  return { left, top, width, height, scale, __normalized: true };
+}
+
+function scheduleUnityResize(rect) {
+  const normalized = updateUnityHostFromRect(rect);
+  if (!normalized) {
+    return;
+  }
+  unityLastRect = normalized;
+  if (!unityMounted) {
+    return;
+  }
+  if (unityResizeTimer) {
+    clearTimeout(unityResizeTimer);
+  }
+  unityResizeTimer = setTimeout(() => {
+    unityResizeTimer = null;
+    const rectToResize = unityLastRect;
+    if (!unityMounted || !rectToResize) {
+      return;
+    }
+    (async () => {
+      const config = await resolveUnityConfig();
+      if (!config) return;
+      const orderedTitles = orderedUnityTitles(config);
+      if (orderedTitles.length === 0) return;
+      updateUnityHostWindowBounds(rectToResize);
+      const width = Math.max(0, Math.floor(rectToResize.width));
+      const height = Math.max(0, Math.floor(rectToResize.height));
+      if (width <= 0 || height <= 0) {
+        return;
+      }
+      for (const title of orderedTitles) {
+        const code = await runUnityEmbedder([
+          'resize',
+          title,
+          String(width),
+          String(height),
+        ]);
+        if (code === 0) {
+          if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
+            unityActiveTitle = title;
+          }
+          return;
+        }
+      }
+      console.warn('Unity resize command failed for all configured titles');
+    })().catch((err) => {
+      console.error('Unity resize failed', err);
+    });
+  }, 120);
+}
+
 function createTray() {
   if (tray) return tray;
   const icon = findTrayIcon();
@@ -213,6 +740,33 @@ function createWindow() {
     e.preventDefault();
     if (process.platform === 'darwin') app.hide();
     else mainWindow.hide();
+  });
+
+  mainWindow.on('move', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('resize', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('minimize', () => {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+  });
+  mainWindow.on('restore', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('hide', () => {
+    if (unityHostWindow && !unityHostWindow.isDestroyed()) {
+      unityHostWindow.hide();
+    }
+  });
+  mainWindow.on('show', () => {
+    applyUnityHostBounds();
+  });
+  mainWindow.on('closed', () => {
+    destroyUnityHostWindow();
+    mainWindow = null;
   });
 
   const devServerURL = process.env.VITE_DEV_SERVER_URL;
@@ -478,6 +1032,65 @@ ipcMain.handle('library-delete-image', async (_event, id) => {
   }
 });
 
+ipcMain.handle('unity:mount', async (_event, rect) => {
+  if (!isWindows) {
+    return { ok: false, error: 'Unity embedding is only supported on Windows.' };
+  }
+  try {
+    const success = await embedUnity(rect || {});
+    if (!success) {
+      return { ok: false, error: 'Failed to locate the Unity window.' };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error('Unity mount failed', err);
+    return { ok: false, error: err?.message || 'Unity mount failed.' };
+  }
+});
+
+ipcMain.handle('unity:hide', async () => {
+  if (!isWindows) return false;
+  const config = await resolveUnityConfig();
+  if (!config) return false;
+  const titles = orderedUnityTitles(config);
+  for (const title of titles) {
+    const code = await runUnityEmbedder(['hide', title]);
+    if (code === 0) {
+      unityMounted = false;
+      unityActiveTitle = title;
+      disposeUnityHostWindow();
+      return true;
+    }
+  }
+  disposeUnityHostWindow();
+  return false;
+});
+
+ipcMain.handle('unity:quit', async () => {
+  if (isWindows) {
+    const config = await resolveUnityConfig();
+    if (config) {
+      const titles = orderedUnityTitles(config);
+      for (const title of titles) {
+        const code = await runUnityEmbedder(['hide', title]);
+        if (code === 0) {
+          unityActiveTitle = title;
+          break;
+        }
+      }
+    }
+  }
+  disposeUnityHostWindow();
+  killUnityProcess();
+  return true;
+});
+
+ipcMain.on('unity:panel-resize', (_event, rect) => {
+  if (!isWindows) return;
+  updateUnityHostWindowBounds(rect);
+  scheduleUnityResize(rect);
+});
+
 app.whenReady().then(createWindow);
 app.whenReady().then(() => {
   createTray();
@@ -490,6 +1103,7 @@ app.whenReady().then(() => registerGlobalShortcuts());
 
 app.on('before-quit', () => {
   isQuitting = true;
+  killUnityProcess();
 });
 
 // Ensure shortcuts are released on quit
