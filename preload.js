@@ -48,6 +48,11 @@ async function ensurePanel() {
   if (document.readyState === 'loading') {
     await new Promise((res) => window.addEventListener('DOMContentLoaded', res, { once: true }));
   }
+  // Wait for the panel element to be created if it doesn't exist yet
+  for (let i = 0; i < 20; i++) {
+    if (getPanelEl()) return true;
+    await new Promise(res => setTimeout(res, 100));
+  }
   return !!getPanelEl();
 }
 
@@ -77,9 +82,24 @@ contextBridge.exposeInMainWorld('unity', {
   mount: async () => {
     const ok = await ensurePanel();
     if (!ok) throw new Error('unity-panel not found in DOM');
+    
+    // Wait for the panel to have actual dimensions
+    let rect = null;
+    for (let i = 0; i < 30; i++) {
+      rect = getPanelRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        console.log(`Unity panel ready with dimensions: ${rect.width}x${rect.height}`);
+        break;
+      }
+      console.log(`Waiting for unity-panel dimensions... (attempt ${i + 1})`);
+      await new Promise(res => setTimeout(res, 100));
+    }
+    
+    if (!rect || rect.width <= 0 || rect.height <= 0) {
+      throw new Error(`Unity panel has invalid dimensions: ${rect?.width || 0}x${rect?.height || 0}`);
+    }
+    
     startObservingPanel();
-    const rect = getPanelRect();
-    if (!rect) throw new Error('Failed to measure unity-panel');
     ipcRenderer.send('unity:panel-resize', rect);
     return ipcRenderer.invoke('unity:mount', rect);
   },
