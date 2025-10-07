@@ -394,7 +394,7 @@ function ensureUnityHostWindow() {
         modal: false,
         show: false,
         frame: false,
-        transparent: true,
+        transparent: false,  // Changed: Unity needs an opaque window to render
         resizable: false,
         movable: false,
         minimizable: false,
@@ -403,7 +403,7 @@ function ensureUnityHostWindow() {
         skipTaskbar: true,
         hasShadow: false,
         focusable: true,
-        backgroundColor: '#00000000',
+        backgroundColor: '#000000',  // Changed: Solid black background for Unity rendering
         webPreferences: {
           sandbox: true,
         },
@@ -416,9 +416,7 @@ function ensureUnityHostWindow() {
       if (typeof unityHostWindow.setMenuBarVisibility === 'function') {
         unityHostWindow.setMenuBarVisibility(false);
       }
-      if (typeof unityHostWindow.setAlwaysOnTop === 'function') {
-        unityHostWindow.setAlwaysOnTop(true, 'screen-saver');
-      }
+      // Removed setAlwaysOnTop - it can interfere with Unity rendering
       if (typeof unityHostWindow.showInactive === 'function') {
         unityHostWindow.showInactive();
       } else {
@@ -543,10 +541,8 @@ async function embedUnity(rect) {
     throw new Error('Failed to obtain host window handle.');
   }
 
-  const width = Math.max(0, Math.floor(normalized.width));
-  const height = Math.max(0, Math.floor(normalized.height));
-  const left = Math.floor(normalized.left);
-  const top = Math.floor(normalized.top);
+  const width = Math.max(0, Math.floor(hostBounds.width));
+  const height = Math.max(0, Math.floor(hostBounds.height));
 
   const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
   if (titles.length === 0) {
@@ -556,19 +552,42 @@ async function embedUnity(rect) {
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
     for (const title of titles) {
+      console.log(`Unity embed attempt ${attempt + 1} for title: "${title}", handle: ${hostHandle}, dimensions: ${width}x${height}`);
       const code = await runUnityEmbedder([
         'embed',
         title,
         hostHandle,
         String(width),
         String(height),
+        '0',
+        '0',
       ]);
-        if (code === 0) {
-          unityMounted = true;
-          unityLastRect = normalized;
-          unityActiveTitle = title;
-          return true;
+      if (code === 0) {
+        console.log(`Unity embed successful for title: "${title}"`);
+        // Make sure Unity window is shown after embedding
+        const showCode = await runUnityEmbedder(['show', title]);
+        console.log(`Unity show command result: ${showCode}`);
+        
+        // Force the host window to be visible and on top momentarily to trigger rendering
+        const host = ensureUnityHostWindow();
+        if (host && !host.isDestroyed()) {
+          host.focus();
+          host.blur();
+          // Force a repaint of the host window
+          const bounds = host.getBounds();
+          host.setBounds({ ...bounds, width: bounds.width + 1 });
+          setTimeout(() => {
+            if (!host.isDestroyed()) {
+              host.setBounds(bounds);
+            }
+          }, 50);
         }
+        
+        unityMounted = true;
+        unityLastRect = normalized;
+        unityActiveTitle = title;
+        return true;
+      }
     }
     await delay(400);
   }
@@ -643,9 +662,12 @@ function scheduleUnityResize(rect) {
       if (!config) return;
       const orderedTitles = orderedUnityTitles(config);
       if (orderedTitles.length === 0) return;
-      updateUnityHostWindowBounds(rectToResize);
-      const width = Math.max(0, Math.floor(rectToResize.width));
-      const height = Math.max(0, Math.floor(rectToResize.height));
+      const hostBounds = updateUnityHostWindowBounds(rectToResize);
+      if (!hostBounds) {
+        return;
+      }
+      const width = Math.max(0, Math.floor(hostBounds.width));
+      const height = Math.max(0, Math.floor(hostBounds.height));
       if (width <= 0 || height <= 0) {
         return;
       }
@@ -655,6 +677,8 @@ function scheduleUnityResize(rect) {
           title,
           String(width),
           String(height),
+          '0',
+          '0',
         ]);
         if (code === 0) {
           if (!unityActiveTitle || unityActiveTitle.toLowerCase() !== title.toLowerCase()) {
