@@ -25,13 +25,124 @@ const readFileAsDataURL = (file) =>
     reader.readAsDataURL(file);
   });
 
-const getSoundMetadata = (sound) => ({
-  id: sound.id,
-  title: sound.title || 'Untitled',
-  thumbnail: sound.thumbnail || null,
-  color: sound.color || '',
-  tag: sound.tag || '',
-});
+const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
+const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
+const SOUND_PRESET_TAGS = [
+  ...SOUND_ORIENTATION_TAGS,
+  ...SOUND_POSITION_TAGS,
+];
+
+const parseSoundTags = (sound) => {
+  const seen = new Set();
+  const tags = [];
+  const addTag = (value) => {
+    const tag = sanitizeTag(value);
+    if (!tag) return;
+    const lower = tag.toLowerCase();
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    tags.push(tag);
+  };
+
+  if (Array.isArray(sound?.tags)) {
+    sound.tags.forEach(addTag);
+  }
+
+  if (typeof sound?.tag === 'string') {
+    sound.tag.split(',').forEach(addTag);
+    for (const preset of SOUND_PRESET_TAGS) {
+      const regex = new RegExp(`\\b${preset}\\b`, 'i');
+      if (regex.test(sound.tag)) {
+        addTag(preset);
+      }
+    }
+  }
+
+  return tags.filter((tag) => {
+    const lower = tag.toLowerCase();
+    const matchingPresets = SOUND_PRESET_TAGS.filter((preset) =>
+      new RegExp(`\\b${preset.toLowerCase()}\\b`).test(lower)
+    );
+    if (matchingPresets.length < 2) {
+      return true;
+    }
+    const stripped = matchingPresets.reduce((acc, preset) => {
+      const presetRegex = new RegExp(`\\b${preset.toLowerCase()}\\b`, 'gi');
+      return acc.replace(presetRegex, '');
+    }, lower);
+    return stripped.trim().length > 0;
+  });
+};
+
+const findPresetTag = (tags, presets) => {
+  if (!Array.isArray(tags)) return '';
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    const match = presets.find(
+      (preset) => preset.toLowerCase() === lower
+    );
+    if (match) {
+      return match;
+    }
+  }
+  return '';
+};
+
+const extractCustomSoundTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const custom = [];
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    if (
+      SOUND_PRESET_TAGS.some((preset) => preset.toLowerCase() === lower)
+    ) {
+      continue;
+    }
+    if (!custom.some((existing) => existing.toLowerCase() === lower)) {
+      custom.push(tag);
+    }
+  }
+  return custom;
+};
+
+const buildSoundTagsPayload = (orientation, position, customInput) => {
+  const tags = [];
+  const pushTag = (value) => {
+    const tag = sanitizeTag(value);
+    if (!tag) return;
+    const lower = tag.toLowerCase();
+    if (tags.some((existing) => existing.toLowerCase() === lower)) {
+      return;
+    }
+    tags.push(tag);
+  };
+
+  pushTag(orientation);
+  pushTag(position);
+
+  if (typeof customInput === 'string') {
+    customInput.split(',').forEach(pushTag);
+  }
+
+  return tags;
+};
+
+const getSoundMetadata = (sound) => {
+  const tags = parseSoundTags(sound);
+  const tagString = tags.join(', ');
+  return {
+    id: sound.id,
+    title: sound.title || 'Untitled',
+    thumbnail: sound.thumbnail || null,
+    color: sound.color || '',
+    tags,
+    tag: tagString,
+  };
+};
 
 const hexToName = (hex) => {
   if (!hex) return '';
@@ -52,6 +163,53 @@ const sanitizeTag = (tag) => {
   if (typeof tag !== 'string') return null;
   const trimmed = tag.trim();
   return trimmed ? trimmed : null;
+};
+
+const normalizeCustomTagList = (values) => {
+  if (!Array.isArray(values)) return [];
+  const seen = new Set();
+  const normalized = [];
+  for (const raw of values) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const lower = tag.toLowerCase();
+    if (seen.has(lower)) continue;
+    seen.add(lower);
+    normalized.push(lower);
+  }
+  normalized.sort();
+  return normalized;
+};
+
+const normalizeCustomTagInput = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return normalizeCustomTagList(value);
+  }
+  if (typeof value === 'string') {
+    return normalizeCustomTagList(value.split(','));
+  }
+  return [];
+};
+
+const createSoundTagDraft = (orientation, position, customSource) => ({
+  orientation: sanitizeTag(orientation)?.toLowerCase() || '',
+  position: sanitizeTag(position)?.toLowerCase() || '',
+  custom: normalizeCustomTagInput(customSource),
+});
+
+const areSoundTagDraftsEqual = (a, b) => {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a.orientation !== b.orientation) return false;
+  if (a.position !== b.position) return false;
+  if (a.custom.length !== b.custom.length) return false;
+  for (let i = 0; i < a.custom.length; i += 1) {
+    if (a.custom[i] !== b.custom[i]) {
+      return false;
+    }
+  }
+  return true;
 };
 
 const parseOrientationPreference = (value) => {
@@ -171,6 +329,7 @@ export default function Library({ onBack }) {
 
   const saveSequenceRef = useRef(0);
   const lastSavedImagesRef = useRef(new Map());
+  const soundInitialTagsRef = useRef(null);
 
   const [zoom, setZoom] = useState(
     () => parseFloat(localStorage.getItem('libraryZoom')) || 0.5
@@ -183,7 +342,9 @@ export default function Library({ onBack }) {
   const [soundTitle, setSoundTitle] = useState('');
   const [soundThumb, setSoundThumb] = useState(null);
   const [soundColor, setSoundColor] = useState('');
-  const [soundTag, setSoundTag] = useState('');
+  const [soundOrientation, setSoundOrientation] = useState('');
+  const [soundPosition, setSoundPosition] = useState('');
+  const [soundCustomTags, setSoundCustomTags] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
@@ -1144,8 +1305,11 @@ export default function Library({ onBack }) {
         setSoundThumb(null);
         setSoundThumbPreview(null);
         setSoundColor('');
-        setSoundTag('');
+        setSoundOrientation('');
+        setSoundPosition('');
+        setSoundCustomTags('');
         setEditingSoundId(null);
+        soundInitialTagsRef.current = null;
       };
       reader.readAsDataURL(droppedFile);
     }
@@ -1167,13 +1331,21 @@ export default function Library({ onBack }) {
         ? await readFileAsDataURL(soundThumb)
         : soundThumbPreview;
 
+      const tags = buildSoundTagsPayload(
+        soundOrientation,
+        soundPosition,
+        soundCustomTags
+      );
+      const tagString = tags.join(', ');
+
       const newSound = {
         id: editingSoundId || Date.now(),
         title: soundTitle || 'Untitled',
         dataUrl: soundModal,
         thumbnail: thumbData || null,
         color: soundColor,
-        tag: soundTag,
+        tags,
+        tag: tagString,
       };
       const updated = editingSoundId
         ? sounds.map((s) => (s.id === editingSoundId ? newSound : s))
@@ -1181,16 +1353,65 @@ export default function Library({ onBack }) {
 
       await saveSounds(updated);
 
-      setSoundModal(null);
-      setSoundTitle('');
-      setSoundThumb(null);
-      setSoundThumbPreview(null);
-      setSoundColor('');
-      setSoundTag('');
-      setEditingSoundId(null);
+      resetSoundModalState();
     } catch (err) {
       console.error('Failed to save sound', err);
     }
+  };
+
+  const openSoundModalForEdit = (snd) => {
+    if (!snd) return;
+    const tags = parseSoundTags(snd);
+    const orientation = findPresetTag(tags, SOUND_ORIENTATION_TAGS);
+    const position = findPresetTag(tags, SOUND_POSITION_TAGS);
+    const customTags = extractCustomSoundTags(tags);
+    setSoundModal(snd.dataUrl);
+    setSoundTitle(snd.title || '');
+    setSoundThumb(null);
+    setSoundThumbPreview(snd.thumbnail || null);
+    setSoundColor(snd.color || '');
+    setSoundOrientation(orientation);
+    setSoundPosition(position);
+    setSoundCustomTags(customTags.join(', '));
+    setEditingSoundId(snd.id);
+    soundInitialTagsRef.current = createSoundTagDraft(
+      orientation,
+      position,
+      customTags
+    );
+  };
+
+  const resetSoundModalState = () => {
+    setSoundModal(null);
+    setSoundTitle('');
+    setSoundThumb(null);
+    setSoundThumbPreview(null);
+    setSoundColor('');
+    setSoundOrientation('');
+    setSoundPosition('');
+    setSoundCustomTags('');
+    setEditingSoundId(null);
+    soundInitialTagsRef.current = null;
+  };
+
+  const hasPendingSoundTagChanges = () => {
+    if (!editingSoundId) return false;
+    const initial = soundInitialTagsRef.current;
+    if (!initial) return false;
+    const current = createSoundTagDraft(
+      soundOrientation,
+      soundPosition,
+      soundCustomTags
+    );
+    return !areSoundTagDraftsEqual(initial, current);
+  };
+
+  const handleSoundModalClose = async (autoSave = false) => {
+    if (autoSave && hasPendingSoundTagChanges()) {
+      await saveDroppedSound();
+      return;
+    }
+    resetSoundModalState();
   };
 
   const getMasonrySpan = (targetHeight) => {
@@ -1322,6 +1543,7 @@ export default function Library({ onBack }) {
 
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
+    const tags = parseSoundTags(snd);
     return (
       <div
         key={snd.id}
@@ -1330,6 +1552,16 @@ export default function Library({ onBack }) {
         onContextMenu={(e) => {
           e.preventDefault();
           setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Edit sound ${snd.title || 'clip'}`}
+        onClick={() => openSoundModalForEdit(snd)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openSoundModalForEdit(snd);
+          }
         }}
       >
         {snd.thumbnail ? (
@@ -1347,11 +1579,21 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          {snd.tag && <span className="tag">{snd.tag}</span>}
+          {tags.length > 0 && (
+            <div className="sound-tags">
+              {tags.map((tag) => (
+                <span key={tag} className="tag">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           <audio
             controls
             src={snd.dataUrl}
             className="sound-player"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           ></audio>
         </div>
       </div>
@@ -1771,7 +2013,10 @@ export default function Library({ onBack }) {
           </div>
         )}
         {soundModal && (
-          <div className="sound-modal" onClick={() => setSoundModal(null)}>
+          <div
+            className="sound-modal"
+            onClick={() => handleSoundModalClose(true)}
+          >
             <div
               className="sound-modal-content"
               onClick={(e) => e.stopPropagation()}
@@ -1819,24 +2064,57 @@ export default function Library({ onBack }) {
                   />
                 ))}
               </div>
-              <input
-                type="text"
-                value={soundTag}
-                onChange={(e) => setSoundTag(e.target.value)}
-                placeholder="Tag"
-              />
+              <div className="sound-tag-section">
+                <span className="sound-tag-heading">Tags</span>
+                <div className="sound-tag-matrix">
+                  <div className="sound-tag-column">
+                    {SOUND_ORIENTATION_TAGS.map((tag) => {
+                      const selected = soundOrientation === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`sound-tag-button${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundOrientation(selected ? '' : tag)
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="sound-tag-row">
+                    {SOUND_POSITION_TAGS.map((tag) => {
+                      const selected = soundPosition === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`sound-tag-button${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundPosition(selected ? '' : tag)
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={soundCustomTags}
+                  onChange={(e) => setSoundCustomTags(e.target.value)}
+                  placeholder="Additional tags (comma separated)"
+                />
+              </div>
               <div className="sound-modal-actions">
-                <button
-                  onClick={() => {
-                    setSoundModal(null);
-                    setSoundTitle('');
-                    setSoundThumb(null);
-                    setSoundThumbPreview(null);
-                    setSoundColor('');
-                    setSoundTag('');
-                    setEditingSoundId(null);
-                  }}
-                >
+                <button onClick={() => handleSoundModalClose(false)}>
                   Cancel
                 </button>
                 <button onClick={saveDroppedSound}>Save</button>
@@ -1853,13 +2131,7 @@ export default function Library({ onBack }) {
               onClick={() => {
                 const snd = sounds.find((s) => s.id === soundMenu.id);
                 if (snd) {
-                  setSoundModal(snd.dataUrl);
-                  setSoundTitle(snd.title);
-                  setSoundThumb(null);
-                  setSoundThumbPreview(snd.thumbnail || null);
-                  setSoundColor(snd.color || '');
-                  setSoundTag(snd.tag || '');
-                  setEditingSoundId(snd.id);
+                  openSoundModalForEdit(snd);
                 }
                 setSoundMenu(null);
               }}
