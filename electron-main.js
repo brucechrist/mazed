@@ -543,10 +543,8 @@ async function embedUnity(rect) {
     throw new Error('Failed to obtain host window handle.');
   }
 
-  const width = Math.max(0, Math.floor(normalized.width));
-  const height = Math.max(0, Math.floor(normalized.height));
-  const left = Math.floor(normalized.left);
-  const top = Math.floor(normalized.top);
+  const width = Math.max(0, Math.floor(hostBounds.width));
+  const height = Math.max(0, Math.floor(hostBounds.height));
 
   const titles = Array.isArray(config.titles) && config.titles.length > 0 ? config.titles : [];
   if (titles.length === 0) {
@@ -645,9 +643,12 @@ function scheduleUnityResize(rect) {
       if (!config) return;
       const orderedTitles = orderedUnityTitles(config);
       if (orderedTitles.length === 0) return;
-      updateUnityHostWindowBounds(rectToResize);
-      const width = Math.max(0, Math.floor(rectToResize.width));
-      const height = Math.max(0, Math.floor(rectToResize.height));
+      const hostBounds = updateUnityHostWindowBounds(rectToResize);
+      if (!hostBounds) {
+        return;
+      }
+      const width = Math.max(0, Math.floor(hostBounds.width));
+      const height = Math.max(0, Math.floor(hostBounds.height));
       if (width <= 0 || height <= 0) {
         return;
       }
