@@ -151,17 +151,17 @@
 }
 
 .notes-list-modal {
-  width: clamp(1440px, calc(100vw - 24px), 2880px);
-  max-width: calc(100vw - 24px);
-  max-height: min(1040px, calc(100vh - 64px));
-  padding: 40px 48px;
-  gap: 32px;
+  width: min(calc(100vw - 64px), 1840px);
+  max-width: calc(100vw - 64px);
+  max-height: calc(100vh - 64px);
+  padding: 48px 56px;
+  gap: 36px;
+  aspect-ratio: 16 / 9;
 }
 
 @media (min-height: 900px) {
   .notes-list-modal {
-    aspect-ratio: 16 / 10;
-    min-height: clamp(640px, 72vh, 920px);
+    min-height: min(clamp(680px, 78vh, 960px), calc(100vh - 64px));
   }
 }
 
@@ -452,6 +452,7 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 32px;
   align-items: stretch;
+  height: 100%;
 }
 
 .notes-grid {
@@ -462,6 +463,11 @@
   overflow-y: auto;
   padding-right: 12px;
   min-height: 0;
+}
+
+.notes-grid,
+.notes-detail {
+  height: 100%;
 }
 
 .notes-card {
@@ -653,17 +659,17 @@
 
 @media (max-width: 1440px) {
   .notes-list-modal {
-    width: clamp(1040px, calc(100vw - 24px), 1980px);
-    padding: 36px 40px;
-    gap: 30px;
+    width: min(calc(100vw - 48px), 1680px);
+    padding: 44px 48px;
+    gap: 34px;
   }
 }
 
 @media (max-width: 1280px) {
   .notes-list-modal {
-    width: calc(100vw - 24px);
-    max-height: calc(100vh - 60px);
-    padding: 32px 36px;
+    width: calc(100vw - 40px);
+    max-height: calc(100vh - 52px);
+    padding: 36px 40px;
     aspect-ratio: auto;
   }
 
@@ -687,16 +693,19 @@
   .notes-body {
     grid-template-columns: 1fr;
     gap: 24px;
+    height: auto;
   }
 
   .notes-detail {
     order: -1;
+    height: auto;
   }
 
   .notes-grid {
     max-height: 45vh;
     grid-template-columns: minmax(0, 1fr);
     padding-right: 0;
+    height: auto;
   }
 }
 

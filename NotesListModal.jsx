@@ -1,6 +1,84 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './note-modal.css';
 
+const VIEWPORT_FALLBACK = { width: 1440, height: 900 };
+const MODAL_ASPECT_RATIO = 16 / 9;
+const MAX_MODAL_WIDTH = 1840;
+const MAX_MODAL_HEIGHT = MAX_MODAL_WIDTH / MODAL_ASPECT_RATIO;
+const MIN_MODAL_WIDTH = 960;
+const MIN_MODAL_HEIGHT = MIN_MODAL_WIDTH / MODAL_ASPECT_RATIO;
+const HORIZONTAL_MARGIN = 64;
+const VERTICAL_MARGIN = 64;
+
+const readViewportSize = () => {
+  if (typeof window === 'undefined') {
+    return VIEWPORT_FALLBACK;
+  }
+
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+};
+
+const clampDimension = (value, margin, minimum, maximum) => {
+  const safeMinimum = Math.min(minimum, value);
+  const safeMaximum = Math.min(maximum, value);
+  const reducedValue = value - margin;
+
+  if (safeMaximum <= 0) {
+    return 0;
+  }
+
+  const expanded = Math.max(reducedValue, safeMinimum);
+  return Math.min(Math.max(expanded, 0), safeMaximum);
+};
+
+const computeModalDimensions = (viewport) => {
+  const baseWidth = viewport?.width ?? VIEWPORT_FALLBACK.width;
+  const baseHeight = viewport?.height ?? VIEWPORT_FALLBACK.height;
+
+  const maxWidth = clampDimension(baseWidth, HORIZONTAL_MARGIN, MIN_MODAL_WIDTH, MAX_MODAL_WIDTH);
+  const maxHeight = clampDimension(baseHeight, VERTICAL_MARGIN, MIN_MODAL_HEIGHT, MAX_MODAL_HEIGHT);
+
+  const hasSpace = maxWidth > 0 && maxHeight > 0;
+  const referenceWidth = hasSpace
+    ? maxWidth
+    : Math.min(VIEWPORT_FALLBACK.width - HORIZONTAL_MARGIN, MAX_MODAL_WIDTH);
+  const referenceHeight = hasSpace
+    ? maxHeight
+    : Math.min(VIEWPORT_FALLBACK.height - VERTICAL_MARGIN, MAX_MODAL_HEIGHT);
+
+  if (!referenceWidth || !referenceHeight) {
+    return {
+      width: MIN_MODAL_WIDTH,
+      height: MIN_MODAL_HEIGHT,
+      maxWidth: MIN_MODAL_WIDTH,
+      maxHeight: MIN_MODAL_HEIGHT,
+    };
+  }
+
+  const widthBasedOnHeight = referenceHeight * MODAL_ASPECT_RATIO;
+
+  if (widthBasedOnHeight <= referenceWidth) {
+    return {
+      width: widthBasedOnHeight,
+      height: referenceHeight,
+      maxWidth,
+      maxHeight,
+    };
+  }
+
+  const heightBasedOnWidth = referenceWidth / MODAL_ASPECT_RATIO;
+
+  return {
+    width: referenceWidth,
+    height: heightBasedOnWidth,
+    maxWidth,
+    maxHeight,
+  };
+};
+
 const QUADRANT_TAGS = ['II', 'IE', 'EI', 'EE'];
 const TAG_OPTIONS = ['ALL', ...QUADRANT_TAGS];
 const TAG_COLORS = {
@@ -303,10 +381,24 @@ const loadStoredNotes = () => {
 const pluralise = (count, singular, plural) => (count === 1 ? singular : plural);
 
 export default function NotesListModal({ onClose }) {
+  const [viewportSize, setViewportSize] = useState(() => readViewportSize());
   const [notes, setNotes] = useState(() => loadStoredNotes());
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTag, setActiveTag] = useState('ALL');
   const [selectedId, setSelectedId] = useState(null);
+  const modalDimensions = useMemo(() => computeModalDimensions(viewportSize), [viewportSize]);
+  const modalStyle = useMemo(() => {
+    if (!modalDimensions) {
+      return undefined;
+    }
+
+    return {
+      width: `${modalDimensions.width}px`,
+      height: `${modalDimensions.height}px`,
+      maxWidth: `${modalDimensions.maxWidth}px`,
+      maxHeight: `${modalDimensions.maxHeight}px`,
+    };
+  }, [modalDimensions]);
 
   const filteredNotes = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -323,6 +415,23 @@ export default function NotesListModal({ onClose }) {
       return note.searchable.includes(query);
     });
   }, [notes, activeTag, searchTerm]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      setViewportSize(readViewportSize());
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (filteredNotes.length === 0) {
@@ -406,7 +515,11 @@ export default function NotesListModal({ onClose }) {
 
   return (
     <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className="modal notes-modal notes-list-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="modal notes-modal notes-list-modal"
+        onClick={(event) => event.stopPropagation()}
+        style={modalStyle}
+      >
         <header className="notes-header">
           <div>
             <h3>Your notes library</h3>
