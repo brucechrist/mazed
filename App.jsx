@@ -12,6 +12,7 @@ import Calendar from './src/Calendar.jsx';
 import Timeline from './Timeline.jsx';
 import Typomancy from './Typomancy.jsx';
 import Moodtracker from './Moodtracker.jsx';
+import MoodQuadrantGame from './MoodQuadrantGame.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './src/ToolsBlog.jsx';
 import MomentoMori from './MomentoMori.jsx';
@@ -65,6 +66,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showAnima, setShowAnima] = useState(false);
+  const [showMoodQuadrantGame, setShowMoodQuadrantGame] = useState(false);
   const [showMomentoMori, setShowMomentoMori] = useState(false);
   // Avoid naming clash with src/App.jsx by giving the blog state a unique name
   const [showToolsBlog, setShowToolsBlog] = useState(false);
@@ -97,6 +99,7 @@ const anyAppOpen =
   showTypomancy ||
   showMoodtracker ||
   showAnima ||
+  showMoodQuadrantGame ||
   showMomentoMori ||
   showWatchdog ||
   showToolsBlog ||
@@ -117,6 +120,7 @@ const closeOpenApp = () => {
   setShowTypomancy(false);
   setShowMoodtracker(false);
   setShowAnima(false);
+  setShowMoodQuadrantGame(false);
   setShowMomentoMori(false);
   setShowWatchdog(false);
   setShowToolsBlog(false);
@@ -362,6 +366,8 @@ useEffect(() => {
               <Typomancy onBack={() => setShowTypomancy(false)} />
             ) : showMoodtracker ? (
               <Moodtracker onBack={() => setShowMoodtracker(false)} />
+            ) : showMoodQuadrantGame ? (
+              <MoodQuadrantGame onBack={() => setShowMoodQuadrantGame(false)} />
             ) : showMomentoMori ? (
               <MomentoMori onBack={() => setShowMomentoMori(false)} />
             ) : showWatchdog ? (
@@ -415,6 +421,13 @@ useEffect(() => {
                 <div className="app-card" onClick={() => setShowMoodtracker(true)}>
                   <div className="star-icon">😊</div>
                   <span>Moodtracker</span>
+                </div>
+                <div
+                  className="app-card"
+                  onClick={() => setShowMoodQuadrantGame(true)}
+                >
+                  <div className="star-icon">🧭</div>
+                  <span>Mood Quadrant</span>
                 </div>
                 <div className="app-card" onClick={() => setShowMomentoMori(true)}>
                   <div className="star-icon">☠️</div>
