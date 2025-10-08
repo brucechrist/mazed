@@ -102,7 +102,7 @@ function formatTimestamp(timestamp) {
   })}`;
 }
 
-export default function MoodQuadrantGame({ onBack, showBackButton = true }) {
+export default function MoodQuadrantGame({ onBack }) {
   const [selections, setSelections] = useState(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -192,11 +192,9 @@ export default function MoodQuadrantGame({ onBack, showBackButton = true }) {
   return (
     <div className="mood-quadrant-game">
       <aside className="mood-quadrant-sidebar">
-        {showBackButton && (
-          <button className="back-button" onClick={onBack}>
-            ← Back
-          </button>
-        )}
+        <button className="back-button" onClick={onBack}>
+          ← Back
+        </button>
         <h2>Signal Scanner</h2>
         <p>
           Choose the experiences that resonate with you right now. We will use
