@@ -31,6 +31,7 @@ import CharacterEvolve from './CharacterEvolve.jsx';
 import Weakness from './Weakness.jsx';
 import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
 import FormlessCharacter from './FormlessCharacter.jsx';
+import AccessStateLogger from './AccessStateLogger.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import AkashicRecords from './AkashicRecords.jsx';
 import { supabaseClient } from './supabaseClient';
@@ -85,6 +86,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showActivity, setShowActivity] = useState(false);
   const [showCharacterEvolve, setShowCharacterEvolve] = useState(false);
   const [showWeakness, setShowWeakness] = useState(false);
+  const [showAccessLog, setShowAccessLog] = useState(false);
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
   const [showImplementationIdeas, setShowImplementationIdeas] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
@@ -123,6 +125,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       activity: 'Form',
       characterEvolve: 'Form',
       weakness: 'Semi-Formless',
+      accessLog: 'Semi-Formless',
       ideaBoard: 'Form',
       implementationIdeas: 'Form',
       orb: 'Form',
@@ -194,6 +197,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showActivity ||
     showCharacterEvolve ||
     showWeakness ||
+    showAccessLog ||
     showSemiCharacter ||
     showIdeaBoard ||
     showImplementationIdeas ||
@@ -226,6 +230,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowActivity(false);
     setShowCharacterEvolve(false);
     setShowWeakness(false);
+    setShowAccessLog(false);
     setShowSemiCharacter(false);
     setShowIdeaBoard(false);
     setShowImplementationIdeas(false);
@@ -700,6 +705,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
             ) : showWeakness ? (
               <Weakness onBack={() => setShowWeakness(false)} />
+            ) : showAccessLog ? (
+              <AccessStateLogger onBack={() => setShowAccessLog(false)} />
             ) : showSemiCharacter ? (
               <SemiFormlessCharacter onBack={() => setShowSemiCharacter(false)} />
             ) : showIdeaBoard ? (
@@ -964,6 +971,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">⚡</div>
                     <span>Weakness</span>
+                  </div>
+                )}
+                {appLayers.accessLog === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowAccessLog(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'accessLog')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'accessLog')}
+                  >
+                    <div className="star-icon">🌀</div>
+                    <span>Access State Log</span>
                   </div>
                 )}
                 {appLayers.semiCharacter === activeLayer && (
