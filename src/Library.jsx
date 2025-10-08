@@ -25,11 +25,18 @@ const readFileAsDataURL = (file) =>
     reader.readAsDataURL(file);
   });
 
+const CATEGORY_TAGS = ['P', 'M', 'F'];
+const GENDER_TAGS = ['♂', '♀'];
+const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
+
 const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
 const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const SOUND_PRESET_TAGS = [
   ...SOUND_ORIENTATION_TAGS,
   ...SOUND_POSITION_TAGS,
+  ...CATEGORY_TAGS,
+  ...GENDER_TAGS,
+  ...QUALITY_TAGS,
 ];
 
 const parseSoundTags = (sound) => {
@@ -109,7 +116,14 @@ const extractCustomSoundTags = (tags) => {
   return custom;
 };
 
-const buildSoundTagsPayload = (orientation, position, customInput) => {
+const buildSoundTagsPayload = ({
+  orientation = '',
+  position = '',
+  category = '',
+  gender = '',
+  quality = '',
+  customInput = '',
+} = {}) => {
   const tags = [];
   const pushTag = (value) => {
     const tag = sanitizeTag(value);
@@ -123,6 +137,9 @@ const buildSoundTagsPayload = (orientation, position, customInput) => {
 
   pushTag(orientation);
   pushTag(position);
+  pushTag(category);
+  pushTag(gender);
+  pushTag(quality);
 
   if (typeof customInput === 'string') {
     customInput.split(',').forEach(pushTag);
@@ -165,6 +182,36 @@ const sanitizeTag = (tag) => {
   return trimmed ? trimmed : null;
 };
 
+const buildImageTags = ({
+  orientation = UP_TAG,
+  category = '',
+  gender = '',
+  quality = '',
+  customTags = [],
+} = {}) => {
+  const tags = [];
+  const pushTag = (value) => {
+    const tag = sanitizeTag(value);
+    if (!tag) return;
+    const lower = tag.toLowerCase();
+    if (tags.some((existing) => existing.toLowerCase() === lower)) {
+      return;
+    }
+    tags.push(tag);
+  };
+
+  pushTag(sanitizeTag(orientation) || UP_TAG);
+  pushTag(category);
+  pushTag(gender);
+  pushTag(quality);
+
+  if (Array.isArray(customTags)) {
+    customTags.forEach(pushTag);
+  }
+
+  return tags;
+};
+
 const parseOrientationPreference = (value) => {
   if (typeof value !== 'string') {
     return DOWN_TAG;
@@ -200,7 +247,10 @@ const extractCustomTags = (tags) => {
     if (
       lower === UP_TAG.toLowerCase() ||
       lower === DOWN_TAG.toLowerCase() ||
-      lower === LEGACY_SHADOW_TAG
+      lower === LEGACY_SHADOW_TAG ||
+      CATEGORY_TAGS.some((preset) => preset.toLowerCase() === lower) ||
+      GENDER_TAGS.some((preset) => preset.toLowerCase() === lower) ||
+      QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower)
     ) {
       continue;
     }
@@ -211,8 +261,17 @@ const extractCustomTags = (tags) => {
 
 const normalizeImageTags = (tags) => {
   const orientation = getOrientationTag(tags);
+  const category = findPresetTag(tags, CATEGORY_TAGS);
+  const gender = findPresetTag(tags, GENDER_TAGS);
+  const quality = findPresetTag(tags, QUALITY_TAGS);
   const custom = extractCustomTags(tags);
-  return [orientation, ...custom];
+  return buildImageTags({
+    orientation,
+    category,
+    gender,
+    quality,
+    customTags: custom,
+  });
 };
 
 function QuadrantPicker({ value = [], onChange }) {
@@ -296,6 +355,9 @@ export default function Library({ onBack }) {
   const [soundColor, setSoundColor] = useState('');
   const [soundOrientation, setSoundOrientation] = useState('');
   const [soundPosition, setSoundPosition] = useState('');
+  const [soundCategory, setSoundCategory] = useState('');
+  const [soundGender, setSoundGender] = useState('');
+  const [soundQuality, setSoundQuality] = useState('');
   const [soundCustomTags, setSoundCustomTags] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [soundMenu, setSoundMenu] = useState(null);
@@ -1259,6 +1321,9 @@ export default function Library({ onBack }) {
         setSoundColor('');
         setSoundOrientation('');
         setSoundPosition('');
+        setSoundCategory('');
+        setSoundGender('');
+        setSoundQuality('');
         setSoundCustomTags('');
         setEditingSoundId(null);
       };
@@ -1282,11 +1347,14 @@ export default function Library({ onBack }) {
         ? await readFileAsDataURL(soundThumb)
         : soundThumbPreview;
 
-      const tags = buildSoundTagsPayload(
-        soundOrientation,
-        soundPosition,
-        soundCustomTags
-      );
+      const tags = buildSoundTagsPayload({
+        orientation: soundOrientation,
+        position: soundPosition,
+        category: soundCategory,
+        gender: soundGender,
+        quality: soundQuality,
+        customInput: soundCustomTags,
+      });
       const tagString = tags.join(', ');
 
       const newSound = {
@@ -1320,6 +1388,9 @@ export default function Library({ onBack }) {
     setSoundColor(snd.color || '');
     setSoundOrientation(findPresetTag(tags, SOUND_ORIENTATION_TAGS));
     setSoundPosition(findPresetTag(tags, SOUND_POSITION_TAGS));
+    setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
+    setSoundGender(findPresetTag(tags, GENDER_TAGS));
+    setSoundQuality(findPresetTag(tags, QUALITY_TAGS));
     setSoundCustomTags(extractCustomSoundTags(tags).join(', '));
     setEditingSoundId(snd.id);
   };
@@ -1332,6 +1403,9 @@ export default function Library({ onBack }) {
     setSoundColor('');
     setSoundOrientation('');
     setSoundPosition('');
+    setSoundCategory('');
+    setSoundGender('');
+    setSoundQuality('');
     setSoundCustomTags('');
     setEditingSoundId(null);
   };
@@ -1523,8 +1597,26 @@ export default function Library({ onBack }) {
   };
 
   const lightboxOrientation = getOrientationTag(lightbox?.tags);
+  const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
+  const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
+  const lightboxQuality = findPresetTag(lightbox?.tags, QUALITY_TAGS);
   const lightboxCustomTags = extractCustomTags(lightbox?.tags);
   const lightboxIsDown = lightboxOrientation === DOWN_TAG;
+
+  const composeImageTags = ({
+    orientation = lightboxOrientation,
+    category = lightboxCategory,
+    gender = lightboxGender,
+    quality = lightboxQuality,
+    customTags = lightboxCustomTags,
+  } = {}) =>
+    buildImageTags({
+      orientation,
+      category,
+      gender,
+      quality,
+      customTags,
+    });
 
   return (
     <div
@@ -1985,8 +2077,9 @@ export default function Library({ onBack }) {
               </div>
               <div className="sound-tag-section">
                 <span className="sound-tag-heading">Tags</span>
-                <div className="sound-tag-matrix">
-                  <div className="sound-tag-column">
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">Orientation</span>
+                  <div className="sound-tag-row">
                     {SOUND_ORIENTATION_TAGS.map((tag) => {
                       const selected = soundOrientation === tag;
                       return (
@@ -2005,6 +2098,9 @@ export default function Library({ onBack }) {
                       );
                     })}
                   </div>
+                </div>
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">Position</span>
                   <div className="sound-tag-row">
                     {SOUND_POSITION_TAGS.map((tag) => {
                       const selected = soundPosition === tag;
@@ -2018,6 +2114,74 @@ export default function Library({ onBack }) {
                           onClick={() =>
                             setSoundPosition(selected ? '' : tag)
                           }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">P / M / F</span>
+                  <div className="sound-tag-row">
+                    {CATEGORY_TAGS.map((tag) => {
+                      const selected = soundCategory === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`sound-tag-button${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundCategory(selected ? '' : tag)
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">Gender</span>
+                  <div className="sound-tag-row">
+                    {GENDER_TAGS.map((tag) => {
+                      const selected = soundGender === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`sound-tag-button${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundGender(selected ? '' : tag)
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">Quality</span>
+                  <div className="quality-toggle sound-quality-toggle">
+                    {QUALITY_TAGS.map((tag) => {
+                      const selected = soundQuality === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`quality-level${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundQuality(selected ? '' : tag)
+                          }
+                          aria-pressed={selected}
+                          title={tag}
                         >
                           {tag}
                         </button>
@@ -2184,6 +2348,123 @@ export default function Library({ onBack }) {
                       ))}
                     </div>
                   </div>
+                  <div className="tag-controls">
+                    <div className="tag-control-group">
+                      <span className="tag-control-label">Orientation</span>
+                      <button
+                        type="button"
+                        className={`shadow-tag-button${
+                          lightboxIsDown ? ' active' : ''
+                        }`}
+                        aria-label={
+                          lightboxIsDown
+                            ? 'Mark image as UP'
+                            : 'Mark image as DOWN'
+                        }
+                        title={
+                          lightboxIsDown
+                            ? 'Mark image as UP'
+                            : 'Mark image as DOWN'
+                        }
+                        aria-pressed={lightboxIsDown}
+                        onClick={() => {
+                          const nextOrientation = lightboxIsDown
+                            ? UP_TAG
+                            : DOWN_TAG;
+                          const nextTags = composeImageTags({
+                            orientation: nextOrientation,
+                          });
+                          updateImage(lightbox.id, { tags: nextTags });
+                        }}
+                      >
+                        {lightboxIsDown ? 'DOWN' : 'UP'}
+                      </button>
+                    </div>
+                    <div className="tag-control-group">
+                      <span className="tag-control-label">P / M / F</span>
+                      <div className="tag-control-options">
+                        {CATEGORY_TAGS.map((tag) => {
+                          const selected = lightboxCategory === tag;
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`tag-toggle-button${
+                                selected ? ' selected' : ''
+                              }`}
+                              onClick={() => {
+                                const nextCategory = selected ? '' : tag;
+                                const nextTags = composeImageTags({
+                                  category: nextCategory,
+                                });
+                                updateImage(lightbox.id, { tags: nextTags });
+                              }}
+                              aria-pressed={selected}
+                              title={`Set tag ${tag}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="tag-control-group">
+                      <span className="tag-control-label">Gender</span>
+                      <div className="tag-control-options">
+                        {GENDER_TAGS.map((tag) => {
+                          const selected = lightboxGender === tag;
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`tag-toggle-button${
+                                selected ? ' selected' : ''
+                              }`}
+                              onClick={() => {
+                                const nextGender = selected ? '' : tag;
+                                const nextTags = composeImageTags({
+                                  gender: nextGender,
+                                });
+                                updateImage(lightbox.id, { tags: nextTags });
+                              }}
+                              aria-pressed={selected}
+                              title={`Set tag ${tag}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="tag-control-group">
+                      <span className="tag-control-label">Quality</span>
+                      <div className="quality-toggle">
+                        {QUALITY_TAGS.map((tag) => {
+                          const selected = lightboxQuality === tag;
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`quality-level${
+                                selected ? ' selected' : ''
+                              }`}
+                              onClick={() => {
+                                const nextQuality = selected ? '' : tag;
+                                const nextTags = composeImageTags({
+                                  quality: nextQuality,
+                                });
+                                updateImage(lightbox.id, { tags: nextTags });
+                              }}
+                              aria-pressed={selected}
+                              title={tag}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                   <div className="tag-list">
                     {lightboxCustomTags.map((tag, idx) => (
                       <span
@@ -2193,39 +2474,15 @@ export default function Library({ onBack }) {
                           const nextCustom = lightboxCustomTags.filter(
                             (_, i) => i !== idx
                           );
-                          const nextTags = normalizeImageTags([
-                            lightboxOrientation,
-                            ...nextCustom,
-                          ]);
+                          const nextTags = composeImageTags({
+                            customTags: nextCustom,
+                          });
                           updateImage(lightbox.id, { tags: nextTags });
                         }}
                       >
                         {tag}
                       </span>
                     ))}
-                    <button
-                      type="button"
-                      className={`shadow-tag-button${
-                        lightboxIsDown ? ' active' : ''
-                      }`}
-                      aria-label={
-                        lightboxIsDown ? 'Mark image as UP' : 'Mark image as DOWN'
-                      }
-                      title={
-                        lightboxIsDown ? 'Mark image as UP' : 'Mark image as DOWN'
-                      }
-                      aria-pressed={lightboxIsDown}
-                      onClick={() => {
-                        const nextOrientation = lightboxIsDown ? UP_TAG : DOWN_TAG;
-                        const nextTags = normalizeImageTags([
-                          nextOrientation,
-                          ...lightboxCustomTags,
-                        ]);
-                        updateImage(lightbox.id, { tags: nextTags });
-                      }}
-                    >
-                      {lightboxIsDown ? 'DOWN' : 'UP'}
-                    </button>
                     <input
                       type="text"
                       value={tagInput}
@@ -2233,11 +2490,13 @@ export default function Library({ onBack }) {
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && tagInput.trim()) {
-                          const nextTags = normalizeImageTags([
-                            lightboxOrientation,
+                          const nextCustom = [
                             ...lightboxCustomTags,
                             tagInput.trim(),
-                          ]);
+                          ];
+                          const nextTags = composeImageTags({
+                            customTags: nextCustom,
+                          });
                           updateImage(lightbox.id, { tags: nextTags });
                           setTagInput('');
                         }
