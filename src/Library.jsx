@@ -2005,7 +2005,11 @@ export default function Library({ onBack }) {
             )}
             <ul className="word-list">
               {words.map((w) => (
-                <li key={w.id}>{w.text}</li>
+                <li key={w.id} className="word-item">
+                  <div className="word-card">
+                    <span className="word-card-text">{w.text}</span>
+                  </div>
+                </li>
               ))}
             </ul>
           </div>
