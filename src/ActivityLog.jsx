@@ -14,8 +14,6 @@ const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
 
 const DEFAULT_ACTIVITIES = [
-  'Mazed',
-  'Singing',
   'Meditation - Vipassana',
   'Meditation - Ramana',
   'Yoga',
@@ -185,57 +183,6 @@ const buildActivityOptions = (names) => {
   );
 };
 
-const extractActivityAppNames = () => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const stored = JSON.parse(localStorage.getItem('activities'));
-    if (!Array.isArray(stored)) {
-      return [];
-    }
-
-    return stored
-      .map((item) => sanitizeActivityName(item?.title))
-      .filter(Boolean);
-  } catch (error) {
-    console.error('Failed to load activities from ActivityApp storage', error);
-    return [];
-  }
-};
-
-const extractActivityLogNames = () => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  const names = [];
-  try {
-    const storedEntries = safeParse(localStorage.getItem(ENTRIES_KEY), []);
-    storedEntries.forEach((entry) => {
-      const name = sanitizeActivityName(entry?.name);
-      if (name) {
-        names.push(name);
-      }
-    });
-  } catch (error) {
-    console.error('Failed to read activity log entries from storage', error);
-  }
-
-  try {
-    const storedCurrent = safeParse(localStorage.getItem(CURRENT_KEY), null);
-    const currentName = sanitizeActivityName(storedCurrent?.name);
-    if (currentName) {
-      names.push(currentName);
-    }
-  } catch (error) {
-    console.error('Failed to read current activity session from storage', error);
-  }
-
-  return names;
-};
-
 const withActivityBlogPost = (activityName, updater) => {
   const trimmedName = sanitizeActivityName(activityName);
   if (!trimmedName || typeof window === 'undefined') {
@@ -362,24 +309,23 @@ const recordSessionInBlog = (session) => {
 
 export default function ActivityLog({ onBack }) {
   const buildOptionsFromStorage = useCallback(() => {
-    const combinedNames = [];
-
+    let storedNames = [];
     try {
-      if (typeof loadRegisteredActivityNames === 'function') {
-        const registered = loadRegisteredActivityNames();
-        if (Array.isArray(registered)) {
-          combinedNames.push(...registered);
-        }
-      }
+      storedNames =
+        typeof loadRegisteredActivityNames === 'function'
+          ? loadRegisteredActivityNames()
+          : [];
     } catch (error) {
       console.error('Failed to load registered activity names', error);
+      storedNames = [];
     }
-
-    combinedNames.push(...extractActivityAppNames());
-    combinedNames.push(...extractActivityLogNames());
-    combinedNames.push(...DEFAULT_ACTIVITIES);
-
-    return buildActivityOptions(combinedNames);
+    const sanitizedStored = Array.isArray(storedNames)
+      ? buildActivityOptions(storedNames)
+      : [];
+    if (sanitizedStored.length > 0) {
+      return sanitizedStored;
+    }
+    return buildActivityOptions(DEFAULT_ACTIVITIES);
   }, []);
 
   const [entries, setEntries] = useState(() =>
@@ -395,6 +341,10 @@ export default function ActivityLog({ onBack }) {
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
+
+  const refreshActivityOptions = useCallback(() => {
+    setActivityOptions(buildOptionsFromStorage());
+  }, [buildOptionsFromStorage]);
 
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
