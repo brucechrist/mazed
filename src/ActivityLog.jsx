@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   loadActivityBlogIndex,
   loadBlogPostsFromStorage,
+  loadRegisteredActivityNames,
   persistActivityBlogIndex,
   persistBlogPostsToStorage,
   sanitizeBlogPostRecord,
@@ -11,6 +12,16 @@ import './activity-log.css';
 
 const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
+
+const DEFAULT_ACTIVITIES = [
+  'Mazed',
+  'Singing',
+  'Meditation - Vipassana',
+  'Meditation - Ramana',
+  'Yoga',
+  'Workout',
+  'Reading',
+];
 
 const safeParse = (value, fallback) => {
   try {
@@ -82,14 +93,23 @@ const sanitizeActivityName = (name) => {
 };
 
 const loadSanitizedBlogPosts = () => {
-  const storedPosts = loadBlogPostsFromStorage();
-  if (!Array.isArray(storedPosts)) {
+  if (typeof loadBlogPostsFromStorage !== 'function') {
     return [];
   }
 
-  return storedPosts
-    .map((post) => sanitizeBlogPostRecord(post))
-    .filter(Boolean);
+  try {
+    const storedPosts = loadBlogPostsFromStorage();
+    if (!Array.isArray(storedPosts)) {
+      return [];
+    }
+
+    return storedPosts
+      .map((post) => safeSanitizeBlogPostRecord(post))
+      .filter(Boolean);
+  } catch (error) {
+    console.error('Failed to load blog posts from storage', error);
+    return [];
+  }
 };
 
 const generatePostId = (posts) => {
@@ -125,6 +145,97 @@ const sanitizeSessionForBlog = (session) => {
   return sanitizedSession;
 };
 
+const safeSanitizeBlogPostRecord = (post) => {
+  if (typeof sanitizeBlogPostRecord === 'function') {
+    try {
+      return sanitizeBlogPostRecord(post);
+    } catch (error) {
+      console.error('Failed to sanitize blog post record', error);
+      return null;
+    }
+  }
+
+  if (post && typeof post === 'object') {
+    return { ...post };
+  }
+
+  return null;
+};
+
+const buildActivityOptions = (names) => {
+  if (!Array.isArray(names)) {
+    return [];
+  }
+
+  const byKey = new Map();
+  names.forEach((name) => {
+    const sanitized = sanitizeActivityName(name);
+    if (!sanitized) {
+      return;
+    }
+
+    const key = sanitized.toLowerCase();
+    if (!byKey.has(key)) {
+      byKey.set(key, sanitized);
+    }
+  });
+
+  return Array.from(byKey.values()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+};
+
+const extractActivityAppNames = () => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const stored = JSON.parse(localStorage.getItem('activities'));
+    if (!Array.isArray(stored)) {
+      return [];
+    }
+
+    return stored
+      .map((item) => sanitizeActivityName(item?.title))
+      .filter(Boolean);
+  } catch (error) {
+    console.error('Failed to load activities from ActivityApp storage', error);
+    return [];
+  }
+};
+
+const extractActivityLogNames = () => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  const names = [];
+  try {
+    const storedEntries = safeParse(localStorage.getItem(ENTRIES_KEY), []);
+    storedEntries.forEach((entry) => {
+      const name = sanitizeActivityName(entry?.name);
+      if (name) {
+        names.push(name);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to read activity log entries from storage', error);
+  }
+
+  try {
+    const storedCurrent = safeParse(localStorage.getItem(CURRENT_KEY), null);
+    const currentName = sanitizeActivityName(storedCurrent?.name);
+    if (currentName) {
+      names.push(currentName);
+    }
+  } catch (error) {
+    console.error('Failed to read current activity session from storage', error);
+  }
+
+  return names;
+};
+
 const withActivityBlogPost = (activityName, updater) => {
   const trimmedName = sanitizeActivityName(activityName);
   if (!trimmedName || typeof window === 'undefined') {
@@ -132,15 +243,33 @@ const withActivityBlogPost = (activityName, updater) => {
   }
 
   const posts = loadSanitizedBlogPosts();
-  const index = loadActivityBlogIndex();
+  const index =
+    typeof loadActivityBlogIndex === 'function'
+      ? loadActivityBlogIndex() || {}
+      : {};
   const mappedId = Number(index[trimmedName]);
   const hasMappedId = Number.isInteger(mappedId);
   let postId = hasMappedId ? mappedId : null;
   let postIndex = posts.findIndex((post) => post.id === postId);
 
   if (postIndex === -1) {
+    const matchedIndex = posts.findIndex((post) => {
+      const candidate = sanitizeActivityName(post?.activityName ?? post?.title);
+      return (
+        !!candidate &&
+        candidate.localeCompare(trimmedName, undefined, { sensitivity: 'base' }) === 0
+      );
+    });
+
+    if (matchedIndex !== -1) {
+      postIndex = matchedIndex;
+      postId = posts[matchedIndex].id;
+    }
+  }
+
+  if (postIndex === -1) {
     postId = generatePostId(posts);
-    const newPost = sanitizeBlogPostRecord({
+    const newPost = safeSanitizeBlogPostRecord({
       id: postId,
       title: `${trimmedName} activity stream`,
       status: 'Draft',
@@ -166,7 +295,7 @@ const withActivityBlogPost = (activityName, updater) => {
   index[trimmedName] = postId;
   const post = posts[postIndex];
   const updatedPost = updater ? updater(post) ?? post : post;
-  const sanitizedPost = sanitizeBlogPostRecord({
+  const sanitizedPost = safeSanitizeBlogPostRecord({
     ...updatedPost,
     id: postId,
     activityName: updatedPost.activityName || trimmedName,
@@ -177,8 +306,20 @@ const withActivityBlogPost = (activityName, updater) => {
   }
 
   posts[postIndex] = sanitizedPost;
-  persistBlogPostsToStorage(posts);
-  persistActivityBlogIndex(index);
+  if (typeof persistBlogPostsToStorage === 'function') {
+    try {
+      persistBlogPostsToStorage(posts);
+    } catch (error) {
+      console.error('Failed to persist blog posts to storage', error);
+    }
+  }
+  if (typeof persistActivityBlogIndex === 'function') {
+    try {
+      persistActivityBlogIndex(index);
+    } catch (error) {
+      console.error('Failed to persist activity blog index', error);
+    }
+  }
 
   return sanitizedPost;
 };
@@ -220,6 +361,27 @@ const recordSessionInBlog = (session) => {
 };
 
 export default function ActivityLog({ onBack }) {
+  const buildOptionsFromStorage = useCallback(() => {
+    const combinedNames = [];
+
+    try {
+      if (typeof loadRegisteredActivityNames === 'function') {
+        const registered = loadRegisteredActivityNames();
+        if (Array.isArray(registered)) {
+          combinedNames.push(...registered);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load registered activity names', error);
+    }
+
+    combinedNames.push(...extractActivityAppNames());
+    combinedNames.push(...extractActivityLogNames());
+    combinedNames.push(...DEFAULT_ACTIVITIES);
+
+    return buildActivityOptions(combinedNames);
+  }, []);
+
   const [entries, setEntries] = useState(() =>
     safeParse(localStorage.getItem(ENTRIES_KEY), [])
   );
@@ -228,15 +390,11 @@ export default function ActivityLog({ onBack }) {
   );
   const [activityName, setActivityName] = useState(() => current?.name || '');
   const [activityOptions, setActivityOptions] = useState(() =>
-    loadRegisteredActivityNames()
+    buildOptionsFromStorage()
   );
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
-
-  const refreshActivityOptions = useCallback(() => {
-    setActivityOptions(loadRegisteredActivityNames());
-  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
@@ -268,9 +426,52 @@ export default function ActivityLog({ onBack }) {
       return;
     }
 
-    DEFAULT_ACTIVITIES.forEach((name) => ensureActivityBlogPost(name));
-    refreshActivityOptions();
-  }, [refreshActivityOptions]);
+    const ensureRegistered = (names) => {
+      names.forEach((name) => ensureActivityBlogPost(name));
+    };
+
+    const syncActivityNetwork = (overrideNames) => {
+      const names = overrideNames || buildOptionsFromStorage();
+      setActivityOptions(names);
+      ensureRegistered(names);
+    };
+
+    syncActivityNetwork();
+
+    const handleActivitiesUpdated = (event) => {
+      const detailNames = Array.isArray(event?.detail)
+        ? event.detail
+            .map((item) =>
+              typeof item === 'string' ? item : sanitizeActivityName(item?.title)
+            )
+            .filter(Boolean)
+        : [];
+      const merged = buildActivityOptions([
+        ...detailNames,
+        ...buildOptionsFromStorage(),
+      ]);
+      syncActivityNetwork(merged);
+    };
+
+    const handleStorage = (event) => {
+      if (
+        !event ||
+        event.key === 'activities' ||
+        event.key === ENTRIES_KEY ||
+        event.key === CURRENT_KEY
+      ) {
+        syncActivityNetwork();
+      }
+    };
+
+    window.addEventListener('activities-updated', handleActivitiesUpdated);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('activities-updated', handleActivitiesUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [buildOptionsFromStorage]);
 
   useEffect(() => {
     const sanitizedCurrent = sanitizeActivityName(activityName);
@@ -349,7 +550,7 @@ export default function ActivityLog({ onBack }) {
   const handleStart = () => {
     if (startDisabled) return;
     const now = new Date();
-    ensureActivityBlogPost(trimmedName);
+    ensureActivityBlogPost(sanitizedSelectedName);
 
     if (current && sanitizeActivityName(current.name) !== sanitizedSelectedName) {
       const finished = finalizeSession(current, now);

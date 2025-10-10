@@ -66,8 +66,14 @@ describe('ActivityLog', () => {
       const labels = options.map((option) => option.textContent);
       expect(labels).toEqual([
         'Select a tracked activity',
+        'Mazed',
+        'Meditation - Ramana',
+        'Meditation - Vipassana',
+        'Reading',
         'Singing',
+        'Workout',
         'Writing',
+        'Yoga',
       ]);
     });
   });
