@@ -5,6 +5,26 @@ import AddActivityModal from './AddActivityModal.jsx';
 
 const DEFAULT_ACTIVITIES = [
   {
+    title: 'Mazed',
+    icon: '🌀',
+    base: 30,
+    description: 'Deep dive into Mazed explorations.',
+    dimension: 'Formless',
+    aspect: 'EI',
+    timesPerDay: 1,
+    planner: false,
+  },
+  {
+    title: 'Singing',
+    icon: '🎤',
+    base: 20,
+    description: 'Vocal training and expression.',
+    dimension: 'Form',
+    aspect: 'EE',
+    timesPerDay: 1,
+    planner: false,
+  },
+  {
     title: 'Meditation - Vipassana',
     icon: '🧘',
     base: 30,
@@ -55,6 +75,41 @@ const DEFAULT_ACTIVITIES = [
     planner: false,
   },
 ];
+
+const mergeWithDefaults = (activities) => {
+  const merged = new Map();
+  const register = (activity) => {
+    if (!activity || typeof activity !== 'object') {
+      return;
+    }
+    const title = typeof activity.title === 'string' ? activity.title.trim() : '';
+    if (!title) {
+      return;
+    }
+    const key = title.toLowerCase();
+    if (!merged.has(key)) {
+      merged.set(key, { ...activity, title });
+    }
+  };
+
+  const existing = Array.isArray(activities) ? activities : [];
+  existing.forEach(register);
+
+  if (merged.size === 0) {
+    DEFAULT_ACTIVITIES.forEach(register);
+    return Array.from(merged.values());
+  }
+
+  const coreActivities = new Set(['mazed', 'singing']);
+  DEFAULT_ACTIVITIES.forEach((activity) => {
+    const key = activity.title.toLowerCase();
+    if (coreActivities.has(key)) {
+      register(activity);
+    }
+  });
+
+  return Array.from(merged.values());
+};
 
 const computeReward = (mins) => {
   let base = 10 + mins;
@@ -114,7 +169,8 @@ function ActivityModal({ activity, onStart, onClose, onTogglePlanner }) {
 export default function ActivityApp({ onBack }) {
   const [activities, setActivities] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('activities')) || DEFAULT_ACTIVITIES;
+      const stored = JSON.parse(localStorage.getItem('activities'));
+      return mergeWithDefaults(stored);
     } catch {
       return DEFAULT_ACTIVITIES;
     }
@@ -148,9 +204,10 @@ export default function ActivityApp({ onBack }) {
   const [showAdd, setShowAdd] = useState(false);
 
   const saveActivities = (next) => {
-    setActivities(next);
-    localStorage.setItem('activities', JSON.stringify(next));
-    window.dispatchEvent(new CustomEvent('activities-updated', { detail: next }));
+    const merged = mergeWithDefaults(next);
+    setActivities(merged);
+    localStorage.setItem('activities', JSON.stringify(merged));
+    window.dispatchEvent(new CustomEvent('activities-updated', { detail: merged }));
   };
 
   const saveCounts = (next) => {

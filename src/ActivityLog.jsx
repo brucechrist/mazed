@@ -376,9 +376,52 @@ export default function ActivityLog({ onBack }) {
       return;
     }
 
-    DEFAULT_ACTIVITIES.forEach((name) => ensureActivityBlogPost(name));
-    refreshActivityOptions();
-  }, [refreshActivityOptions]);
+    const ensureRegistered = (names) => {
+      names.forEach((name) => ensureActivityBlogPost(name));
+    };
+
+    const syncActivityNetwork = (overrideNames) => {
+      const names = overrideNames || buildOptionsFromStorage();
+      setActivityOptions(names);
+      ensureRegistered(names);
+    };
+
+    syncActivityNetwork();
+
+    const handleActivitiesUpdated = (event) => {
+      const detailNames = Array.isArray(event?.detail)
+        ? event.detail
+            .map((item) =>
+              typeof item === 'string' ? item : sanitizeActivityName(item?.title)
+            )
+            .filter(Boolean)
+        : [];
+      const merged = buildActivityOptions([
+        ...detailNames,
+        ...buildOptionsFromStorage(),
+      ]);
+      syncActivityNetwork(merged);
+    };
+
+    const handleStorage = (event) => {
+      if (
+        !event ||
+        event.key === 'activities' ||
+        event.key === ENTRIES_KEY ||
+        event.key === CURRENT_KEY
+      ) {
+        syncActivityNetwork();
+      }
+    };
+
+    window.addEventListener('activities-updated', handleActivitiesUpdated);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('activities-updated', handleActivitiesUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [buildOptionsFromStorage]);
 
   useEffect(() => {
     const sanitizedCurrent = sanitizeActivityName(activityName);
