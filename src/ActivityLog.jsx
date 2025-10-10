@@ -227,7 +227,16 @@ export default function ActivityLog({ onBack }) {
     safeParse(localStorage.getItem(CURRENT_KEY), null)
   );
   const [activityName, setActivityName] = useState(() => current?.name || '');
+  const [activityOptions, setActivityOptions] = useState(() =>
+    loadRegisteredActivityNames()
+  );
+  const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
+
+  const refreshActivityOptions = useCallback(() => {
+    setActivityOptions(loadRegisteredActivityNames());
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
@@ -245,6 +254,26 @@ export default function ActivityLog({ onBack }) {
       localStorage.removeItem(CURRENT_KEY);
     }
   }, [current]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    DEFAULT_ACTIVITIES.forEach((name) => ensureActivityBlogPost(name));
+    refreshActivityOptions();
+  }, [refreshActivityOptions]);
+
+  useEffect(() => {
+    const sanitizedCurrent = sanitizeActivityName(activityName);
+    if (
+      !isAddingActivity &&
+      !sanitizedCurrent &&
+      activityOptions.length > 0
+    ) {
+      setActivityName(activityOptions[0]);
+    }
+  }, [activityOptions, activityName, isAddingActivity]);
 
   const currentElapsed = useMemo(() => {
     if (!current) return 0;
@@ -264,22 +293,18 @@ export default function ActivityLog({ onBack }) {
   const totals = useMemo(() => {
     const map = new Map();
     entries.forEach((entry) => {
-      if (!entry?.name || !entry?.durationMs) return;
-      const prev = map.get(entry.name) || 0;
-      map.set(entry.name, prev + entry.durationMs);
+      const sanitizedName = sanitizeActivityName(entry?.name);
+      if (!sanitizedName || !entry?.durationMs) return;
+      const prev = map.get(sanitizedName) || 0;
+      map.set(sanitizedName, prev + entry.durationMs);
     });
     if (current?.name) {
-      const prev = map.get(current.name) || 0;
-      map.set(current.name, prev + currentElapsed);
+      const sanitizedName = sanitizeActivityName(current.name);
+      const prev = map.get(sanitizedName) || 0;
+      map.set(sanitizedName, prev + currentElapsed);
     }
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [entries, current, currentElapsed]);
-
-  const suggestions = useMemo(() => {
-    const set = new Set(entries.map((entry) => entry.name).filter(Boolean));
-    if (current?.name) set.add(current.name);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [entries, current]);
 
   const sortedHistory = useMemo(() => {
     return [...entries].sort((a, b) => {
@@ -290,10 +315,12 @@ export default function ActivityLog({ onBack }) {
   }, [entries]);
 
   const isRunning = Boolean(current?.activeSegmentStart);
-  const trimmedName = activityName.trim();
-  const isSameActivity = current?.name && trimmedName === current.name;
-  const startDisabled = !trimmedName || (isSameActivity && isRunning);
-  const startLabel = !trimmedName
+  const sanitizedSelectedName = sanitizeActivityName(activityName);
+  const sanitizedCurrentName = sanitizeActivityName(current?.name);
+  const isSameActivity =
+    Boolean(sanitizedSelectedName) && sanitizedSelectedName === sanitizedCurrentName;
+  const startDisabled = !sanitizedSelectedName || (isSameActivity && isRunning);
+  const startLabel = !sanitizedSelectedName
     ? 'Start Activity'
     : isSameActivity
       ? isRunning
@@ -322,7 +349,7 @@ export default function ActivityLog({ onBack }) {
     const now = new Date();
     ensureActivityBlogPost(trimmedName);
 
-    if (current && current.name !== trimmedName) {
+    if (current && sanitizeActivityName(current.name) !== sanitizedSelectedName) {
       const finished = finalizeSession(current, now);
       if (finished) {
         persistEntries([...entries, finished]);
@@ -330,7 +357,7 @@ export default function ActivityLog({ onBack }) {
       }
     }
 
-    if (current && current.name === trimmedName) {
+    if (current && sanitizeActivityName(current.name) === sanitizedSelectedName) {
       if (current.activeSegmentStart) return;
       const resumed = {
         ...current,
@@ -340,14 +367,14 @@ export default function ActivityLog({ onBack }) {
     } else {
       const nextSession = {
         id: now.getTime(),
-        name: trimmedName,
+        name: sanitizedSelectedName,
         startedAt: now.toISOString(),
         elapsed: 0,
         segments: [],
         activeSegmentStart: now.toISOString(),
       };
       persistCurrent(nextSession);
-      setActivityName(trimmedName);
+      setActivityName(sanitizedSelectedName);
     }
   };
 
@@ -392,6 +419,45 @@ export default function ActivityLog({ onBack }) {
     }
   };
 
+  const handleSelectActivity = (event) => {
+    setActivityName(event.target.value);
+  };
+
+  const handleStartAdding = () => {
+    setIsAddingActivity(true);
+    setNewActivityName('');
+  };
+
+  const handleCancelAdding = () => {
+    setIsAddingActivity(false);
+    setNewActivityName('');
+  };
+
+  const handleCreateActivity = (event) => {
+    event.preventDefault();
+    const sanitizedName = sanitizeActivityName(newActivityName);
+    if (!sanitizedName) {
+      return;
+    }
+
+    const existingMatch = activityOptions.find(
+      (option) => option.toLowerCase() === sanitizedName.toLowerCase()
+    );
+
+    if (existingMatch) {
+      setActivityName(existingMatch);
+      setIsAddingActivity(false);
+      setNewActivityName('');
+      return;
+    }
+
+    ensureActivityBlogPost(sanitizedName);
+    refreshActivityOptions();
+    setActivityName(sanitizedName);
+    setIsAddingActivity(false);
+    setNewActivityName('');
+  };
+
   return (
     <div className="placeholder-app activity-log">
       <button className="back-button" onClick={onBack}>
@@ -421,33 +487,51 @@ export default function ActivityLog({ onBack }) {
         <label htmlFor="activity-input" className="activity-input-label">
           What are you doing right now?
         </label>
-        <input
-          id="activity-input"
-          className="activity-input"
-          type="text"
-          placeholder="e.g. Singing, Coding, Reading"
-          value={activityName}
-          onChange={(event) => setActivityName(event.target.value)}
-        />
-        {suggestions.length > 0 && (
-          <div className="activity-suggestions">
-            <span>Recent:</span>
-            <div className="chips">
-              {suggestions.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={
-                    name === trimmedName ? 'chip selected' : 'chip'
-                  }
-                  onClick={() => setActivityName(name)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
+        <div className="activity-picker">
+          <select
+            id="activity-input"
+            className="activity-select"
+            value={activityOptions.includes(activityName) ? activityName : ''}
+            onChange={handleSelectActivity}
+          >
+            <option value="" disabled>
+              Select a tracked activity
+            </option>
+            {activityOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <div className="activity-picker-actions">
+            {isAddingActivity ? (
+              <form className="activity-picker-new" onSubmit={handleCreateActivity}>
+                <input
+                  type="text"
+                  className="activity-input"
+                  placeholder="Name the new activity"
+                  value={newActivityName}
+                  onChange={(event) => setNewActivityName(event.target.value)}
+                />
+                <div className="activity-picker-buttons">
+                  <button type="submit" className="primary">
+                    Save activity
+                  </button>
+                  <button type="button" onClick={handleCancelAdding}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" className="secondary" onClick={handleStartAdding}>
+                Add a new activity
+              </button>
+            )}
           </div>
-        )}
+        </div>
+        <p className="activity-picker-hint">
+          Each activity in this list has a dedicated blog page where moments from across the app are collected.
+        </p>
         <div className="control-buttons">
           <button
             type="button"

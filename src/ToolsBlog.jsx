@@ -245,6 +245,34 @@ const sanitizePostRecord = (post) => {
   };
 };
 
+const loadSanitizedBlogPosts = () => {
+  const { posts } = loadStoredPosts();
+  if (!Array.isArray(posts)) {
+    return [];
+  }
+
+  return posts.map((post) => sanitizePostRecord(post)).filter(Boolean);
+};
+
+const generateActivityPostId = (posts) => {
+  const usedIds = new Set(posts.map((post) => post.id));
+  let candidate = Date.now();
+
+  while (usedIds.has(candidate)) {
+    candidate += 1;
+  }
+
+  return candidate;
+};
+
+export const sanitizeActivityName = (name) => {
+  if (typeof name !== 'string') {
+    return '';
+  }
+
+  return name.trim();
+};
+
 const loadStoredPosts = () => {
   if (typeof window === 'undefined' || !('localStorage' in window)) {
     return { posts: [], hasStoredValue: false };
