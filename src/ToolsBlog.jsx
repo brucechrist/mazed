@@ -432,6 +432,36 @@ export const persistActivityBlogIndex = (index) => {
   }
 };
 
+export const loadRegisteredActivityNames = () => {
+  const posts = loadSanitizedBlogPosts();
+  const index = loadActivityBlogIndex();
+  const names = new Map();
+
+  const register = (name) => {
+    const sanitized = sanitizeActivityName(name);
+    if (!sanitized) {
+      return;
+    }
+
+    const key = sanitized.toLowerCase();
+    if (!names.has(key)) {
+      names.set(key, sanitized);
+    }
+  };
+
+  posts.forEach((post) => {
+    register(post?.activityName ?? post?.title);
+  });
+
+  Object.keys(index || {}).forEach((activityName) => {
+    register(activityName);
+  });
+
+  return Array.from(names.values()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+};
+
 export default function ToolsBlog({ onBack }) {
   const [posts, setPosts] = useState(buildInitialPosts);
   const [editingPostId, setEditingPostId] = useState(null);
