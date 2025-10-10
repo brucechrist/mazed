@@ -14,8 +14,6 @@ const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
 
 const DEFAULT_ACTIVITIES = [
-  'Mazed',
-  'Singing',
   'Meditation - Vipassana',
   'Meditation - Ramana',
   'Yoga',
