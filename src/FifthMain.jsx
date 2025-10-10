@@ -102,6 +102,10 @@ export default function FifthMain({ onSelectQuadrant }) {
 
   useEffect(() => {
     const handleNav = (e) => {
+      if (showModal || showList || showPlanner) {
+        return;
+      }
+
       const key = e.key.toLowerCase();
       if (key === 'a') {
         setMenuIndex((prev) => Math.max(0, prev - 1));
@@ -128,7 +132,7 @@ export default function FifthMain({ onSelectQuadrant }) {
     };
     window.addEventListener('keydown', handleNav);
     return () => window.removeEventListener('keydown', handleNav);
-  }, [menuIndex, onSelectQuadrant]);
+  }, [menuIndex, onSelectQuadrant, showModal, showList, showPlanner]);
 
   return (
     <div className="main-page">

@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './note-modal.css';
 
-const TAGS = ['II', 'IE', 'EI', 'EE'];
+const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
 const TAG_COLORS = {
   II: '#f59e0b',
   IE: '#38bdf8',
   EI: '#34d399',
   EE: '#c084fc',
+  form: '#fb923c',
+  'semi-formless': '#f472b6',
+  formless: '#60a5fa',
 };
 
 const loadStoredNotes = () => {
@@ -36,6 +39,24 @@ export default function NoteModal({ onClose }) {
   const [content, setContent] = useState('');
   const [tag, setTag] = useState(TAGS[0]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__noteEditorOpenCount = (window.__noteEditorOpenCount || 0) + 1;
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.__noteEditorOpenCount = Math.max(
+          0,
+          (window.__noteEditorOpenCount || 1) - 1,
+        );
+        if ((window.__noteEditorOpenCount || 0) <= 0) {
+          delete window.__noteEditorOpenCount;
+        }
+      }
+    };
+  }, []);
+
   const handleSave = () => {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
@@ -58,6 +79,16 @@ export default function NoteModal({ onClose }) {
     onClose();
   };
 
+  const handleEditorKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      const tagName = event.target?.tagName?.toLowerCase();
+      if (tagName === 'textarea' || tagName === 'input') {
+        event.preventDefault();
+        handleSave();
+      }
+    }
+  };
+
   const handleOverlayClick = (event) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -69,6 +100,7 @@ export default function NoteModal({ onClose }) {
       <div
         className="modal notes-modal note-editor-modal"
         onClick={(event) => event.stopPropagation()}
+        onKeyDown={handleEditorKeyDown}
       >
         <header className="note-editor__header">
           <div>

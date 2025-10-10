@@ -5,6 +5,7 @@ import MainQuestModal from "./MainQuestModal.jsx";
 import { supabaseClient } from "./supabaseClient";
 import { useQuests } from "./QuestContext.jsx";
 import TasteT from "./TasteT.jsx";
+import MoodQuadrantGame from "../MoodQuadrantGame.jsx";
 import "./world.css";
 
 function FormlessUnityStage() {
@@ -85,6 +86,7 @@ export default function World({ activeLayer = "Form" }) {
   const [showPublished, setShowPublished] = useState(false);
   const isSemiFormless = activeLayer === "Semi-Formless";
   const isFormless = activeLayer === "Formless";
+  const [activeSemiFormlessApp, setActiveSemiFormlessApp] = useState(null);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -150,6 +152,12 @@ export default function World({ activeLayer = "Form" }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isSemiFormless) {
+      setActiveSemiFormlessApp(null);
+    }
+  }, [isSemiFormless]);
+
   const handleQuestAdd = (q) => {
     addQuest(q);
     setShowPublished(true);
@@ -160,8 +168,64 @@ export default function World({ activeLayer = "Form" }) {
 
   if (isSemiFormless) {
     return (
-      <div className="world-container world-tastet-container">
-        <TasteT />
+      <div className="world-container semi-formless-world">
+        {activeSemiFormlessApp ? (
+          <div className="semi-formless-stage">
+            <button
+              type="button"
+              className="semi-formless-back"
+              onClick={() => setActiveSemiFormlessApp(null)}
+            >
+              ← Back to Semi-Formless hub
+            </button>
+            <div className="semi-formless-app-frame">
+              {activeSemiFormlessApp === "tasteT" ? (
+                <TasteT />
+              ) : (
+                <MoodQuadrantGame
+                  onBack={() => setActiveSemiFormlessApp(null)}
+                  showBackButton={false}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="semi-formless-hub">
+            <header className="semi-formless-hub-header">
+              <h2>Layer 1 · Semi-Formless World</h2>
+              <p>
+                Choose an app to refine your tastes or scan the current mood
+                signals. These core tools anchor the access state log.
+              </p>
+            </header>
+            <div className="semi-formless-app-grid">
+              <button
+                type="button"
+                className="semi-formless-app-card"
+                onClick={() => setActiveSemiFormlessApp("tasteT")}
+              >
+                <span className="app-icon">🎛️</span>
+                <h3>TierT</h3>
+                <p>
+                  Rank library entries with Swiss minis and placements to keep
+                  your taste map evolving.
+                </p>
+              </button>
+              <button
+                type="button"
+                className="semi-formless-app-card"
+                onClick={() => setActiveSemiFormlessApp("moodQuadrant")}
+              >
+                <span className="app-icon">🧭</span>
+                <h3>Signal Scanner</h3>
+                <p>
+                  Pick tagged experiences to capture the present mood profile
+                  and quadrant resonance.
+                </p>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

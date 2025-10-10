@@ -29,6 +29,7 @@ import Anima from './Anima.jsx';
 import ToolsBlog from './ToolsBlog.jsx';
 import TodoGoals from './TodoGoals.jsx';
 import ActivityApp from './ActivityApp.jsx';
+import ActivityLog from './ActivityLog.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
 import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
 import FormlessCharacter from './FormlessCharacter.jsx';
@@ -228,6 +229,7 @@ export default function PageRouter() {
       library: <Library onBack={goBack} />,
       todoGoals: <TodoGoals onBack={goBack} />,
       activity: <ActivityApp onBack={goBack} />,
+      activityLog: <ActivityLog onBack={goBack} />,
       characterEvolve: <CharacterEvolve onBack={goBack} />,
       semiCharacter: <SemiFormlessCharacter onBack={goBack} />,
       formlessCharacter: <FormlessCharacter onBack={goBack} />,
