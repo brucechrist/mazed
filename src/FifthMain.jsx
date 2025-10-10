@@ -102,12 +102,7 @@ export default function FifthMain({ onSelectQuadrant }) {
 
   useEffect(() => {
     const handleNav = (e) => {
-      if (
-        showModal ||
-        showList ||
-        showPlanner ||
-        (typeof window !== 'undefined' && window.__noteEditorOpenCount > 0)
-      ) {
+      if (showModal || showList || showPlanner) {
         return;
       }
 

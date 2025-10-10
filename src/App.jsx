@@ -378,10 +378,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      const noteEditorIsOpen = Boolean(
-        (typeof window !== 'undefined' && window.__noteEditorOpenCount > 0) ||
-          document.querySelector('.note-editor-modal'),
-      );
+      const noteEditorIsOpen = document.querySelector('.note-editor-modal');
       if (noteEditorIsOpen && e.key !== 'Escape') {
         return;
       }
