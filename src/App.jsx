@@ -24,6 +24,7 @@ import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import TodoGoals from './TodoGoals.jsx';
 import ActivityApp from './ActivityApp.jsx';
+import ActivityLog from './ActivityLog.jsx';
 import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
@@ -84,6 +85,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTrinities, setShowTrinities] = useState(false);
   const [showTodoGoals, setShowTodoGoals] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showActivityLog, setShowActivityLog] = useState(false);
   const [showCharacterEvolve, setShowCharacterEvolve] = useState(false);
   const [showWeakness, setShowWeakness] = useState(false);
   const [showAccessLog, setShowAccessLog] = useState(false);
@@ -123,6 +125,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       library: 'Form',
       todoGoals: 'Form',
       activity: 'Form',
+      activityLog: 'Form',
       characterEvolve: 'Form',
       weakness: 'Semi-Formless',
       accessLog: 'Semi-Formless',
@@ -195,6 +198,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showLibrary ||
     showTodoGoals ||
     showActivity ||
+    showActivityLog ||
     showCharacterEvolve ||
     showWeakness ||
     showAccessLog ||
@@ -228,6 +232,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowLibrary(false);
     setShowTodoGoals(false);
     setShowActivity(false);
+    setShowActivityLog(false);
     setShowCharacterEvolve(false);
     setShowWeakness(false);
     setShowAccessLog(false);
@@ -701,6 +706,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <TodoGoals onBack={() => setShowTodoGoals(false)} />
             ) : showActivity ? (
               <ActivityApp onBack={() => setShowActivity(false)} />
+            ) : showActivityLog ? (
+              <ActivityLog onBack={() => setShowActivityLog(false)} />
             ) : showCharacterEvolve ? (
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
             ) : showWeakness ? (
@@ -947,6 +954,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">🏃</div>
                     <span>Activity</span>
+                  </div>
+                )}
+                {appLayers.activityLog === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowActivityLog(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'activityLog')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'activityLog')}
+                  >
+                    <div className="star-icon">⏱️</div>
+                    <span>Activity Log</span>
                   </div>
                 )}
                 {appLayers.characterEvolve === activeLayer && (
