@@ -226,7 +226,7 @@ const sanitizePostRecord = (post) => {
     return null;
   }
 
-  return {
+  const sanitized = {
     id: parsedId,
     title: typeof post.title === 'string' ? post.title : '',
     status: typeof post.status === 'string' ? post.status : STATUSES[0],
@@ -243,6 +243,13 @@ const sanitizePostRecord = (post) => {
       ? post.activitySessions.map((session) => sanitizeActivitySession(session)).filter(Boolean)
       : [],
   };
+
+  const preserved = { ...post };
+  Object.keys(sanitized).forEach((key) => {
+    preserved[key] = sanitized[key];
+  });
+
+  return preserved;
 };
 
 const loadSanitizedBlogPosts = () => {

@@ -200,6 +200,21 @@ const withActivityBlogPost = (activityName, updater) => {
   let postIndex = posts.findIndex((post) => post.id === postId);
 
   if (postIndex === -1) {
+    const matchedIndex = posts.findIndex((post) => {
+      const candidate = sanitizeActivityName(post?.activityName ?? post?.title);
+      return (
+        !!candidate &&
+        candidate.localeCompare(trimmedName, undefined, { sensitivity: 'base' }) === 0
+      );
+    });
+
+    if (matchedIndex !== -1) {
+      postIndex = matchedIndex;
+      postId = posts[matchedIndex].id;
+    }
+  }
+
+  if (postIndex === -1) {
     postId = generatePostId(posts);
     const newPost = safeSanitizeBlogPostRecord({
       id: postId,
