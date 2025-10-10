@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ensureActivityBlogPost,
+  loadRegisteredActivityNames,
+  recordActivitySessionInBlog,
+  sanitizeActivityName,
+} from './ToolsBlog.jsx';
 import './placeholder-app.css';
 import './activity-log.css';
 
@@ -66,6 +72,65 @@ const finalizeSession = (session, endTime = new Date()) => {
   };
 };
 
+const DEFAULT_ACTIVITIES = ['Singing', 'Writing'];
+
+const safeSanitizeName = (value) => sanitizeActivityName(value) || '';
+
+const safeLoadActivityOptions = () => {
+  try {
+    const names = loadRegisteredActivityNames();
+    if (!Array.isArray(names)) {
+      return [];
+    }
+    const sanitized = names
+      .map((name) => safeSanitizeName(name))
+      .filter(Boolean);
+
+    const deduped = [];
+    const seen = new Set();
+    sanitized.forEach((name) => {
+      const key = name.toLowerCase();
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      deduped.push(name);
+    });
+
+    return deduped.sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
+    );
+  } catch (error) {
+    console.error('Failed to load registered activities', error);
+    return [];
+  }
+};
+
+const safeEnsureActivityBlogPost = (name) => {
+  const trimmed = safeSanitizeName(name);
+  if (!trimmed) {
+    return;
+  }
+
+  try {
+    ensureActivityBlogPost(trimmed);
+  } catch (error) {
+    console.error('Failed to ensure activity blog post', error);
+  }
+};
+
+const safeRecordActivitySession = (session) => {
+  if (!session) {
+    return;
+  }
+
+  try {
+    recordActivitySessionInBlog(session);
+  } catch (error) {
+    console.error('Failed to record activity session in blog', error);
+  }
+};
+
 export default function ActivityLog({ onBack }) {
   const [entries, setEntries] = useState(() =>
     safeParse(localStorage.getItem(ENTRIES_KEY), [])
@@ -74,7 +139,14 @@ export default function ActivityLog({ onBack }) {
     safeParse(localStorage.getItem(CURRENT_KEY), null)
   );
   const [activityName, setActivityName] = useState(() => current?.name || '');
+  const [activityOptions, setActivityOptions] = useState(safeLoadActivityOptions);
+  const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
+
+  const refreshActivityOptions = useCallback(() => {
+    setActivityOptions(safeLoadActivityOptions());
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
@@ -82,16 +154,44 @@ export default function ActivityLog({ onBack }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    try {
+      localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    } catch (error) {
+      console.error('Failed to persist activity log entries', error);
+    }
   }, [entries]);
 
   useEffect(() => {
-    if (current) {
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
-    } else {
-      localStorage.removeItem(CURRENT_KEY);
+    try {
+      if (current) {
+        localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
+      } else {
+        localStorage.removeItem(CURRENT_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to persist current activity session', error);
     }
   }, [current]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    DEFAULT_ACTIVITIES.forEach((name) => safeEnsureActivityBlogPost(name));
+    refreshActivityOptions();
+  }, [refreshActivityOptions]);
+
+  useEffect(() => {
+    const sanitizedCurrent = safeSanitizeName(activityName);
+    if (
+      !isAddingActivity &&
+      !sanitizedCurrent &&
+      activityOptions.length > 0
+    ) {
+      setActivityName(activityOptions[0]);
+    }
+  }, [activityOptions, activityName, isAddingActivity]);
 
   const currentElapsed = useMemo(() => {
     if (!current) return 0;
@@ -111,22 +211,18 @@ export default function ActivityLog({ onBack }) {
   const totals = useMemo(() => {
     const map = new Map();
     entries.forEach((entry) => {
-      if (!entry?.name || !entry?.durationMs) return;
-      const prev = map.get(entry.name) || 0;
-      map.set(entry.name, prev + entry.durationMs);
+      const sanitizedName = safeSanitizeName(entry?.name);
+      if (!sanitizedName || !entry?.durationMs) return;
+      const prev = map.get(sanitizedName) || 0;
+      map.set(sanitizedName, prev + entry.durationMs);
     });
     if (current?.name) {
-      const prev = map.get(current.name) || 0;
-      map.set(current.name, prev + currentElapsed);
+      const sanitizedName = safeSanitizeName(current.name);
+      const prev = map.get(sanitizedName) || 0;
+      map.set(sanitizedName, prev + currentElapsed);
     }
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [entries, current, currentElapsed]);
-
-  const suggestions = useMemo(() => {
-    const set = new Set(entries.map((entry) => entry.name).filter(Boolean));
-    if (current?.name) set.add(current.name);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [entries, current]);
 
   const sortedHistory = useMemo(() => {
     return [...entries].sort((a, b) => {
@@ -137,10 +233,12 @@ export default function ActivityLog({ onBack }) {
   }, [entries]);
 
   const isRunning = Boolean(current?.activeSegmentStart);
-  const trimmedName = activityName.trim();
-  const isSameActivity = current?.name && trimmedName === current.name;
-  const startDisabled = !trimmedName || (isSameActivity && isRunning);
-  const startLabel = !trimmedName
+  const sanitizedSelectedName = safeSanitizeName(activityName);
+  const sanitizedCurrentName = safeSanitizeName(current?.name);
+  const isSameActivity =
+    Boolean(sanitizedSelectedName) && sanitizedSelectedName === sanitizedCurrentName;
+  const startDisabled = !sanitizedSelectedName || (isSameActivity && isRunning);
+  const startLabel = !sanitizedSelectedName
     ? 'Start Activity'
     : isSameActivity
       ? isRunning
@@ -152,30 +250,26 @@ export default function ActivityLog({ onBack }) {
 
   const persistEntries = (next) => {
     setEntries(next);
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(next));
   };
 
   const persistCurrent = (next) => {
     setCurrent(next);
-    if (next) {
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(next));
-    } else {
-      localStorage.removeItem(CURRENT_KEY);
-    }
   };
 
   const handleStart = () => {
     if (startDisabled) return;
     const now = new Date();
+    safeEnsureActivityBlogPost(sanitizedSelectedName);
 
-    if (current && current.name !== trimmedName) {
+    if (current && safeSanitizeName(current.name) !== sanitizedSelectedName) {
       const finished = finalizeSession(current, now);
       if (finished) {
         persistEntries([...entries, finished]);
+        safeRecordActivitySession(finished);
       }
     }
 
-    if (current && current.name === trimmedName) {
+    if (current && safeSanitizeName(current.name) === sanitizedSelectedName) {
       if (current.activeSegmentStart) return;
       const resumed = {
         ...current,
@@ -185,14 +279,14 @@ export default function ActivityLog({ onBack }) {
     } else {
       const nextSession = {
         id: now.getTime(),
-        name: trimmedName,
+        name: sanitizedSelectedName,
         startedAt: now.toISOString(),
         elapsed: 0,
         segments: [],
         activeSegmentStart: now.toISOString(),
       };
       persistCurrent(nextSession);
-      setActivityName(trimmedName);
+      setActivityName(sanitizedSelectedName);
     }
   };
 
@@ -223,6 +317,7 @@ export default function ActivityLog({ onBack }) {
     const finished = finalizeSession(current, new Date());
     if (finished) {
       persistEntries([...entries, finished]);
+      safeRecordActivitySession(finished);
     }
     persistCurrent(null);
   };
@@ -234,6 +329,45 @@ export default function ActivityLog({ onBack }) {
       persistCurrent(null);
       setActivityName('');
     }
+  };
+
+  const handleSelectActivity = (event) => {
+    setActivityName(event.target.value);
+  };
+
+  const handleStartAdding = () => {
+    setIsAddingActivity(true);
+    setNewActivityName('');
+  };
+
+  const handleCancelAdding = () => {
+    setIsAddingActivity(false);
+    setNewActivityName('');
+  };
+
+  const handleCreateActivity = (event) => {
+    event.preventDefault();
+    const sanitizedName = safeSanitizeName(newActivityName);
+    if (!sanitizedName) {
+      return;
+    }
+
+    const existingMatch = activityOptions.find(
+      (option) => option.toLowerCase() === sanitizedName.toLowerCase()
+    );
+
+    if (existingMatch) {
+      setActivityName(existingMatch);
+      setIsAddingActivity(false);
+      setNewActivityName('');
+      return;
+    }
+
+    safeEnsureActivityBlogPost(sanitizedName);
+    refreshActivityOptions();
+    setActivityName(sanitizedName);
+    setIsAddingActivity(false);
+    setNewActivityName('');
   };
 
   return (
@@ -265,33 +399,51 @@ export default function ActivityLog({ onBack }) {
         <label htmlFor="activity-input" className="activity-input-label">
           What are you doing right now?
         </label>
-        <input
-          id="activity-input"
-          className="activity-input"
-          type="text"
-          placeholder="e.g. Singing, Coding, Reading"
-          value={activityName}
-          onChange={(event) => setActivityName(event.target.value)}
-        />
-        {suggestions.length > 0 && (
-          <div className="activity-suggestions">
-            <span>Recent:</span>
-            <div className="chips">
-              {suggestions.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={
-                    name === trimmedName ? 'chip selected' : 'chip'
-                  }
-                  onClick={() => setActivityName(name)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
+        <div className="activity-picker">
+          <select
+            id="activity-input"
+            className="activity-select"
+            value={activityOptions.includes(activityName) ? activityName : ''}
+            onChange={handleSelectActivity}
+          >
+            <option value="" disabled>
+              Select a tracked activity
+            </option>
+            {activityOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <div className="activity-picker-actions">
+            {isAddingActivity ? (
+              <form className="activity-picker-new" onSubmit={handleCreateActivity}>
+                <input
+                  type="text"
+                  className="activity-input"
+                  placeholder="Name the new activity"
+                  value={newActivityName}
+                  onChange={(event) => setNewActivityName(event.target.value)}
+                />
+                <div className="activity-picker-buttons">
+                  <button type="submit" className="primary">
+                    Save activity
+                  </button>
+                  <button type="button" onClick={handleCancelAdding}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" className="secondary" onClick={handleStartAdding}>
+                Add a new activity
+              </button>
+            )}
           </div>
-        )}
+        </div>
+        <p className="activity-picker-hint">
+          Each activity in this list has a dedicated blog page where moments from across the app are collected.
+        </p>
         <div className="control-buttons">
           <button
             type="button"
