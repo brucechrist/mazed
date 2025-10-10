@@ -378,6 +378,11 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const noteEditorIsOpen = document.querySelector('.note-editor-modal');
+      if (noteEditorIsOpen && e.key !== 'Escape') {
+        return;
+      }
+
       const key = e.key.toLowerCase();
 
       if (anyAppOpen) {
