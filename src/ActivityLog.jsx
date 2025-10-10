@@ -244,14 +244,22 @@ export default function ActivityLog({ onBack }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    try {
+      localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    } catch (error) {
+      console.error('Failed to persist activity log entries', error);
+    }
   }, [entries]);
 
   useEffect(() => {
-    if (current) {
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
-    } else {
-      localStorage.removeItem(CURRENT_KEY);
+    try {
+      if (current) {
+        localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
+      } else {
+        localStorage.removeItem(CURRENT_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to persist current activity session', error);
     }
   }, [current]);
 
@@ -332,16 +340,10 @@ export default function ActivityLog({ onBack }) {
 
   const persistEntries = (next) => {
     setEntries(next);
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(next));
   };
 
   const persistCurrent = (next) => {
     setCurrent(next);
-    if (next) {
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(next));
-    } else {
-      localStorage.removeItem(CURRENT_KEY);
-    }
   };
 
   const handleStart = () => {
