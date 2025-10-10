@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ensureActivityBlogPost,
-  loadRegisteredActivityNames,
-  recordActivitySessionInBlog,
-  sanitizeActivityName,
+  loadActivityBlogIndex,
+  loadBlogPostsFromStorage,
+  persistActivityBlogIndex,
+  persistBlogPostsToStorage,
+  sanitizeBlogPostRecord,
 } from './ToolsBlog.jsx';
 import './placeholder-app.css';
 import './activity-log.css';
@@ -72,63 +73,150 @@ const finalizeSession = (session, endTime = new Date()) => {
   };
 };
 
-const DEFAULT_ACTIVITIES = ['Singing', 'Writing'];
+const sanitizeActivityName = (name) => {
+  if (typeof name !== 'string') {
+    return '';
+  }
 
-const safeSanitizeName = (value) => sanitizeActivityName(value) || '';
+  return name.trim();
+};
 
-const safeLoadActivityOptions = () => {
-  try {
-    const names = loadRegisteredActivityNames();
-    if (!Array.isArray(names)) {
-      return [];
-    }
-    const sanitized = names
-      .map((name) => safeSanitizeName(name))
-      .filter(Boolean);
-
-    const deduped = [];
-    const seen = new Set();
-    sanitized.forEach((name) => {
-      const key = name.toLowerCase();
-      if (seen.has(key)) {
-        return;
-      }
-      seen.add(key);
-      deduped.push(name);
-    });
-
-    return deduped.sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
-    );
-  } catch (error) {
-    console.error('Failed to load registered activities', error);
+const loadSanitizedBlogPosts = () => {
+  const storedPosts = loadBlogPostsFromStorage();
+  if (!Array.isArray(storedPosts)) {
     return [];
   }
+
+  return storedPosts
+    .map((post) => sanitizeBlogPostRecord(post))
+    .filter(Boolean);
 };
 
-const safeEnsureActivityBlogPost = (name) => {
-  const trimmed = safeSanitizeName(name);
-  if (!trimmed) {
+const generatePostId = (posts) => {
+  const usedIds = new Set(posts.map((post) => post.id));
+  let candidate = Date.now();
+
+  while (usedIds.has(candidate)) {
+    candidate += 1;
+  }
+
+  return candidate;
+};
+
+const sanitizeSessionForBlog = (session) => {
+  if (session == null || typeof session !== 'object') {
+    return null;
+  }
+
+  const durationMs = Number(session.durationMs);
+  const sanitizedDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+
+  const sanitizedSession = {
+    id: Number.isInteger(Number(session.id)) ? Number(session.id) : Date.now(),
+    startedAt: typeof session.startedAt === 'string' ? session.startedAt : null,
+    endedAt: typeof session.endedAt === 'string' ? session.endedAt : null,
+    durationMs: sanitizedDuration,
+  };
+
+  if (!sanitizedSession.startedAt && !sanitizedSession.endedAt && sanitizedSession.durationMs === 0) {
+    return null;
+  }
+
+  return sanitizedSession;
+};
+
+const withActivityBlogPost = (activityName, updater) => {
+  const trimmedName = sanitizeActivityName(activityName);
+  if (!trimmedName || typeof window === 'undefined') {
+    return null;
+  }
+
+  const posts = loadSanitizedBlogPosts();
+  const index = loadActivityBlogIndex();
+  const mappedId = Number(index[trimmedName]);
+  const hasMappedId = Number.isInteger(mappedId);
+  let postId = hasMappedId ? mappedId : null;
+  let postIndex = posts.findIndex((post) => post.id === postId);
+
+  if (postIndex === -1) {
+    postId = generatePostId(posts);
+    const newPost = sanitizeBlogPostRecord({
+      id: postId,
+      title: `${trimmedName} activity stream`,
+      status: 'Draft',
+      excerpt: `Automatically collecting moments linked to ${trimmedName}.`,
+      stream: 'training-layer',
+      mood: 'listening',
+      images: [],
+      link: '',
+      activityName: trimmedName,
+      activitySessions: [],
+    });
+
+    if (newPost) {
+      posts.unshift(newPost);
+      postIndex = 0;
+    }
+  }
+
+  if (postIndex === -1) {
+    return null;
+  }
+
+  index[trimmedName] = postId;
+  const post = posts[postIndex];
+  const updatedPost = updater ? updater(post) ?? post : post;
+  const sanitizedPost = sanitizeBlogPostRecord({
+    ...updatedPost,
+    id: postId,
+    activityName: updatedPost.activityName || trimmedName,
+  });
+
+  if (!sanitizedPost) {
+    return null;
+  }
+
+  posts[postIndex] = sanitizedPost;
+  persistBlogPostsToStorage(posts);
+  persistActivityBlogIndex(index);
+
+  return sanitizedPost;
+};
+
+const ensureActivityBlogPost = (activityName) =>
+  withActivityBlogPost(activityName, (post) => post);
+
+const recordSessionInBlog = (session) => {
+  const sanitizedSession = sanitizeSessionForBlog(session);
+  const activityName = sanitizeActivityName(session?.name);
+
+  if (!sanitizedSession || !activityName) {
     return;
   }
 
-  try {
-    ensureActivityBlogPost(trimmed);
-  } catch (error) {
-    console.error('Failed to ensure activity blog post', error);
-  }
-};
+  withActivityBlogPost(activityName, (post) => {
+    const existingSessions = Array.isArray(post.activitySessions)
+      ? post.activitySessions
+      : [];
 
-const safeRecordActivitySession = (session) => {
-  if (!session) {
-    return;
-  }
+    const hasExistingSession = existingSessions.some(
+      (item) => Number(item?.id) === Number(sanitizedSession.id)
+    );
 
-  try {
-    recordActivitySessionInBlog(session);
-  } catch (error) {
-    console.error('Failed to record activity session in blog', error);
-  }
+    if (hasExistingSession) {
+      return {
+        ...post,
+        activitySessions: existingSessions.map((item) =>
+          Number(item?.id) === Number(sanitizedSession.id) ? sanitizedSession : item
+        ),
+      };
+    }
+
+    return {
+      ...post,
+      activitySessions: [...existingSessions, sanitizedSession],
+    };
+  });
 };
 
 export default function ActivityLog({ onBack }) {
@@ -139,13 +227,15 @@ export default function ActivityLog({ onBack }) {
     safeParse(localStorage.getItem(CURRENT_KEY), null)
   );
   const [activityName, setActivityName] = useState(() => current?.name || '');
-  const [activityOptions, setActivityOptions] = useState(safeLoadActivityOptions);
+  const [activityOptions, setActivityOptions] = useState(() =>
+    loadRegisteredActivityNames()
+  );
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
 
   const refreshActivityOptions = useCallback(() => {
-    setActivityOptions(safeLoadActivityOptions());
+    setActivityOptions(loadRegisteredActivityNames());
   }, []);
 
   useEffect(() => {
@@ -178,12 +268,12 @@ export default function ActivityLog({ onBack }) {
       return;
     }
 
-    DEFAULT_ACTIVITIES.forEach((name) => safeEnsureActivityBlogPost(name));
+    DEFAULT_ACTIVITIES.forEach((name) => ensureActivityBlogPost(name));
     refreshActivityOptions();
   }, [refreshActivityOptions]);
 
   useEffect(() => {
-    const sanitizedCurrent = safeSanitizeName(activityName);
+    const sanitizedCurrent = sanitizeActivityName(activityName);
     if (
       !isAddingActivity &&
       !sanitizedCurrent &&
@@ -211,13 +301,13 @@ export default function ActivityLog({ onBack }) {
   const totals = useMemo(() => {
     const map = new Map();
     entries.forEach((entry) => {
-      const sanitizedName = safeSanitizeName(entry?.name);
+      const sanitizedName = sanitizeActivityName(entry?.name);
       if (!sanitizedName || !entry?.durationMs) return;
       const prev = map.get(sanitizedName) || 0;
       map.set(sanitizedName, prev + entry.durationMs);
     });
     if (current?.name) {
-      const sanitizedName = safeSanitizeName(current.name);
+      const sanitizedName = sanitizeActivityName(current.name);
       const prev = map.get(sanitizedName) || 0;
       map.set(sanitizedName, prev + currentElapsed);
     }
@@ -233,8 +323,8 @@ export default function ActivityLog({ onBack }) {
   }, [entries]);
 
   const isRunning = Boolean(current?.activeSegmentStart);
-  const sanitizedSelectedName = safeSanitizeName(activityName);
-  const sanitizedCurrentName = safeSanitizeName(current?.name);
+  const sanitizedSelectedName = sanitizeActivityName(activityName);
+  const sanitizedCurrentName = sanitizeActivityName(current?.name);
   const isSameActivity =
     Boolean(sanitizedSelectedName) && sanitizedSelectedName === sanitizedCurrentName;
   const startDisabled = !sanitizedSelectedName || (isSameActivity && isRunning);
@@ -259,17 +349,17 @@ export default function ActivityLog({ onBack }) {
   const handleStart = () => {
     if (startDisabled) return;
     const now = new Date();
-    safeEnsureActivityBlogPost(sanitizedSelectedName);
+    ensureActivityBlogPost(trimmedName);
 
-    if (current && safeSanitizeName(current.name) !== sanitizedSelectedName) {
+    if (current && sanitizeActivityName(current.name) !== sanitizedSelectedName) {
       const finished = finalizeSession(current, now);
       if (finished) {
         persistEntries([...entries, finished]);
-        safeRecordActivitySession(finished);
+        recordSessionInBlog(finished);
       }
     }
 
-    if (current && safeSanitizeName(current.name) === sanitizedSelectedName) {
+    if (current && sanitizeActivityName(current.name) === sanitizedSelectedName) {
       if (current.activeSegmentStart) return;
       const resumed = {
         ...current,
@@ -317,7 +407,7 @@ export default function ActivityLog({ onBack }) {
     const finished = finalizeSession(current, new Date());
     if (finished) {
       persistEntries([...entries, finished]);
-      safeRecordActivitySession(finished);
+      recordSessionInBlog(finished);
     }
     persistCurrent(null);
   };
@@ -347,7 +437,7 @@ export default function ActivityLog({ onBack }) {
 
   const handleCreateActivity = (event) => {
     event.preventDefault();
-    const sanitizedName = safeSanitizeName(newActivityName);
+    const sanitizedName = sanitizeActivityName(newActivityName);
     if (!sanitizedName) {
       return;
     }
@@ -363,7 +453,7 @@ export default function ActivityLog({ onBack }) {
       return;
     }
 
-    safeEnsureActivityBlogPost(sanitizedName);
+    ensureActivityBlogPost(sanitizedName);
     refreshActivityOptions();
     setActivityName(sanitizedName);
     setIsAddingActivity(false);
