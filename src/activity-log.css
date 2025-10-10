@@ -98,6 +98,54 @@
   box-shadow: 0 0 0 2px rgba(118, 255, 176, 0.2);
 }
 
+.activity-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-select {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: inherit;
+  font-size: 1rem;
+  appearance: none;
+  cursor: pointer;
+}
+
+.activity-select:focus {
+  outline: none;
+  border-color: rgba(118, 255, 176, 0.6);
+  box-shadow: 0 0 0 2px rgba(118, 255, 176, 0.2);
+}
+
+.activity-picker-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-picker-new {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-picker-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.activity-picker-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .activity-suggestions {
   display: flex;
   flex-wrap: wrap;
