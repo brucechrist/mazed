@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ensureActivityBlogPost,
-  loadRegisteredActivityNames,
-  recordActivitySessionInBlog,
-  sanitizeActivityName,
+  loadActivityBlogIndex,
+  loadBlogPostsFromStorage,
+  persistActivityBlogIndex,
+  persistBlogPostsToStorage,
+  sanitizeBlogPostRecord,
 } from './ToolsBlog.jsx';
 import './placeholder-app.css';
 import './activity-log.css';
@@ -72,7 +73,151 @@ const finalizeSession = (session, endTime = new Date()) => {
   };
 };
 
-const DEFAULT_ACTIVITIES = ['Singing', 'Writing'];
+const sanitizeActivityName = (name) => {
+  if (typeof name !== 'string') {
+    return '';
+  }
+
+  return name.trim();
+};
+
+const loadSanitizedBlogPosts = () => {
+  const storedPosts = loadBlogPostsFromStorage();
+  if (!Array.isArray(storedPosts)) {
+    return [];
+  }
+
+  return storedPosts
+    .map((post) => sanitizeBlogPostRecord(post))
+    .filter(Boolean);
+};
+
+const generatePostId = (posts) => {
+  const usedIds = new Set(posts.map((post) => post.id));
+  let candidate = Date.now();
+
+  while (usedIds.has(candidate)) {
+    candidate += 1;
+  }
+
+  return candidate;
+};
+
+const sanitizeSessionForBlog = (session) => {
+  if (session == null || typeof session !== 'object') {
+    return null;
+  }
+
+  const durationMs = Number(session.durationMs);
+  const sanitizedDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+
+  const sanitizedSession = {
+    id: Number.isInteger(Number(session.id)) ? Number(session.id) : Date.now(),
+    startedAt: typeof session.startedAt === 'string' ? session.startedAt : null,
+    endedAt: typeof session.endedAt === 'string' ? session.endedAt : null,
+    durationMs: sanitizedDuration,
+  };
+
+  if (!sanitizedSession.startedAt && !sanitizedSession.endedAt && sanitizedSession.durationMs === 0) {
+    return null;
+  }
+
+  return sanitizedSession;
+};
+
+const withActivityBlogPost = (activityName, updater) => {
+  const trimmedName = sanitizeActivityName(activityName);
+  if (!trimmedName || typeof window === 'undefined') {
+    return null;
+  }
+
+  const posts = loadSanitizedBlogPosts();
+  const index = loadActivityBlogIndex();
+  const mappedId = Number(index[trimmedName]);
+  const hasMappedId = Number.isInteger(mappedId);
+  let postId = hasMappedId ? mappedId : null;
+  let postIndex = posts.findIndex((post) => post.id === postId);
+
+  if (postIndex === -1) {
+    postId = generatePostId(posts);
+    const newPost = sanitizeBlogPostRecord({
+      id: postId,
+      title: `${trimmedName} activity stream`,
+      status: 'Draft',
+      excerpt: `Automatically collecting moments linked to ${trimmedName}.`,
+      stream: 'training-layer',
+      mood: 'listening',
+      images: [],
+      link: '',
+      activityName: trimmedName,
+      activitySessions: [],
+    });
+
+    if (newPost) {
+      posts.unshift(newPost);
+      postIndex = 0;
+    }
+  }
+
+  if (postIndex === -1) {
+    return null;
+  }
+
+  index[trimmedName] = postId;
+  const post = posts[postIndex];
+  const updatedPost = updater ? updater(post) ?? post : post;
+  const sanitizedPost = sanitizeBlogPostRecord({
+    ...updatedPost,
+    id: postId,
+    activityName: updatedPost.activityName || trimmedName,
+  });
+
+  if (!sanitizedPost) {
+    return null;
+  }
+
+  posts[postIndex] = sanitizedPost;
+  persistBlogPostsToStorage(posts);
+  persistActivityBlogIndex(index);
+
+  return sanitizedPost;
+};
+
+const ensureActivityBlogPost = (activityName) =>
+  withActivityBlogPost(activityName, (post) => post);
+
+const recordSessionInBlog = (session) => {
+  const sanitizedSession = sanitizeSessionForBlog(session);
+  const activityName = sanitizeActivityName(session?.name);
+
+  if (!sanitizedSession || !activityName) {
+    return;
+  }
+
+  withActivityBlogPost(activityName, (post) => {
+    const existingSessions = Array.isArray(post.activitySessions)
+      ? post.activitySessions
+      : [];
+
+    const hasExistingSession = existingSessions.some(
+      (item) => Number(item?.id) === Number(sanitizedSession.id)
+    );
+
+    if (hasExistingSession) {
+      return {
+        ...post,
+        activitySessions: existingSessions.map((item) =>
+          Number(item?.id) === Number(sanitizedSession.id) ? sanitizedSession : item
+        ),
+      };
+    }
+
+    return {
+      ...post,
+      activitySessions: [...existingSessions, sanitizedSession],
+    };
+  });
+};
 
 export default function ActivityLog({ onBack }) {
   const [entries, setEntries] = useState(() =>
@@ -202,13 +347,13 @@ export default function ActivityLog({ onBack }) {
   const handleStart = () => {
     if (startDisabled) return;
     const now = new Date();
-    ensureActivityBlogPost(sanitizedSelectedName);
+    ensureActivityBlogPost(trimmedName);
 
     if (current && sanitizeActivityName(current.name) !== sanitizedSelectedName) {
       const finished = finalizeSession(current, now);
       if (finished) {
         persistEntries([...entries, finished]);
-        recordActivitySessionInBlog(finished);
+        recordSessionInBlog(finished);
       }
     }
 
@@ -260,7 +405,7 @@ export default function ActivityLog({ onBack }) {
     const finished = finalizeSession(current, new Date());
     if (finished) {
       persistEntries([...entries, finished]);
-      recordActivitySessionInBlog(finished);
+      recordSessionInBlog(finished);
     }
     persistCurrent(null);
   };
