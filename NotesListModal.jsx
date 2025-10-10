@@ -79,7 +79,7 @@ const computeModalDimensions = (viewport) => {
   };
 };
 
-const QUADRANT_TAGS = ['II', 'IE', 'EI', 'EE'];
+const QUADRANT_TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
 const TAG_OPTIONS = ['ALL', ...QUADRANT_TAGS];
 const TAG_COLORS = {
   ALL: '#38bdf8',
@@ -87,6 +87,9 @@ const TAG_COLORS = {
   IE: '#38bdf8',
   EI: '#34d399',
   EE: '#c084fc',
+  form: '#fb923c',
+  'semi-formless': '#f472b6',
+  formless: '#60a5fa',
 };
 
 const getLocalStorage = () => {

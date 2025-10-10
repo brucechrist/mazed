@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import './note-modal.css';
 
-const TAGS = ['II', 'IE', 'EI', 'EE'];
+const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
 const TAG_COLORS = {
   II: '#f59e0b',
   IE: '#38bdf8',
   EI: '#34d399',
   EE: '#c084fc',
+  form: '#fb923c',
+  'semi-formless': '#f472b6',
+  formless: '#60a5fa',
 };
 
 const loadStoredNotes = () => {
