@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './note-modal.css';
 
 const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
@@ -38,6 +38,24 @@ export default function NoteModal({ onClose }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tag, setTag] = useState(TAGS[0]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__noteEditorOpenCount = (window.__noteEditorOpenCount || 0) + 1;
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.__noteEditorOpenCount = Math.max(
+          0,
+          (window.__noteEditorOpenCount || 1) - 1,
+        );
+        if ((window.__noteEditorOpenCount || 0) <= 0) {
+          delete window.__noteEditorOpenCount;
+        }
+      }
+    };
+  }, []);
 
   const handleSave = () => {
     const trimmedTitle = title.trim();
