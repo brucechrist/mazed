@@ -226,7 +226,7 @@ const sanitizePostRecord = (post) => {
     return null;
   }
 
-  return {
+  const sanitized = {
     id: parsedId,
     title: typeof post.title === 'string' ? post.title : '',
     status: typeof post.status === 'string' ? post.status : STATUSES[0],
@@ -243,6 +243,13 @@ const sanitizePostRecord = (post) => {
       ? post.activitySessions.map((session) => sanitizeActivitySession(session)).filter(Boolean)
       : [],
   };
+
+  const preserved = { ...post };
+  Object.keys(sanitized).forEach((key) => {
+    preserved[key] = sanitized[key];
+  });
+
+  return preserved;
 };
 
 const loadSanitizedBlogPosts = () => {
@@ -430,6 +437,36 @@ export const persistActivityBlogIndex = (index) => {
   } catch (error) {
     // Ignore persistence errors to keep the UI responsive even when storage is unavailable.
   }
+};
+
+export const loadRegisteredActivityNames = () => {
+  const posts = loadSanitizedBlogPosts();
+  const index = loadActivityBlogIndex();
+  const names = new Map();
+
+  const register = (name) => {
+    const sanitized = sanitizeActivityName(name);
+    if (!sanitized) {
+      return;
+    }
+
+    const key = sanitized.toLowerCase();
+    if (!names.has(key)) {
+      names.set(key, sanitized);
+    }
+  };
+
+  posts.forEach((post) => {
+    register(post?.activityName ?? post?.title);
+  });
+
+  Object.keys(index || {}).forEach((activityName) => {
+    register(activityName);
+  });
+
+  return Array.from(names.values()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
 };
 
 export default function ToolsBlog({ onBack }) {
