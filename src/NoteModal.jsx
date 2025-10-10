@@ -61,6 +61,16 @@ export default function NoteModal({ onClose }) {
     onClose();
   };
 
+  const handleEditorKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      const tagName = event.target?.tagName?.toLowerCase();
+      if (tagName === 'textarea' || tagName === 'input') {
+        event.preventDefault();
+        handleSave();
+      }
+    }
+  };
+
   const handleOverlayClick = (event) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -72,6 +82,7 @@ export default function NoteModal({ onClose }) {
       <div
         className="modal notes-modal note-editor-modal"
         onClick={(event) => event.stopPropagation()}
+        onKeyDown={handleEditorKeyDown}
       >
         <header className="note-editor__header">
           <div>
