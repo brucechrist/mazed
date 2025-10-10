@@ -62,12 +62,9 @@ export default function NoteModal({ onClose }) {
   };
 
   const handleEditorKeyDown = (event) => {
-    const tagName = event.target?.tagName?.toLowerCase();
-    if (tagName === 'textarea' || tagName === 'input') {
-      event.stopPropagation();
-      event.nativeEvent?.stopImmediatePropagation?.();
-
-      if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      const tagName = event.target?.tagName?.toLowerCase();
+      if (tagName === 'textarea' || tagName === 'input') {
         event.preventDefault();
         handleSave();
       }
