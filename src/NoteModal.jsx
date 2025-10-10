@@ -66,7 +66,6 @@ export default function NoteModal({ onClose }) {
       const tagName = event.target?.tagName?.toLowerCase();
       if (tagName === 'textarea' || tagName === 'input') {
         event.preventDefault();
-        event.stopPropagation();
         handleSave();
       }
     }
