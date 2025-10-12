@@ -402,8 +402,8 @@ export default function Library({ onBack }) {
   const [libraryView, setLibraryView] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedView = localStorage.getItem('libraryView');
-      if (storedView === 'tri') {
-        return 'tri';
+      if (storedView === 'tri' || storedView === 'quadrants') {
+        return storedView;
       }
     }
     return 'classic';
@@ -1707,6 +1707,46 @@ export default function Library({ onBack }) {
     return { categories, drawer };
   }, [images]);
 
+  const quadrantAssignments = useMemo(() => {
+    const groups = QUADRANT_ORDER.reduce((acc, primary) => {
+      acc[primary] = {
+        core: [],
+        subs: QUADRANT_ORDER.reduce((subAcc, secondary) => {
+          subAcc[secondary] = [];
+          return subAcc;
+        }, {}),
+      };
+      return acc;
+    }, {});
+
+    const unassigned = [];
+
+    filteredImages.forEach((img) => {
+      const quadrants = Array.isArray(img.quadrants) ? img.quadrants : [];
+      const [primary, secondary] = quadrants;
+      const normalizedPrimary = QUADRANT_ORDER.includes(primary)
+        ? primary
+        : null;
+      const normalizedSecondary = QUADRANT_ORDER.includes(secondary)
+        ? secondary
+        : null;
+
+      if (!normalizedPrimary) {
+        unassigned.push(img);
+        return;
+      }
+
+      const target = groups[normalizedPrimary];
+      if (normalizedSecondary && normalizedSecondary !== normalizedPrimary) {
+        target.subs[normalizedSecondary].push(img);
+      } else {
+        target.core.push(img);
+      }
+    });
+
+    return { groups, unassigned };
+  }, [filteredImages]);
+
   const isFileTransfer = (dataTransfer) => {
     if (!dataTransfer) return false;
     if (dataTransfer.files && dataTransfer.files.length > 0) {
@@ -1961,6 +2001,110 @@ export default function Library({ onBack }) {
     );
   };
 
+  const renderQuadrantView = () => {
+    const gridStyle = {
+      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+      gridAutoRows: `${rowHeight}px`,
+      gap: `${gridGap}px`,
+    };
+
+    const hasContent =
+      QUADRANT_ORDER.some((primary) => {
+        const group = quadrantAssignments.groups[primary];
+        if (!group) return false;
+        const secondaryCount = QUADRANT_ORDER.reduce(
+          (sum, secondary) => sum + group.subs[secondary].length,
+          0
+        );
+        return group.core.length > 0 || secondaryCount > 0;
+      }) || quadrantAssignments.unassigned.length > 0;
+
+    if (!hasContent) {
+      return (
+        <div className="quadrant-view-empty">
+          <p>
+            Assign quadrants to your library images from the lightbox to see
+            them organized here.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="quadrant-view">
+        {QUADRANT_ORDER.map((primary) => {
+          const group = quadrantAssignments.groups[primary];
+          const total = group
+            ? group.core.length +
+              QUADRANT_ORDER.reduce(
+                (sum, secondary) => sum + group.subs[secondary].length,
+                0
+              )
+            : 0;
+          return (
+            <section key={primary} className="quadrant-column">
+              <header className="quadrant-column-header">
+                <h3>{`Quadrant ${primary}`}</h3>
+                <span className="quadrant-count">{total}</span>
+              </header>
+              <div className="quadrant-column-body">
+                {group && total > 0 ? (
+                  <>
+                    {group.core.length > 0 && (
+                      <div className="quadrant-group">
+                        <h4 className="quadrant-group-label">Core</h4>
+                        <div style={{ width: '100%', overflow: 'hidden' }}>
+                          <div className="image-grid" style={gridStyle}>
+                            {group.core.map((img) => renderImageCard(img))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {QUADRANT_ORDER.map((secondary) => {
+                      const items = group.subs[secondary];
+                      if (!items.length) return null;
+                      return (
+                        <div key={secondary} className="quadrant-group">
+                          <h4 className="quadrant-group-label">{`${primary} → ${secondary}`}</h4>
+                          <div style={{ width: '100%', overflow: 'hidden' }}>
+                            <div className="image-grid" style={gridStyle}>
+                              {items.map((img) => renderImageCard(img))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <div className="quadrant-group-empty">
+                    No images assigned to this quadrant yet.
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
+        {quadrantAssignments.unassigned.length > 0 && (
+          <section className="quadrant-column">
+            <header className="quadrant-column-header">
+              <h3>Unassigned</h3>
+              <span className="quadrant-count">{quadrantAssignments.unassigned.length}</span>
+            </header>
+            <div className="quadrant-column-body">
+              <div style={{ width: '100%', overflow: 'hidden' }}>
+                <div className="image-grid" style={gridStyle}>
+                  {quadrantAssignments.unassigned.map((img) =>
+                    renderImageCard(img)
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  };
+
   const lightboxOrientation = getOrientationTag(lightbox?.tags);
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
@@ -2052,6 +2196,24 @@ export default function Library({ onBack }) {
                   >
                     <span>Tri</span>
                     {libraryView === 'tri' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'quadrants' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('quadrants');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Quadrants</span>
+                    {libraryView === 'quadrants' && (
                       <span
                         className="library-view-check"
                         aria-hidden="true"
@@ -2278,6 +2440,8 @@ export default function Library({ onBack }) {
         {(activeTab === 'all' || activeTab === 'images') &&
           (libraryView === 'tri'
             ? renderTriView()
+            : libraryView === 'quadrants'
+            ? renderQuadrantView()
             : sortMode === 'color'
             ? (
               <div className="color-groups">
