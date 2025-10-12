@@ -321,6 +321,7 @@ export default function Library({ onBack }) {
   const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'random'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [libraryTheme, setLibraryTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedTheme = localStorage.getItem('libraryTheme');
@@ -335,6 +336,15 @@ export default function Library({ onBack }) {
       }
     }
     return 'dark';
+  });
+  const [libraryView, setLibraryView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedView = localStorage.getItem('libraryView');
+      if (storedView === 'tri') {
+        return 'tri';
+      }
+    }
+    return 'classic';
   });
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
@@ -903,6 +913,11 @@ export default function Library({ onBack }) {
       localStorage.setItem('libraryTheme', libraryTheme);
     }
   }, [libraryTheme]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('libraryView', libraryView);
+    }
+  }, [libraryView]);
   const maxZoom = 1; // max 100% of native size
   const colWidth = 250 * zoom;
   const rowHeight = 1; // finer base row height for masonry grid
@@ -1020,6 +1035,7 @@ export default function Library({ onBack }) {
       setSoundMenu(null);
       setSortMenuOpen(false);
       setSettingsOpen(false);
+      setViewMenuOpen(false);
     };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
@@ -1622,7 +1638,7 @@ export default function Library({ onBack }) {
     <div
       className={`library-container ${
         isDragging ? 'dragging' : ''
-      } ${libraryTheme === 'light' ? 'light-mode' : 'dark-mode'}`}
+      } ${libraryTheme === 'light' ? 'light-mode' : 'dark-mode'} library-view-${libraryView}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -1637,6 +1653,67 @@ export default function Library({ onBack }) {
           </button>
           <h2>Library</h2>
           <div className="library-actions">
+            <div className="library-view-selector">
+              <button
+                type="button"
+                className={`library-view-button${
+                  viewMenuOpen ? ' open' : ''
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewMenuOpen((open) => !open);
+                  setSettingsOpen(false);
+                  setSortMenuOpen(false);
+                }}
+                aria-haspopup="true"
+                aria-expanded={viewMenuOpen}
+              >
+                View
+              </button>
+              {viewMenuOpen && (
+                <div
+                  className="library-view-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className={libraryView === 'classic' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('classic');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Classic</span>
+                    {libraryView === 'classic' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'tri' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('tri');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Tri</span>
+                    {libraryView === 'tri' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="library-settings">
               <button
                 type="button"
