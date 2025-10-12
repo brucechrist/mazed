@@ -39,26 +39,6 @@ const SOUND_PRESET_TAGS = [
   ...QUALITY_TAGS,
 ];
 
-const LIBRARY_VIEWS = [
-  { id: 'classic', label: 'Classic' },
-  { id: 'tri', label: 'Tri' },
-  { id: 'quadrant', label: 'Quadrants' },
-];
-
-const LIBRARY_VIEW_IDS = LIBRARY_VIEWS.map((view) => view.id);
-
-const LIBRARY_VIEW_ALIASES = {
-  quadrants: 'quadrant',
-};
-
-const normalizeLibraryViewId = (value) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const normalized = LIBRARY_VIEW_ALIASES[value] ?? value;
-  return LIBRARY_VIEW_IDS.includes(normalized) ? normalized : null;
-};
-
 const TRI_VIEW_CATEGORIES = [
   { id: 'form', label: 'Form' },
   { id: 'semi-formless', label: 'Semi-Formless' },
@@ -71,31 +51,6 @@ const normalizeTriCategory = (value) =>
   TRI_CATEGORY_IDS.includes(value) ? value : null;
 
 const normalizeTriOrder = (value) =>
-  typeof value === 'number' && Number.isFinite(value) ? value : null;
-
-const QUADRANT_VIEW_QUADRANTS = [
-  { id: 'ie', label: 'IE', title: 'Light • Feminine' },
-  { id: 'ee', label: 'EE', title: 'Light • Masculine' },
-  { id: 'ii', label: 'II', title: 'Dark • Feminine' },
-  { id: 'ei', label: 'EI', title: 'Dark • Masculine' },
-];
-
-const QUADRANT_IDS = QUADRANT_VIEW_QUADRANTS.map((quadrant) => quadrant.id);
-
-const QUADRANT_LAYOUT = [
-  ['ie', 'ee'],
-  ['ii', 'ei'],
-];
-
-const QUADRANT_CONFIG = QUADRANT_VIEW_QUADRANTS.reduce((acc, quadrant) => {
-  acc[quadrant.id] = quadrant;
-  return acc;
-}, {});
-
-const normalizeQuadrantCategory = (value) =>
-  QUADRANT_IDS.includes(value) ? value : null;
-
-const normalizeQuadrantOrder = (value) =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
 const buildTriIdLists = (items) => {
@@ -143,53 +98,6 @@ const buildTriIdLists = (items) => {
       .sort(
         (a, b) => (indexMap.get(a) ?? 0) - (indexMap.get(b) ?? 0)
       ),
-  };
-};
-
-const buildQuadrantIdLists = (items) => {
-  const indexMap = new Map(items.map((item, idx) => [item.id, idx]));
-  const buckets = QUADRANT_IDS.reduce(
-    (acc, id) => ({ ...acc, [id]: [] }),
-    { drawer: [] }
-  );
-
-  items.forEach((img) => {
-    const quadrant = normalizeQuadrantCategory(img.quadrantCategory);
-    if (quadrant) {
-      buckets[quadrant].push({
-        id: img.id,
-        order: normalizeQuadrantOrder(img.quadrantOrder),
-      });
-    } else {
-      buckets.drawer.push(img.id);
-    }
-  });
-
-  const sortCategory = (entries) =>
-    entries
-      .slice()
-      .sort((a, b) => {
-        const orderA =
-          typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
-        const orderB =
-          typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
-        if (orderA !== orderB) {
-          return orderA - orderB;
-        }
-        return (indexMap.get(a.id) ?? 0) - (indexMap.get(b.id) ?? 0);
-      })
-      .map((entry) => entry.id);
-
-  const categories = QUADRANT_IDS.reduce((acc, id) => {
-    acc[id] = sortCategory(buckets[id] || []);
-    return acc;
-  }, {});
-
-  return {
-    categories,
-    drawer: buckets.drawer
-      .slice()
-      .sort((a, b) => (indexMap.get(a) ?? 0) - (indexMap.get(b) ?? 0)),
   };
 };
 
@@ -494,9 +402,8 @@ export default function Library({ onBack }) {
   const [libraryView, setLibraryView] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedView = localStorage.getItem('libraryView');
-      const normalized = normalizeLibraryViewId(storedView);
-      if (normalized) {
-        return normalized;
+      if (storedView === 'tri') {
+        return 'tri';
       }
     }
     return 'classic';
@@ -505,8 +412,6 @@ export default function Library({ onBack }) {
   const [draggedId, setDraggedId] = useState(null);
   const [triDraggingId, setTriDraggingId] = useState(null);
   const [triActiveZone, setTriActiveZone] = useState(null);
-  const [quadrantDraggingId, setQuadrantDraggingId] = useState(null);
-  const [quadrantActiveZone, setQuadrantActiveZone] = useState(null);
 
   const saveSequenceRef = useRef(0);
   const lastSavedImagesRef = useRef(new Map());
@@ -681,15 +586,9 @@ export default function Library({ onBack }) {
         const normalizedTags = normalizeImageTags(base.tags);
         const triCategory = normalizeTriCategory(base.triCategory);
         const triOrder = normalizeTriOrder(base.triOrder);
-        const quadrantCategory = normalizeQuadrantCategory(
-          base.quadrantCategory
-        );
-        const quadrantOrder = normalizeQuadrantOrder(base.quadrantOrder);
         base.tags = normalizedTags;
         base.triCategory = triCategory;
         base.triOrder = triOrder;
-        base.quadrantCategory = quadrantCategory;
-        base.quadrantOrder = quadrantOrder;
 
         const dataUrl =
           typeof base.dataUrl === 'string' && base.dataUrl.length
@@ -925,16 +824,12 @@ export default function Library({ onBack }) {
       const mimeType = img.mimeType || extractMimeType(img.dataUrl) || null;
       const triCategory = normalizeTriCategory(img.triCategory);
       const triOrder = normalizeTriOrder(img.triOrder);
-      const quadrantCategory = normalizeQuadrantCategory(img.quadrantCategory);
-      const quadrantOrder = normalizeQuadrantOrder(img.quadrantOrder);
       return {
         ...img,
         tags: normalizedTags,
         mimeType,
         triCategory,
         triOrder,
-        quadrantCategory,
-        quadrantOrder,
       };
     });
     setImages(normalized);
@@ -1093,16 +988,6 @@ export default function Library({ onBack }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('libraryView', libraryView);
-    }
-  }, [libraryView]);
-  useEffect(() => {
-    if (libraryView !== 'tri') {
-      setTriActiveZone(null);
-      setTriDraggingId(null);
-    }
-    if (libraryView !== 'quadrant') {
-      setQuadrantActiveZone(null);
-      setQuadrantDraggingId(null);
     }
   }, [libraryView]);
   const maxZoom = 1; // max 100% of native size
@@ -1822,29 +1707,6 @@ export default function Library({ onBack }) {
     return { categories, drawer };
   }, [images]);
 
-  const quadrantAssignments = useMemo(() => {
-    const empty = QUADRANT_IDS.reduce(
-      (acc, id) => ({ ...acc, [id]: [] }),
-      {}
-    );
-    if (!images.length) {
-      return { categories: empty, drawer: [] };
-    }
-    const lists = buildQuadrantIdLists(images);
-    const imageMap = new Map(images.map((img) => [img.id, img]));
-    const categories = { ...empty };
-    QUADRANT_IDS.forEach((id) => {
-      const ids = lists.categories[id] || [];
-      categories[id] = ids
-        .map((imageId) => imageMap.get(imageId))
-        .filter(Boolean);
-    });
-    const drawer = (lists.drawer || [])
-      .map((imageId) => imageMap.get(imageId))
-      .filter(Boolean);
-    return { categories, drawer };
-  }, [images]);
-
   const isFileTransfer = (dataTransfer) => {
     if (!dataTransfer) return false;
     if (dataTransfer.files && dataTransfer.files.length > 0) {
@@ -1926,75 +1788,6 @@ export default function Library({ onBack }) {
     saveImages(updated);
   };
 
-  const updateQuadrantPlacement = (imageId, targetQuadrant, targetIndex) => {
-    const lists = buildQuadrantIdLists(images);
-    const categories = QUADRANT_IDS.reduce((acc, id) => {
-      acc[id] = [...(lists.categories[id] || [])];
-      return acc;
-    }, {});
-    const drawer = [...(lists.drawer || [])];
-
-    const removeFromList = (list) => {
-      const idx = list.indexOf(imageId);
-      if (idx !== -1) {
-        list.splice(idx, 1);
-      }
-    };
-
-    Object.values(categories).forEach(removeFromList);
-    removeFromList(drawer);
-
-    const insertInto = (list) => {
-      if (!Array.isArray(list)) return;
-      const safeIndex =
-        typeof targetIndex === 'number'
-          ? Math.max(0, Math.min(targetIndex, list.length))
-          : list.length;
-      list.splice(safeIndex, 0, imageId);
-    };
-
-    if (targetQuadrant && categories[targetQuadrant]) {
-      insertInto(categories[targetQuadrant]);
-    } else {
-      insertInto(drawer);
-    }
-
-    const placement = new Map();
-    QUADRANT_IDS.forEach((id) => {
-      const list = categories[id] || [];
-      list.forEach((entryId, idx) => {
-        placement.set(entryId, {
-          category: id,
-          order: idx,
-        });
-      });
-    });
-    drawer.forEach((entryId) => {
-      placement.set(entryId, { category: null, order: null });
-    });
-
-    const updated = images.map((img) => {
-      const nextPlacement = placement.get(img.id);
-      if (!nextPlacement) {
-        return img;
-      }
-      const nextCategory = nextPlacement.category;
-      const nextOrder = normalizeQuadrantOrder(nextPlacement.order);
-      const currentCategory = normalizeQuadrantCategory(img.quadrantCategory);
-      const currentOrder = normalizeQuadrantOrder(img.quadrantOrder);
-      if (currentCategory !== nextCategory || currentOrder !== nextOrder) {
-        return {
-          ...img,
-          quadrantCategory: nextCategory,
-          quadrantOrder: nextOrder,
-        };
-      }
-      return img;
-    });
-
-    saveImages(updated);
-  };
-
   const findImageIdFromDragData = (raw) => {
     if (typeof raw !== 'string' || !raw) return null;
     const match = images.find((img) => String(img.id) === raw);
@@ -2036,43 +1829,6 @@ export default function Library({ onBack }) {
     updateTriPlacement(resolvedId, categoryId, index);
     setTriActiveZone(null);
     setTriDraggingId(null);
-  };
-
-  const handleQuadrantDragOverZone = (event, zoneId) => {
-    if (isFileTransfer(event.dataTransfer)) {
-      handleDragOver(event);
-      return;
-    }
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-    setQuadrantActiveZone((prev) => (prev === zoneId ? prev : zoneId));
-  };
-
-  const handleQuadrantDrop = (event, quadrantId, index) => {
-    if (isFileTransfer(event.dataTransfer)) {
-      handleDrop(event);
-      setQuadrantActiveZone(null);
-      setQuadrantDraggingId(null);
-      return;
-    }
-    event.preventDefault();
-    const raw =
-      event.dataTransfer?.getData('application/x-library-quadrant-image') ||
-      event.dataTransfer?.getData('text/plain');
-    let resolvedId = findImageIdFromDragData(raw);
-    if (resolvedId === null || typeof resolvedId === 'undefined') {
-      resolvedId = quadrantDraggingId ?? null;
-    }
-    if (resolvedId === null || typeof resolvedId === 'undefined') {
-      setQuadrantActiveZone(null);
-      setQuadrantDraggingId(null);
-      return;
-    }
-    updateQuadrantPlacement(resolvedId, quadrantId, index);
-    setQuadrantActiveZone(null);
-    setQuadrantDraggingId(null);
   };
 
   const renderTriTile = (img, categoryId = null, index = null) => {
@@ -2141,72 +1897,6 @@ export default function Library({ onBack }) {
     );
   };
 
-  const renderQuadrantTile = (img, quadrantId = null, index = null) => {
-    const isLoaded = Boolean(img.dataUrl);
-    const zoneId = quadrantId || 'drawer';
-    const title = img.title || 'Untitled';
-    return (
-      <div
-        key={img.id}
-        className={`quadrant-image-tile${
-          quadrantDraggingId === img.id ? ' dragging' : ''
-        }`}
-        draggable
-        onDragStart={(e) => {
-          setQuadrantDraggingId(img.id);
-          if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData(
-              'application/x-library-quadrant-image',
-              String(img.id)
-            );
-          }
-        }}
-        onDragEnd={() => {
-          setQuadrantDraggingId(null);
-          setQuadrantActiveZone(null);
-        }}
-        onDrop={(e) => {
-          e.stopPropagation();
-          handleQuadrantDrop(e, quadrantId, index);
-        }}
-        onDragOver={(e) => {
-          handleQuadrantDragOverZone(e, zoneId);
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-        }}
-        onClick={isLoaded ? () => setLightbox(img) : undefined}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if ((e.key === 'Enter' || e.key === ' ') && isLoaded) {
-            e.preventDefault();
-            setLightbox(img);
-          }
-        }}
-        aria-label={`View ${title}`}
-        title={title}
-      >
-        {isLoaded ? (
-          <img src={img.dataUrl} alt={title} draggable={false} />
-        ) : (
-          <div className="quadrant-image-placeholder" role="status">
-            <div className="image-loading-spinner" aria-hidden="true" />
-            <span className="image-loading-text">Loading…</span>
-          </div>
-        )}
-        <div className="quadrant-image-label">
-          {img.color && (
-            <span className="color-dot" style={{ background: img.color }} />
-          )}
-          <span className="quadrant-image-title">{title}</span>
-        </div>
-      </div>
-    );
-  };
-
   const renderTriView = () => {
     const drawerImages = triAssignments.drawer;
     const message = images.length
@@ -2263,85 +1953,6 @@ export default function Library({ onBack }) {
             ) : (
               <div className="tri-drawer-empty">
                 Images you add appear here until you place them in a category.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderQuadrantView = () => {
-    const drawerImages = quadrantAssignments.drawer;
-    const message = images.length
-      ? 'Drag images into the quadrant that fits their vibe. Anything unplaced stays in the drawer below.'
-      : 'Upload images to start arranging them across the light/dark and feminine/masculine spectrum.';
-    return (
-      <div className="quadrant-view">
-        <p className="quadrant-instructions">{message}</p>
-        <div className="quadrant-board">
-          <div className="quadrant-axis quadrant-axis-top">Light</div>
-          <div className="quadrant-axis quadrant-axis-bottom">Dark</div>
-          <div className="quadrant-axis quadrant-axis-left">Feminine</div>
-          <div className="quadrant-axis quadrant-axis-right">Masculine</div>
-          <div className="quadrant-grid-wrapper">
-            {QUADRANT_LAYOUT.map((row, rowIndex) => (
-              <div key={rowIndex} className="quadrant-row">
-                {row.map((quadrantId) => {
-                  const config = QUADRANT_CONFIG[quadrantId];
-                  const items = quadrantAssignments.categories[quadrantId] || [];
-                  const isActive = quadrantActiveZone === quadrantId;
-                  return (
-                    <div
-                      key={quadrantId}
-                      className={`quadrant-cell${isActive ? ' active-drop' : ''}`}
-                      onDragOver={(e) => handleQuadrantDragOverZone(e, quadrantId)}
-                      onDrop={(e) => handleQuadrantDrop(e, quadrantId)}
-                    >
-                      <div className="quadrant-cell-header">
-                        <span className="quadrant-cell-label">
-                          {config?.label || quadrantId.toUpperCase()}
-                        </span>
-                        {config?.title && (
-                          <span className="quadrant-cell-title">{config.title}</span>
-                        )}
-                        <span className="quadrant-cell-count">{items.length}</span>
-                      </div>
-                      <div className="quadrant-cell-body">
-                        {items.length ? (
-                          items.map((img, index) =>
-                            renderQuadrantTile(img, quadrantId, index)
-                          )
-                        ) : (
-                          <div className="quadrant-cell-empty">Drop images here</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="quadrant-drawer">
-          <div className="quadrant-drawer-header">
-            <span>Image Drawer</span>
-            <span className="quadrant-drawer-count">{drawerImages.length}</span>
-          </div>
-          <div
-            className={`quadrant-drawer-body${
-              quadrantActiveZone === 'drawer' ? ' active-drop' : ''
-            }`}
-            onDragOver={(e) => handleQuadrantDragOverZone(e, 'drawer')}
-            onDrop={(e) => handleQuadrantDrop(e, null)}
-          >
-            {drawerImages.length ? (
-              drawerImages.map((img, index) =>
-                renderQuadrantTile(img, null, index)
-              )
-            ) : (
-              <div className="quadrant-drawer-empty">
-                Images you haven't placed yet will wait for you here.
               </div>
             )}
           </div>
@@ -2413,27 +2024,42 @@ export default function Library({ onBack }) {
                   className="library-view-menu"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {LIBRARY_VIEWS.map(({ id, label }) => (
-                    <button
-                      type="button"
-                      key={id}
-                      className={libraryView === id ? 'active' : ''}
-                      onClick={() => {
-                        setLibraryView(id);
-                        setViewMenuOpen(false);
-                      }}
-                    >
-                      <span>{label}</span>
-                      {libraryView === id && (
-                        <span
-                          className="library-view-check"
-                          aria-hidden="true"
-                        >
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    className={libraryView === 'classic' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('classic');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Classic</span>
+                    {libraryView === 'classic' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'tri' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('tri');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Tri</span>
+                    {libraryView === 'tri' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
                 </div>
               )}
             </div>
@@ -2652,8 +2278,6 @@ export default function Library({ onBack }) {
         {(activeTab === 'all' || activeTab === 'images') &&
           (libraryView === 'tri'
             ? renderTriView()
-            : libraryView === 'quadrant'
-            ? renderQuadrantView()
             : sortMode === 'color'
             ? (
               <div className="color-groups">
@@ -2819,16 +2443,8 @@ export default function Library({ onBack }) {
             </ul>
           </div>
         )}
-        {(libraryView === 'tri' || libraryView === 'quadrant') &&
-          activeTab === 'all' &&
-          sounds.length > 0 && (
-            <div
-              className={`sound-section ${
-                libraryView === 'tri'
-                  ? 'tri-sound-section'
-                  : 'quadrant-sound-section'
-              }`}
-            >
+        {libraryView === 'tri' && activeTab === 'all' && sounds.length > 0 && (
+          <div className="sound-section tri-sound-section">
             <div style={{ width: '100%', overflow: 'hidden' }}>
               <div
                 className="image-grid"
@@ -2841,8 +2457,8 @@ export default function Library({ onBack }) {
                 {sounds.map((s) => renderSoundCard(s))}
               </div>
             </div>
-            </div>
-          )}
+          </div>
+        )}
         {activeTab === 'sounds' && (
           <div className="sound-section">
             <div style={{ width: '100%', overflow: 'hidden' }}>
