@@ -2432,6 +2432,7 @@ function TasteT() {
     mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
   const isPlaying = mode === "swiss" || mode === "placement";
   const canUndo = undoStack.length > 0;
+  const swissHistoryPreview = useMemo(() => swissHistory.slice(0, 3), [swissHistory]);
 
   const getPreviewFor = useCallback(
     (id) => {
@@ -3141,77 +3142,79 @@ function TasteT() {
           </div>
         ) : (
           <div className="taste-t-lobby">
-            <section className="taste-t-hero">
-              <div className="taste-t-hero-top">
-                <div>
-                  <h1>TierT</h1>
-                  <p>
-                    {hasImages
-                      ? "Queue a Swiss mini to keep refining your favourites."
-                      : "Add images in your Library to start ranking them."}
-                  </p>
+            <div className="taste-t-lobby-primary">
+              <section className="taste-t-hero">
+                <div className="taste-t-hero-top">
+                  <div>
+                    <h1>TierT</h1>
+                    <p>
+                      {hasImages
+                        ? "Queue a Swiss mini to keep refining your favourites."
+                        : "Add images in your Library to start ranking them."}
+                    </p>
+                  </div>
+                  <div className="taste-t-hero-actions">
+                    <label className="mini-size-control">
+                      <span>Mini size</span>
+                      <select value={miniSize} onChange={(event) => setMiniSize(Number(event.target.value))}>
+                        {MINI_SIZE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="taste-t-play-button"
+                      onClick={handleStartSwiss}
+                      disabled={!canStartSwiss || mode !== "lobby"}
+                    >
+                      Play
+                    </button>
+                    <button type="button" className="ghost" onClick={refreshLibrary}>
+                      Refresh Library
+                    </button>
+                  </div>
                 </div>
-                <div className="taste-t-hero-actions">
-                  <label className="mini-size-control">
-                    <span>Mini size</span>
-                    <select value={miniSize} onChange={(event) => setMiniSize(Number(event.target.value))}>
-                      {MINI_SIZE_OPTIONS.map((size) => (
-                        <option key={size} value={size}>
-                          {size}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    type="button"
-                    className="taste-t-play-button"
-                    onClick={handleStartSwiss}
-                    disabled={!canStartSwiss || mode !== "lobby"}
-                  >
-                    Play
-                  </button>
-                  <button type="button" className="ghost" onClick={refreshLibrary}>
-                    Refresh Library
-                  </button>
+                <div className="taste-t-hero-stats">
+                  <div className="taste-t-stat-card">
+                    <span className="stat-label">Library images</span>
+                    <strong>{images.length}</strong>
+                    <p>{hasImages ? "Ready to rank" : "Visit the Library to add images."}</p>
+                  </div>
+                  <div className="taste-t-stat-card">
+                    <span className="stat-label">Placements</span>
+                    <strong>{pendingPlacementRounds}</strong>
+                    <p>{placementQueue ? "Duels to settle your newest image." : "All images are placed."}</p>
+                  </div>
+                  <div className="taste-t-stat-card">
+                    <span className="stat-label">Recent duels</span>
+                    <strong>{duelLog.length}</strong>
+                    <p>{duelLog.length ? "Tracked below in your duel log." : "Play a mini to build history."}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="taste-t-hero-stats">
-                <div className="taste-t-stat-card">
-                  <span className="stat-label">Library images</span>
-                  <strong>{images.length}</strong>
-                  <p>{hasImages ? "Ready to rank" : "Visit the Library to add images."}</p>
-                </div>
-                <div className="taste-t-stat-card">
-                  <span className="stat-label">Placements</span>
-                  <strong>{pendingPlacementRounds}</strong>
-                  <p>{placementQueue ? "Duels to settle your newest image." : "All images are placed."}</p>
-                </div>
-                <div className="taste-t-stat-card">
-                  <span className="stat-label">Recent duels</span>
-                  <strong>{duelLog.length}</strong>
-                  <p>{duelLog.length ? "Tracked below in your duel log." : "Play a mini to build history."}</p>
-                </div>
-              </div>
-              {!canStartSwiss ? (
-                <p className="taste-t-hero-note">Add at least two images to start a Swiss mini.</p>
-              ) : null}
-            </section>
-
-            {showPlacementCallout ? (
-              <section className="taste-t-panel taste-t-placement-callout">
-                <div>
-                  <h2>Placement ready</h2>
-                  <p>
-                    {placementImage ? placementImage.name : "New image"} has {pendingPlacementRounds} duels remaining.
-                  </p>
-                </div>
-                <div className="panel-actions">
-                  <button type="button" onClick={handleEnterPlacement}>
-                    Start placement
-                  </button>
-                </div>
+                {!canStartSwiss ? (
+                  <p className="taste-t-hero-note">Add at least two images to start a Swiss mini.</p>
+                ) : null}
               </section>
-            ) : null}
+
+              {showPlacementCallout ? (
+                <section className="taste-t-panel taste-t-placement-callout">
+                  <div>
+                    <h2>Placement ready</h2>
+                    <p>
+                      {placementImage ? placementImage.name : "New image"} has {pendingPlacementRounds} duels remaining.
+                    </p>
+                  </div>
+                  <div className="panel-actions">
+                    <button type="button" onClick={handleEnterPlacement}>
+                      Start placement
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+            </div>
 
             <div className="taste-t-lobby-grid">
               <section className="taste-t-panel">
@@ -3319,122 +3322,127 @@ function TasteT() {
 
               <section className="taste-t-panel">
                 <h2>Swiss History</h2>
-                {swissHistory.length ? (
-                  <ul className="swiss-history">
-                    {swissHistory.map((entry) => {
-                      const winner =
-                        entry.participants.find((participant) => participant.id === entry.championId) ||
-                        entry.participants[0];
-                      const galleryItems = Array.isArray(entry.gallery) && entry.gallery.length
-                        ? entry.gallery
-                        : entry.participants.slice(0, 4).map((participant) => ({
-                            id: participant.id,
-                            rank: participant.rank,
-                            name: participant.name,
-                          }));
-                      const finalOutcome = entry.finalMatch;
-                      const finalLeftName = finalOutcome
-                        ? imagesById[finalOutcome.leftId]?.name ||
-                          entry.participants.find((p) => p.id === finalOutcome.leftId)?.name ||
-                          galleryItems.find((g) => g.id === finalOutcome.leftId)?.name ||
-                          "Left"
-                        : null;
-                      const finalRightName = finalOutcome
-                        ? imagesById[finalOutcome.rightId]?.name ||
-                          entry.participants.find((p) => p.id === finalOutcome.rightId)?.name ||
-                          galleryItems.find((g) => g.id === finalOutcome.rightId)?.name ||
-                          "Right"
-                        : null;
-                      const finalSummary = finalOutcome
-                        ? `${finalLeftName} vs ${finalRightName} · ${
-                            finalOutcome.result === "draw"
-                              ? "Draw"
-                              : `${
-                                  finalOutcome.winnerId === finalOutcome.leftId
-                                    ? finalLeftName
-                                    : finalRightName
-                                } won`
-                          }`
-                        : null;
-                      return (
-                        <li key={entry.id} className="swiss-history-card">
-                          <div className="swiss-history-header">
-                            <div>
-                              <h3>
-                                {entry.size || entry.participants.length} image Swiss · {entry.totalRounds} rounds
-                              </h3>
-                              <p>
-                                Finished {formatRelativeTime(entry.completedAt)} · ID {entry.id}
-                              </p>
+                {swissHistoryPreview.length ? (
+                  <>
+                    <ul className="swiss-history">
+                      {swissHistoryPreview.map((entry) => {
+                        const winner =
+                          entry.participants.find((participant) => participant.id === entry.championId) ||
+                          entry.participants[0];
+                        const galleryItems = Array.isArray(entry.gallery) && entry.gallery.length
+                          ? entry.gallery
+                          : entry.participants.slice(0, 4).map((participant) => ({
+                              id: participant.id,
+                              rank: participant.rank,
+                              name: participant.name,
+                            }));
+                        const finalOutcome = entry.finalMatch;
+                        const finalLeftName = finalOutcome
+                          ? imagesById[finalOutcome.leftId]?.name ||
+                            entry.participants.find((p) => p.id === finalOutcome.leftId)?.name ||
+                            galleryItems.find((g) => g.id === finalOutcome.leftId)?.name ||
+                            "Left"
+                          : null;
+                        const finalRightName = finalOutcome
+                          ? imagesById[finalOutcome.rightId]?.name ||
+                            entry.participants.find((p) => p.id === finalOutcome.rightId)?.name ||
+                            galleryItems.find((g) => g.id === finalOutcome.rightId)?.name ||
+                            "Right"
+                          : null;
+                        const finalSummary = finalOutcome
+                          ? `${finalLeftName} vs ${finalRightName} · ${
+                              finalOutcome.result === "draw"
+                                ? "Draw"
+                                : `${
+                                    finalOutcome.winnerId === finalOutcome.leftId
+                                      ? finalLeftName
+                                      : finalRightName
+                                  } won`
+                            }`
+                          : null;
+                        return (
+                          <li key={entry.id} className="swiss-history-card">
+                            <div className="swiss-history-header">
+                              <div>
+                                <h3>
+                                  {entry.size || entry.participants.length} image Swiss · {entry.totalRounds} rounds
+                                </h3>
+                                <p>
+                                  Finished {formatRelativeTime(entry.completedAt)} · ID {entry.id}
+                                </p>
+                              </div>
+                              <div className="swiss-history-winner">
+                                <span>Champion</span>
+                                <strong>{winner?.name || "—"}</strong>
+                                {typeof winner?.points === "number" ? (
+                                  <em>{`${winner.points} pts`}</em>
+                                ) : null}
+                                {finalOutcome ? (
+                                  <span className="swiss-history-final-label">
+                                    Final: {finalSummary}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
-                            <div className="swiss-history-winner">
-                              <span>Champion</span>
-                              <strong>{winner?.name || "—"}</strong>
-                              {typeof winner?.points === "number" ? (
-                                <em>{`${winner.points} pts`}</em>
-                              ) : null}
-                              {finalOutcome ? (
-                                <span className="swiss-history-final-label">
-                                  Final: {finalSummary}
-                                </span>
-                              ) : null}
+                            <div className="swiss-history-gallery">
+                              {galleryItems.slice(0, 4).map((participant) => {
+                                const preview = participant.preview || getPreviewFor(participant.id);
+                                return (
+                                  <figure key={participant.id} className="swiss-history-figure">
+                                    {preview ? (
+                                      <img src={preview} alt={participant.name} />
+                                    ) : (
+                                      <div className="swiss-history-placeholder">#{participant.rank}</div>
+                                    )}
+                                    <figcaption>{`#${participant.rank} · ${participant.name}`}</figcaption>
+                                  </figure>
+                                );
+                              })}
                             </div>
-                          </div>
-                          <div className="swiss-history-gallery">
-                            {galleryItems.slice(0, 4).map((participant) => {
-                              const preview = participant.preview || getPreviewFor(participant.id);
-                              return (
-                                <figure key={participant.id} className="swiss-history-figure">
-                                  {preview ? (
-                                    <img src={preview} alt={participant.name} />
-                                  ) : (
-                                    <div className="swiss-history-placeholder">#{participant.rank}</div>
-                                  )}
-                                  <figcaption>{`#${participant.rank} · ${participant.name}`}</figcaption>
-                                </figure>
-                              );
-                            })}
-                          </div>
-                          <ol className="swiss-standings">
-                            {entry.participants.map((participant, index) => {
-                              const rank = participant.rank ?? index + 1;
-                              const ratingLabel =
-                                typeof participant.rating === "number"
-                                  ? Math.round(participant.rating)
-                                  : "—";
-                              const buchholzLabel =
-                                typeof participant.buchholz === "number" && participant.buchholz
-                                  ? ` · Buchholz ${roundTo(participant.buchholz, 1)}`
-                                  : "";
-                              return (
-                                <li key={participant.id}>
-                                  <span className="standing-rank">#{rank}</span>
-                                  <div className="standing-meta">
-                                    <span className="standing-name">{participant.name}</span>
-                                    <span className="standing-record">
-                                      {formatRecord(
-                                        participant.wins,
-                                        participant.losses,
-                                        participant.draws,
-                                      )}
-                                      {typeof participant.points === "number"
-                                        ? ` · ${participant.points} pts`
-                                        : ""}
-                                      {buchholzLabel}
-                                    </span>
-                                  </div>
-                                  <div className="standing-right">
-                                    <span className="standing-rating">{ratingLabel}</span>
-                                    <span className="standing-tier">#{participant.tierKey}</span>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ol>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                            <ol className="swiss-standings">
+                              {entry.participants.map((participant, index) => {
+                                const rank = participant.rank ?? index + 1;
+                                const ratingLabel =
+                                  typeof participant.rating === "number"
+                                    ? Math.round(participant.rating)
+                                    : "—";
+                                const buchholzLabel =
+                                  typeof participant.buchholz === "number" && participant.buchholz
+                                    ? ` · Buchholz ${roundTo(participant.buchholz, 1)}`
+                                    : "";
+                                return (
+                                  <li key={participant.id}>
+                                    <span className="standing-rank">#{rank}</span>
+                                    <div className="standing-meta">
+                                      <span className="standing-name">{participant.name}</span>
+                                      <span className="standing-record">
+                                        {formatRecord(
+                                          participant.wins,
+                                          participant.losses,
+                                          participant.draws,
+                                        )}
+                                        {typeof participant.points === "number"
+                                          ? ` · ${participant.points} pts`
+                                          : ""}
+                                        {buchholzLabel}
+                                      </span>
+                                    </div>
+                                    <div className="standing-right">
+                                      <span className="standing-rating">{ratingLabel}</span>
+                                      <span className="standing-tier">#{participant.tierKey}</span>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {swissHistory.length > swissHistoryPreview.length ? (
+                      <p className="swiss-history-note">Showing latest {swissHistoryPreview.length} minis.</p>
+                    ) : null}
+                  </>
                 ) : (
                   <div className="panel-placeholder">Finish a Swiss mini to see it logged here.</div>
                 )}

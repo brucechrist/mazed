@@ -1,7 +1,8 @@
 .taste-t-app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: min(100%, 100vh);
+  min-height: 0;
   width: 100%;
   padding: clamp(24px, 5vw, 48px) clamp(20px, 6vw, 72px);
   color: #f7f8ff;
@@ -13,6 +14,7 @@
 
 .taste-t-app.is-playing {
   padding: clamp(16px, 4vw, 32px);
+  overflow-y: auto;
 }
 
 .taste-t-app.is-playing .taste-t-frame {
@@ -59,12 +61,13 @@
 }
 
 .taste-t-frame {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   width: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: clamp(20px, 3vw, 32px);
+  min-height: 0;
 }
 
 .taste-t-toolbar {
@@ -88,10 +91,21 @@
 }
 
 .taste-t-lobby {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(20px, 4vw, 40px);
+  width: 100%;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.taste-t-lobby-primary {
+  flex: 1 1 360px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  width: 100%;
+  gap: clamp(16px, 3vw, 28px);
+  min-height: 0;
 }
 
 .taste-t-hero {
@@ -105,6 +119,9 @@
   box-shadow: 0 18px 64px rgba(6, 7, 19, 0.45);
   width: 100%;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: space-between;
 }
 
 .taste-t-hero h1 {
@@ -200,10 +217,14 @@
 }
 
 .taste-t-lobby-grid {
+  flex: 1 1 520px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(16px, 3vw, 28px);
   width: 100%;
+  align-content: start;
+  min-height: 0;
+  grid-auto-rows: minmax(0, 1fr);
 }
 
 .taste-t-game {
@@ -219,6 +240,7 @@
   justify-content: space-between;
   gap: 16px;
   background: rgba(18, 24, 48, 0.78);
+  flex: 0 0 auto;
 }
 
 .taste-t-placement-callout h2 {
@@ -272,6 +294,8 @@
   box-shadow: 0 12px 48px rgba(4, 6, 15, 0.6);
   width: 100%;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .panel-header {
@@ -596,6 +620,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .ranking-list li {
@@ -640,6 +668,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .tier-card {
@@ -751,6 +783,10 @@
   flex-direction: column;
   gap: 10px;
   font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .duel-log li {
@@ -788,6 +824,17 @@
   flex-direction: column;
   gap: 16px;
   font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.swiss-history-note {
+  margin: 12px 6px 0 0;
+  font-size: 0.75rem;
+  color: rgba(238, 241, 255, 0.58);
+  text-align: right;
 }
 
 .swiss-history-card {
