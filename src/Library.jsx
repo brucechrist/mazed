@@ -62,7 +62,7 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
 );
 
 const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
-const DUAL_COLUMNS = ['♂', '♀'];
+const DUAL_COLUMNS = ['♀', '♂'];
 const DUAL_ROW_ICONS = {
   Good: '▲',
   Neutral: '–',
@@ -74,8 +74,8 @@ const DUAL_ROW_LABELS = {
   Bad: 'Bad',
 };
 const DUAL_COLUMN_LABELS = {
-  '♂': 'Masculine',
   '♀': 'Feminine',
+  '♂': 'Masculine',
 };
 
 const normalizeTriCategory = (value) =>
@@ -1622,7 +1622,12 @@ export default function Library({ onBack }) {
     );
   };
 
-  const renderImageCard = (img) => {
+  const renderImageCard = (img, options = {}) => {
+    const { disableReorderDrop = false, forceDraggable = false } = options;
+    const canDrag =
+      forceDraggable ||
+      (sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating');
+    const allowInternalReorder = canDrag && !disableReorderDrop;
     const scaledHeight =
       img.width && img.height
         ? (img.height / img.width) * colWidth
@@ -1637,9 +1642,7 @@ export default function Library({ onBack }) {
         key={img.id}
         className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
-        draggable={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-        }
+        draggable={canDrag}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
@@ -1661,30 +1664,32 @@ export default function Library({ onBack }) {
             : undefined
         }
         onDragOver={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDragOver(e);
-                } else {
-                  e.preventDefault();
+          canDrag
+            ? (event) => {
+                if (event.dataTransfer?.files?.length) {
+                  handleDragOver(event);
+                } else if (allowInternalReorder) {
+                  event.preventDefault();
                 }
               }
             : undefined
         }
         onDrop={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDrop(e);
+          canDrag
+            ? (event) => {
+                if (event.dataTransfer?.files?.length) {
+                  handleDrop(event);
                   return;
                 }
-                e.preventDefault();
-                if (draggedId && draggedId !== img.id) {
-                  moveImage(draggedId, img.id);
+                if (allowInternalReorder) {
+                  event.preventDefault();
+                  if (draggedId && draggedId !== img.id) {
+                    moveImage(draggedId, img.id);
+                  }
                 }
               }
-              : undefined
-          }
+            : undefined
+        }
         onDragEnd={
           sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? () => {
