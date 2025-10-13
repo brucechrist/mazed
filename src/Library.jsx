@@ -26,7 +26,13 @@ const readFileAsDataURL = (file) =>
   });
 
 const CATEGORY_TAGS = ['P', 'M', 'F'];
-const GENDER_TAGS = ['♂', '♀'];
+const DUAL_COLUMN_CONFIG = [
+  { tag: '♀', label: 'Feminine', className: 'feminine' },
+  { tag: '♂', label: 'Masculine', className: 'masculine' },
+];
+
+const DUAL_COLUMNS = DUAL_COLUMN_CONFIG.map(({ tag }) => tag);
+const GENDER_TAGS = [...DUAL_COLUMNS];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
 
 const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
@@ -60,6 +66,22 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
   },
   {}
 );
+
+const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
+const DUAL_ROW_ICONS = {
+  Good: '▲',
+  Neutral: '–',
+  Bad: '▼',
+};
+const DUAL_ROW_LABELS = {
+  Good: 'Good',
+  Neutral: 'Neutral',
+  Bad: 'Bad',
+};
+const DUAL_COLUMN_LABELS = DUAL_COLUMN_CONFIG.reduce((acc, column) => {
+  acc[column.tag] = column.label;
+  return acc;
+}, {});
 
 const normalizeTriCategory = (value) =>
   TRI_CATEGORY_IDS.includes(value) ? value : null;
@@ -456,7 +478,7 @@ export default function Library({ onBack }) {
   const [libraryView, setLibraryView] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedView = localStorage.getItem('libraryView');
-      if (storedView === 'tri' || storedView === 'quadrants') {
+      if (storedView === 'tri' || storedView === 'quadrants' || storedView === 'dual') {
         return storedView;
       }
     }
@@ -466,6 +488,7 @@ export default function Library({ onBack }) {
   const [draggedId, setDraggedId] = useState(null);
   const [triDraggingId, setTriDraggingId] = useState(null);
   const [triActiveZone, setTriActiveZone] = useState(null);
+  const [dualActiveCell, setDualActiveCell] = useState(null);
 
   const saveSequenceRef = useRef(0);
   const lastSavedImagesRef = useRef(new Map());
@@ -1604,7 +1627,12 @@ export default function Library({ onBack }) {
     );
   };
 
-  const renderImageCard = (img) => {
+  const renderImageCard = (img, options = {}) => {
+    const { disableReorderDrop = false, forceDraggable = false } = options;
+    const canDrag =
+      forceDraggable ||
+      (sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating');
+    const allowInternalReorder = canDrag && !disableReorderDrop;
     const scaledHeight =
       img.width && img.height
         ? (img.height / img.width) * colWidth
@@ -1619,47 +1647,60 @@ export default function Library({ onBack }) {
         key={img.id}
         className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
-        draggable={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-        }
+        draggable={canDrag}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
         }}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? () => setDraggedId(img.id)
+          canDrag
+            ? (event) => {
+                setDraggedId(img.id);
+                if (event.dataTransfer) {
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData(
+                    'application/x-library-image-id',
+                    String(img.id)
+                  );
+                  event.dataTransfer.setData('text/plain', String(img.id));
+                }
+              }
             : undefined
         }
         onDragOver={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDragOver(e);
-                } else {
-                  e.preventDefault();
+          canDrag
+            ? (event) => {
+                if (event.dataTransfer?.files?.length) {
+                  handleDragOver(event);
+                } else if (allowInternalReorder) {
+                  event.preventDefault();
                 }
               }
             : undefined
         }
         onDrop={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDrop(e);
+          canDrag
+            ? (event) => {
+                if (event.dataTransfer?.files?.length) {
+                  handleDrop(event);
                   return;
                 }
-                e.preventDefault();
-                if (draggedId && draggedId !== img.id) {
-                  moveImage(draggedId, img.id);
+                if (allowInternalReorder) {
+                  event.preventDefault();
+                  if (draggedId && draggedId !== img.id) {
+                    moveImage(draggedId, img.id);
+                  }
                 }
               }
-              : undefined
-          }
+            : undefined
+        }
         onDragEnd={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? () => setDraggedId(null)
+          canDrag
+            ? () => {
+                setDraggedId(null);
+                setDualActiveCell(null);
+              }
             : undefined
         }
       >
@@ -1845,6 +1886,34 @@ export default function Library({ onBack }) {
     return { groups, unassigned };
   }, [filteredImages]);
 
+  const dualAssignments = useMemo(() => {
+    const layout = DUAL_ROWS.reduce((acc, row) => {
+      acc[row] = DUAL_COLUMNS.reduce((columnAcc, column) => {
+        columnAcc[column] = [];
+        return columnAcc;
+      }, {});
+      return acc;
+    }, {});
+
+    const unassigned = [];
+
+    filteredImages.forEach((img) => {
+      const gender = findPresetTag(img.tags, GENDER_TAGS);
+      const quality = findPresetTag(img.tags, QUALITY_TAGS);
+      const normalizedGender = DUAL_COLUMNS.includes(gender) ? gender : '';
+      const normalizedQuality = DUAL_ROWS.includes(quality) ? quality : '';
+
+      if (!normalizedGender || !normalizedQuality) {
+        unassigned.push(img);
+        return;
+      }
+
+      layout[normalizedQuality][normalizedGender].push(img);
+    });
+
+    return { layout, unassigned };
+  }, [filteredImages]);
+
   const isFileTransfer = (dataTransfer) => {
     if (!dataTransfer) return false;
     if (dataTransfer.files && dataTransfer.files.length > 0) {
@@ -1972,6 +2041,127 @@ export default function Library({ onBack }) {
     updateTriPlacement(resolvedId, categoryId, index);
     setTriActiveZone(null);
     setTriDraggingId(null);
+  };
+
+  const getDualCellKey = (row, column) => `${row}::${column}`;
+
+  const resolveDualDragImageId = (event) => {
+    const raw =
+      event.dataTransfer?.getData('application/x-library-image-id') ||
+      event.dataTransfer?.getData('text/plain');
+    let resolvedId = findImageIdFromDragData(raw);
+    if (resolvedId === null || typeof resolvedId === 'undefined') {
+      resolvedId = draggedId ?? null;
+    }
+    return resolvedId === null || typeof resolvedId === 'undefined'
+      ? null
+      : resolvedId;
+  };
+
+  const handleDualDragOverCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    const key = getDualCellKey(row, column);
+    setDualActiveCell((prev) => (prev === key ? prev : key));
+  };
+
+  const handleDualDragLeaveCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragLeave(event);
+      return;
+    }
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+    event.preventDefault();
+    const key = getDualCellKey(row, column);
+    setDualActiveCell((prev) => (prev === key ? null : prev));
+  };
+
+  const handleDualDragOverUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    setDualActiveCell((prev) => (prev === 'unassigned' ? prev : 'unassigned'));
+  };
+
+  const handleDualDragLeaveUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragLeave(event);
+      return;
+    }
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+    event.preventDefault();
+    setDualActiveCell((prev) => (prev === 'unassigned' ? null : prev));
+  };
+
+  const updateDualPlacement = (imageId, targetGender, targetQuality) => {
+    const image = images.find((img) => img.id === imageId);
+    if (!image) return;
+    const orientation = getOrientationTag(image.tags);
+    const category = findPresetTag(image.tags, CATEGORY_TAGS);
+    const custom = extractCustomTags(image.tags);
+    const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
+    const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
+    const nextTags = buildImageTags({
+      orientation,
+      category,
+      gender,
+      quality,
+      customTags: custom,
+    });
+    updateImage(imageId, { tags: nextTags });
+  };
+
+  const handleDualDropOnCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setDualActiveCell(null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const resolvedId = resolveDualDragImageId(event);
+    setDualActiveCell(null);
+    setDraggedId(null);
+    if (resolvedId === null) {
+      return;
+    }
+    updateDualPlacement(resolvedId, column, row);
+  };
+
+  const handleDualDropOnUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setDualActiveCell(null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const resolvedId = resolveDualDragImageId(event);
+    setDualActiveCell(null);
+    setDraggedId(null);
+    if (resolvedId === null) {
+      return;
+    }
+    updateDualPlacement(resolvedId, '', '');
   };
 
   const renderTriTile = (img, categoryId = null, index = null) => {
@@ -2208,6 +2398,176 @@ export default function Library({ onBack }) {
     );
   };
 
+  const renderDualView = () => {
+    const gridStyle = {
+      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+      gridAutoRows: `${rowHeight}px`,
+      gap: `${gridGap}px`,
+    };
+
+    const hasContent =
+      DUAL_ROWS.some((row) =>
+        DUAL_COLUMNS.some(
+          (column) => dualAssignments.layout[row][column].length > 0,
+        ),
+      ) || dualAssignments.unassigned.length > 0;
+
+    if (!hasContent) {
+      return (
+        <div className="dual-view-empty">
+          <p>
+            Tag your images with a gender (♂ or ♀) and a quality (Good, Neutral,
+            Bad) from the lightbox to see them on the Dual board.
+          </p>
+        </div>
+      );
+    }
+
+    const columnTotals = DUAL_COLUMNS.reduce((acc, column) => {
+      acc[column] = DUAL_ROWS.reduce(
+        (sum, row) => sum + dualAssignments.layout[row][column].length,
+        0,
+      );
+      return acc;
+    }, {});
+
+    const rowTotals = DUAL_ROWS.reduce((acc, row) => {
+      acc[row] = DUAL_COLUMNS.reduce(
+        (sum, column) => sum + dualAssignments.layout[row][column].length,
+        0,
+      );
+      return acc;
+    }, {});
+
+    return (
+      <div className="dual-view">
+        <div className="dual-grid">
+          <div
+            className="dual-grid-corner"
+            aria-hidden="true"
+            style={{ gridRow: 1, gridColumn: 1 }}
+          />
+          {DUAL_COLUMN_CONFIG.map(({ tag, className: columnClass }, columnIndex) => (
+            <div
+              key={tag}
+              className={`dual-column-header ${
+                columnClass === 'feminine'
+                  ? 'dual-column-feminine'
+                  : 'dual-column-masculine'
+              }`}
+              style={{ gridRow: 1, gridColumn: columnIndex + 2 }}
+            >
+              <span className="dual-column-icon" aria-hidden="true">
+                {tag}
+              </span>
+              <div className="dual-column-labels">
+                <span className="dual-column-name">{DUAL_COLUMN_LABELS[tag]}</span>
+                <span className="dual-count" aria-label={`${DUAL_COLUMN_LABELS[tag]} images`}>
+                  {columnTotals[tag]}
+                </span>
+              </div>
+            </div>
+          ))}
+          {DUAL_ROWS.map((row, rowIndex) => (
+            <React.Fragment key={row}>
+              <div
+                className={`dual-row-header dual-row-${row.toLowerCase()}`}
+                style={{ gridRow: rowIndex + 2, gridColumn: 1 }}
+              >
+                <span className="dual-row-icon" aria-hidden="true">
+                  {DUAL_ROW_ICONS[row]}
+                </span>
+                <div className="dual-row-labels">
+                  <span className="dual-row-name">{DUAL_ROW_LABELS[row]}</span>
+                  <span className="dual-count" aria-label={`${DUAL_ROW_LABELS[row]} images`}>
+                    {rowTotals[row]}
+                  </span>
+                </div>
+              </div>
+              {DUAL_COLUMN_CONFIG.map(({ tag, className: columnClass }, columnIndex) => {
+                const key = getDualCellKey(row, tag);
+                const items = dualAssignments.layout[row][tag];
+                return (
+                  <div
+                    key={key}
+                    className={`dual-cell dual-column-${
+                      columnClass
+                    } dual-row-${row.toLowerCase()}${
+                      dualActiveCell === key ? ' active-drop' : ''
+                    }`}
+                    style={{
+                      gridRow: rowIndex + 2,
+                      gridColumn: columnIndex + 2,
+                    }}
+                    onDragEnterCapture={(event) =>
+                      handleDualDragOverCell(event, row, tag)
+                    }
+                    onDragOverCapture={(event) =>
+                      handleDualDragOverCell(event, row, tag)
+                    }
+                    onDragLeaveCapture={(event) =>
+                      handleDualDragLeaveCell(event, row, tag)
+                    }
+                    onDropCapture={(event) =>
+                      handleDualDropOnCell(event, row, tag)
+                    }
+                  >
+                    {items.length ? (
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div className="image-grid" style={gridStyle}>
+                          {items.map((img) =>
+                            renderImageCard(img, {
+                              disableReorderDrop: true,
+                              forceDraggable: true,
+                            })
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="dual-cell-empty">No images yet</div>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+        {dualAssignments.unassigned.length > 0 && (
+          <section
+            className={`dual-unassigned${
+              dualActiveCell === 'unassigned' ? ' active-drop' : ''
+            }`}
+            onDragEnterCapture={handleDualDragOverUnassigned}
+            onDragOverCapture={handleDualDragOverUnassigned}
+            onDragLeaveCapture={handleDualDragLeaveUnassigned}
+            onDropCapture={handleDualDropOnUnassigned}
+          >
+            <header className="dual-unassigned-header">
+              <h3>Unassigned</h3>
+              <span className="dual-count" aria-label="Unassigned images">
+                {dualAssignments.unassigned.length}
+              </span>
+            </header>
+            <div style={{ width: '100%', overflow: 'hidden' }}>
+              <div className="image-grid" style={gridStyle}>
+                {dualAssignments.unassigned.map((img) =>
+                  renderImageCard(img, {
+                    disableReorderDrop: true,
+                    forceDraggable: true,
+                  })
+                )}
+              </div>
+            </div>
+            <p className="dual-unassigned-help">
+              Add a gender (♂ or ♀) and a quality (Good, Neutral, Bad) tag from
+              the lightbox to place these images on the board.
+            </p>
+          </section>
+        )}
+      </div>
+    );
+  };
+
   const lightboxOrientation = getOrientationTag(lightbox?.tags);
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
@@ -2317,6 +2677,24 @@ export default function Library({ onBack }) {
                   >
                     <span>Quadrants</span>
                     {libraryView === 'quadrants' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'dual' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('dual');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Dual</span>
+                    {libraryView === 'dual' && (
                       <span
                         className="library-view-check"
                         aria-hidden="true"
@@ -2545,6 +2923,8 @@ export default function Library({ onBack }) {
             ? renderTriView()
             : libraryView === 'quadrants'
             ? renderQuadrantView()
+            : libraryView === 'dual'
+            ? renderDualView()
             : sortMode === 'color'
             ? (
               <div className="color-groups">
