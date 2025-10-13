@@ -26,7 +26,7 @@ const readFileAsDataURL = (file) =>
   });
 
 const CATEGORY_TAGS = ['P', 'M', 'F'];
-const GENDER_TAGS = ['♂', '♀'];
+const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
 
 const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
@@ -483,6 +483,7 @@ export default function Library({ onBack }) {
   const [draggedId, setDraggedId] = useState(null);
   const [triDraggingId, setTriDraggingId] = useState(null);
   const [triActiveZone, setTriActiveZone] = useState(null);
+  const [dualActiveCell, setDualActiveCell] = useState(null);
 
   const saveSequenceRef = useRef(0);
   const lastSavedImagesRef = useRef(new Map());
@@ -1646,7 +1647,17 @@ export default function Library({ onBack }) {
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
           sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? () => setDraggedId(img.id)
+            ? (event) => {
+                setDraggedId(img.id);
+                if (event.dataTransfer) {
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData(
+                    'application/x-library-image-id',
+                    String(img.id)
+                  );
+                  event.dataTransfer.setData('text/plain', String(img.id));
+                }
+              }
             : undefined
         }
         onDragOver={
@@ -1676,7 +1687,10 @@ export default function Library({ onBack }) {
           }
         onDragEnd={
           sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? () => setDraggedId(null)
+            ? () => {
+                setDraggedId(null);
+                setDualActiveCell(null);
+              }
             : undefined
         }
       >
@@ -2017,6 +2031,117 @@ export default function Library({ onBack }) {
     updateTriPlacement(resolvedId, categoryId, index);
     setTriActiveZone(null);
     setTriDraggingId(null);
+  };
+
+  const getDualCellKey = (row, column) => `${row}::${column}`;
+
+  const resolveDualDragImageId = (event) => {
+    const raw =
+      event.dataTransfer?.getData('application/x-library-image-id') ||
+      event.dataTransfer?.getData('text/plain');
+    let resolvedId = findImageIdFromDragData(raw);
+    if (resolvedId === null || typeof resolvedId === 'undefined') {
+      resolvedId = draggedId ?? null;
+    }
+    return resolvedId === null || typeof resolvedId === 'undefined'
+      ? null
+      : resolvedId;
+  };
+
+  const handleDualDragOverCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    const key = getDualCellKey(row, column);
+    setDualActiveCell((prev) => (prev === key ? prev : key));
+  };
+
+  const handleDualDragLeaveCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragLeave(event);
+      return;
+    }
+    event.preventDefault();
+    const key = getDualCellKey(row, column);
+    setDualActiveCell((prev) => (prev === key ? null : prev));
+  };
+
+  const handleDualDragOverUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    setDualActiveCell((prev) => (prev === 'unassigned' ? prev : 'unassigned'));
+  };
+
+  const handleDualDragLeaveUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragLeave(event);
+      return;
+    }
+    event.preventDefault();
+    setDualActiveCell((prev) => (prev === 'unassigned' ? null : prev));
+  };
+
+  const updateDualPlacement = (imageId, targetGender, targetQuality) => {
+    const image = images.find((img) => img.id === imageId);
+    if (!image) return;
+    const orientation = getOrientationTag(image.tags);
+    const category = findPresetTag(image.tags, CATEGORY_TAGS);
+    const custom = extractCustomTags(image.tags);
+    const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
+    const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
+    const nextTags = buildImageTags({
+      orientation,
+      category,
+      gender,
+      quality,
+      customTags: custom,
+    });
+    updateImage(imageId, { tags: nextTags });
+  };
+
+  const handleDualDropOnCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setDualActiveCell(null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const resolvedId = resolveDualDragImageId(event);
+    setDualActiveCell(null);
+    if (resolvedId === null) {
+      return;
+    }
+    updateDualPlacement(resolvedId, column, row);
+    setDraggedId(null);
+  };
+
+  const handleDualDropOnUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setDualActiveCell(null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const resolvedId = resolveDualDragImageId(event);
+    setDualActiveCell(null);
+    if (resolvedId === null) {
+      return;
+    }
+    updateDualPlacement(resolvedId, '', '');
+    setDraggedId(null);
   };
 
   const renderTriTile = (img, categoryId = null, index = null) => {
