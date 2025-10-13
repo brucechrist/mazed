@@ -26,13 +26,7 @@ const readFileAsDataURL = (file) =>
   });
 
 const CATEGORY_TAGS = ['P', 'M', 'F'];
-const DUAL_COLUMN_CONFIG = [
-  { tag: '♀', label: 'Feminine', className: 'feminine' },
-  { tag: '♂', label: 'Masculine', className: 'masculine' },
-];
-
-const DUAL_COLUMNS = DUAL_COLUMN_CONFIG.map(({ tag }) => tag);
-const GENDER_TAGS = [...DUAL_COLUMNS];
+const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
 
 const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
@@ -68,6 +62,7 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
 );
 
 const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
+const DUAL_COLUMNS = ['♀', '♂'];
 const DUAL_ROW_ICONS = {
   Good: '▲',
   Neutral: '–',
@@ -78,10 +73,10 @@ const DUAL_ROW_LABELS = {
   Neutral: 'Neutral',
   Bad: 'Bad',
 };
-const DUAL_COLUMN_LABELS = DUAL_COLUMN_CONFIG.reduce((acc, column) => {
-  acc[column.tag] = column.label;
-  return acc;
-}, {});
+const DUAL_COLUMN_LABELS = {
+  '♀': 'Feminine',
+  '♂': 'Masculine',
+};
 
 const normalizeTriCategory = (value) =>
   TRI_CATEGORY_IDS.includes(value) ? value : null;
@@ -1654,7 +1649,7 @@ export default function Library({ onBack }) {
         }}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
-          canDrag
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? (event) => {
                 setDraggedId(img.id);
                 if (event.dataTransfer) {
@@ -1696,7 +1691,7 @@ export default function Library({ onBack }) {
             : undefined
         }
         onDragEnd={
-          canDrag
+          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
             ? () => {
                 setDraggedId(null);
                 setDualActiveCell(null);
@@ -2064,7 +2059,6 @@ export default function Library({ onBack }) {
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'move';
     }
@@ -2075,10 +2069,6 @@ export default function Library({ onBack }) {
   const handleDualDragLeaveCell = (event, row, column) => {
     if (isFileTransfer(event.dataTransfer)) {
       handleDragLeave(event);
-      return;
-    }
-    const nextTarget = event.relatedTarget;
-    if (nextTarget && event.currentTarget.contains(nextTarget)) {
       return;
     }
     event.preventDefault();
@@ -2092,7 +2082,6 @@ export default function Library({ onBack }) {
       return;
     }
     event.preventDefault();
-    event.stopPropagation();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'move';
     }
@@ -2102,10 +2091,6 @@ export default function Library({ onBack }) {
   const handleDualDragLeaveUnassigned = (event) => {
     if (isFileTransfer(event.dataTransfer)) {
       handleDragLeave(event);
-      return;
-    }
-    const nextTarget = event.relatedTarget;
-    if (nextTarget && event.currentTarget.contains(nextTarget)) {
       return;
     }
     event.preventDefault();
@@ -2140,11 +2125,11 @@ export default function Library({ onBack }) {
     event.stopPropagation();
     const resolvedId = resolveDualDragImageId(event);
     setDualActiveCell(null);
-    setDraggedId(null);
     if (resolvedId === null) {
       return;
     }
     updateDualPlacement(resolvedId, column, row);
+    setDraggedId(null);
   };
 
   const handleDualDropOnUnassigned = (event) => {
@@ -2157,11 +2142,11 @@ export default function Library({ onBack }) {
     event.stopPropagation();
     const resolvedId = resolveDualDragImageId(event);
     setDualActiveCell(null);
-    setDraggedId(null);
     if (resolvedId === null) {
       return;
     }
     updateDualPlacement(resolvedId, '', '');
+    setDraggedId(null);
   };
 
   const renderTriTile = (img, categoryId = null, index = null) => {
@@ -2442,38 +2427,28 @@ export default function Library({ onBack }) {
     return (
       <div className="dual-view">
         <div className="dual-grid">
-          <div
-            className="dual-grid-corner"
-            aria-hidden="true"
-            style={{ gridRow: 1, gridColumn: 1 }}
-          />
-          {DUAL_COLUMN_CONFIG.map(({ tag, className: columnClass }, columnIndex) => (
+          <div className="dual-grid-corner" aria-hidden="true" />
+          {DUAL_COLUMNS.map((column) => (
             <div
-              key={tag}
+              key={column}
               className={`dual-column-header ${
-                columnClass === 'feminine'
-                  ? 'dual-column-feminine'
-                  : 'dual-column-masculine'
+                column === '♂' ? 'dual-column-masculine' : 'dual-column-feminine'
               }`}
-              style={{ gridRow: 1, gridColumn: columnIndex + 2 }}
             >
               <span className="dual-column-icon" aria-hidden="true">
-                {tag}
+                {column}
               </span>
               <div className="dual-column-labels">
-                <span className="dual-column-name">{DUAL_COLUMN_LABELS[tag]}</span>
-                <span className="dual-count" aria-label={`${DUAL_COLUMN_LABELS[tag]} images`}>
-                  {columnTotals[tag]}
+                <span className="dual-column-name">{DUAL_COLUMN_LABELS[column]}</span>
+                <span className="dual-count" aria-label={`${DUAL_COLUMN_LABELS[column]} images`}>
+                  {columnTotals[column]}
                 </span>
               </div>
             </div>
           ))}
-          {DUAL_ROWS.map((row, rowIndex) => (
+          {DUAL_ROWS.map((row) => (
             <React.Fragment key={row}>
-              <div
-                className={`dual-row-header dual-row-${row.toLowerCase()}`}
-                style={{ gridRow: rowIndex + 2, gridColumn: 1 }}
-              >
+              <div className={`dual-row-header dual-row-${row.toLowerCase()}`}>
                 <span className="dual-row-icon" aria-hidden="true">
                   {DUAL_ROW_ICONS[row]}
                 </span>
@@ -2484,43 +2459,20 @@ export default function Library({ onBack }) {
                   </span>
                 </div>
               </div>
-              {DUAL_COLUMN_CONFIG.map(({ tag, className: columnClass }, columnIndex) => {
-                const key = getDualCellKey(row, tag);
-                const items = dualAssignments.layout[row][tag];
+              {DUAL_COLUMNS.map((column) => {
+                const key = `${row}-${column}`;
+                const items = dualAssignments.layout[row][column];
                 return (
                   <div
                     key={key}
                     className={`dual-cell dual-column-${
-                      columnClass
-                    } dual-row-${row.toLowerCase()}${
-                      dualActiveCell === key ? ' active-drop' : ''
-                    }`}
-                    style={{
-                      gridRow: rowIndex + 2,
-                      gridColumn: columnIndex + 2,
-                    }}
-                    onDragEnterCapture={(event) =>
-                      handleDualDragOverCell(event, row, tag)
-                    }
-                    onDragOverCapture={(event) =>
-                      handleDualDragOverCell(event, row, tag)
-                    }
-                    onDragLeaveCapture={(event) =>
-                      handleDualDragLeaveCell(event, row, tag)
-                    }
-                    onDropCapture={(event) =>
-                      handleDualDropOnCell(event, row, tag)
-                    }
+                      column === '♂' ? 'masculine' : 'feminine'
+                    } dual-row-${row.toLowerCase()}`}
                   >
                     {items.length ? (
                       <div style={{ width: '100%', overflow: 'hidden' }}>
                         <div className="image-grid" style={gridStyle}>
-                          {items.map((img) =>
-                            renderImageCard(img, {
-                              disableReorderDrop: true,
-                              forceDraggable: true,
-                            })
-                          )}
+                          {items.map((img) => renderImageCard(img))}
                         </div>
                       </div>
                     ) : (
@@ -2533,15 +2485,7 @@ export default function Library({ onBack }) {
           ))}
         </div>
         {dualAssignments.unassigned.length > 0 && (
-          <section
-            className={`dual-unassigned${
-              dualActiveCell === 'unassigned' ? ' active-drop' : ''
-            }`}
-            onDragEnterCapture={handleDualDragOverUnassigned}
-            onDragOverCapture={handleDualDragOverUnassigned}
-            onDragLeaveCapture={handleDualDragLeaveUnassigned}
-            onDropCapture={handleDualDropOnUnassigned}
-          >
+          <section className="dual-unassigned">
             <header className="dual-unassigned-header">
               <h3>Unassigned</h3>
               <span className="dual-count" aria-label="Unassigned images">
@@ -2550,12 +2494,7 @@ export default function Library({ onBack }) {
             </header>
             <div style={{ width: '100%', overflow: 'hidden' }}>
               <div className="image-grid" style={gridStyle}>
-                {dualAssignments.unassigned.map((img) =>
-                  renderImageCard(img, {
-                    disableReorderDrop: true,
-                    forceDraggable: true,
-                  })
-                )}
+                {dualAssignments.unassigned.map((img) => renderImageCard(img))}
               </div>
             </div>
             <p className="dual-unassigned-help">
