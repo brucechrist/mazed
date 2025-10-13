@@ -62,7 +62,7 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
 );
 
 const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
-const DUAL_COLUMNS = ['♀', '♂'];
+const DUAL_COLUMNS = ['♂', '♀'];
 const DUAL_ROW_ICONS = {
   Good: '▲',
   Neutral: '–',
@@ -2427,7 +2427,7 @@ export default function Library({ onBack }) {
             <div
               key={column}
               className={`dual-column-header ${
-                column === '♀' ? 'dual-column-feminine' : 'dual-column-masculine'
+                column === '♂' ? 'dual-column-masculine' : 'dual-column-feminine'
               }`}
             >
               <span className="dual-column-icon" aria-hidden="true">
@@ -2455,26 +2455,14 @@ export default function Library({ onBack }) {
                 </div>
               </div>
               {DUAL_COLUMNS.map((column) => {
-                const key = getDualCellKey(row, column);
+                const key = `${row}-${column}`;
                 const items = dualAssignments.layout[row][column];
                 return (
                   <div
                     key={key}
                     className={`dual-cell dual-column-${
-                      column === '♀' ? 'feminine' : 'masculine'
-                    } dual-row-${row.toLowerCase()}${
-                      dualActiveCell === key ? ' active-drop' : ''
-                    }`}
-                    onDragEnter={(event) =>
-                      handleDualDragOverCell(event, row, column)
-                    }
-                    onDragOver={(event) =>
-                      handleDualDragOverCell(event, row, column)
-                    }
-                    onDragLeave={(event) =>
-                      handleDualDragLeaveCell(event, row, column)
-                    }
-                    onDrop={(event) => handleDualDropOnCell(event, row, column)}
+                      column === '♂' ? 'masculine' : 'feminine'
+                    } dual-row-${row.toLowerCase()}`}
                   >
                     {items.length ? (
                       <div style={{ width: '100%', overflow: 'hidden' }}>
@@ -2492,15 +2480,7 @@ export default function Library({ onBack }) {
           ))}
         </div>
         {dualAssignments.unassigned.length > 0 && (
-          <section
-            className={`dual-unassigned${
-              dualActiveCell === 'unassigned' ? ' active-drop' : ''
-            }`}
-            onDragEnter={handleDualDragOverUnassigned}
-            onDragOver={handleDualDragOverUnassigned}
-            onDragLeave={handleDualDragLeaveUnassigned}
-            onDrop={handleDualDropOnUnassigned}
-          >
+          <section className="dual-unassigned">
             <header className="dual-unassigned-header">
               <h3>Unassigned</h3>
               <span className="dual-count" aria-label="Unassigned images">
