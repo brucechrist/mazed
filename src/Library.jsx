@@ -61,6 +61,23 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
   {}
 );
 
+const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
+const DUAL_COLUMNS = ['♂', '♀'];
+const DUAL_ROW_ICONS = {
+  Good: '▲',
+  Neutral: '–',
+  Bad: '▼',
+};
+const DUAL_ROW_LABELS = {
+  Good: 'Good',
+  Neutral: 'Neutral',
+  Bad: 'Bad',
+};
+const DUAL_COLUMN_LABELS = {
+  '♂': 'Masculine',
+  '♀': 'Feminine',
+};
+
 const normalizeTriCategory = (value) =>
   TRI_CATEGORY_IDS.includes(value) ? value : null;
 
@@ -456,7 +473,7 @@ export default function Library({ onBack }) {
   const [libraryView, setLibraryView] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedView = localStorage.getItem('libraryView');
-      if (storedView === 'tri' || storedView === 'quadrants') {
+      if (storedView === 'tri' || storedView === 'quadrants' || storedView === 'dual') {
         return storedView;
       }
     }
@@ -1845,6 +1862,34 @@ export default function Library({ onBack }) {
     return { groups, unassigned };
   }, [filteredImages]);
 
+  const dualAssignments = useMemo(() => {
+    const layout = DUAL_ROWS.reduce((acc, row) => {
+      acc[row] = DUAL_COLUMNS.reduce((columnAcc, column) => {
+        columnAcc[column] = [];
+        return columnAcc;
+      }, {});
+      return acc;
+    }, {});
+
+    const unassigned = [];
+
+    filteredImages.forEach((img) => {
+      const gender = findPresetTag(img.tags, GENDER_TAGS);
+      const quality = findPresetTag(img.tags, QUALITY_TAGS);
+      const normalizedGender = DUAL_COLUMNS.includes(gender) ? gender : '';
+      const normalizedQuality = DUAL_ROWS.includes(quality) ? quality : '';
+
+      if (!normalizedGender || !normalizedQuality) {
+        unassigned.push(img);
+        return;
+      }
+
+      layout[normalizedQuality][normalizedGender].push(img);
+    });
+
+    return { layout, unassigned };
+  }, [filteredImages]);
+
   const isFileTransfer = (dataTransfer) => {
     if (!dataTransfer) return false;
     if (dataTransfer.files && dataTransfer.files.length > 0) {
@@ -2208,6 +2253,130 @@ export default function Library({ onBack }) {
     );
   };
 
+  const renderDualView = () => {
+    const gridStyle = {
+      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+      gridAutoRows: `${rowHeight}px`,
+      gap: `${gridGap}px`,
+    };
+
+    const hasContent =
+      DUAL_ROWS.some((row) =>
+        DUAL_COLUMNS.some(
+          (column) => dualAssignments.layout[row][column].length > 0,
+        ),
+      ) || dualAssignments.unassigned.length > 0;
+
+    if (!hasContent) {
+      return (
+        <div className="dual-view-empty">
+          <p>
+            Tag your images with a gender (♂ or ♀) and a quality (Good, Neutral,
+            Bad) from the lightbox to see them on the Dual board.
+          </p>
+        </div>
+      );
+    }
+
+    const columnTotals = DUAL_COLUMNS.reduce((acc, column) => {
+      acc[column] = DUAL_ROWS.reduce(
+        (sum, row) => sum + dualAssignments.layout[row][column].length,
+        0,
+      );
+      return acc;
+    }, {});
+
+    const rowTotals = DUAL_ROWS.reduce((acc, row) => {
+      acc[row] = DUAL_COLUMNS.reduce(
+        (sum, column) => sum + dualAssignments.layout[row][column].length,
+        0,
+      );
+      return acc;
+    }, {});
+
+    return (
+      <div className="dual-view">
+        <div className="dual-grid">
+          <div className="dual-grid-corner" aria-hidden="true" />
+          {DUAL_COLUMNS.map((column) => (
+            <div
+              key={column}
+              className={`dual-column-header ${
+                column === '♂' ? 'dual-column-masculine' : 'dual-column-feminine'
+              }`}
+            >
+              <span className="dual-column-icon" aria-hidden="true">
+                {column}
+              </span>
+              <div className="dual-column-labels">
+                <span className="dual-column-name">{DUAL_COLUMN_LABELS[column]}</span>
+                <span className="dual-count" aria-label={`${DUAL_COLUMN_LABELS[column]} images`}>
+                  {columnTotals[column]}
+                </span>
+              </div>
+            </div>
+          ))}
+          {DUAL_ROWS.map((row) => (
+            <React.Fragment key={row}>
+              <div className={`dual-row-header dual-row-${row.toLowerCase()}`}>
+                <span className="dual-row-icon" aria-hidden="true">
+                  {DUAL_ROW_ICONS[row]}
+                </span>
+                <div className="dual-row-labels">
+                  <span className="dual-row-name">{DUAL_ROW_LABELS[row]}</span>
+                  <span className="dual-count" aria-label={`${DUAL_ROW_LABELS[row]} images`}>
+                    {rowTotals[row]}
+                  </span>
+                </div>
+              </div>
+              {DUAL_COLUMNS.map((column) => {
+                const key = `${row}-${column}`;
+                const items = dualAssignments.layout[row][column];
+                return (
+                  <div
+                    key={key}
+                    className={`dual-cell dual-column-${
+                      column === '♂' ? 'masculine' : 'feminine'
+                    } dual-row-${row.toLowerCase()}`}
+                  >
+                    {items.length ? (
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div className="image-grid" style={gridStyle}>
+                          {items.map((img) => renderImageCard(img))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="dual-cell-empty">No images yet</div>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+        {dualAssignments.unassigned.length > 0 && (
+          <section className="dual-unassigned">
+            <header className="dual-unassigned-header">
+              <h3>Unassigned</h3>
+              <span className="dual-count" aria-label="Unassigned images">
+                {dualAssignments.unassigned.length}
+              </span>
+            </header>
+            <div style={{ width: '100%', overflow: 'hidden' }}>
+              <div className="image-grid" style={gridStyle}>
+                {dualAssignments.unassigned.map((img) => renderImageCard(img))}
+              </div>
+            </div>
+            <p className="dual-unassigned-help">
+              Add a gender (♂ or ♀) and a quality (Good, Neutral, Bad) tag from
+              the lightbox to place these images on the board.
+            </p>
+          </section>
+        )}
+      </div>
+    );
+  };
+
   const lightboxOrientation = getOrientationTag(lightbox?.tags);
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
@@ -2317,6 +2486,24 @@ export default function Library({ onBack }) {
                   >
                     <span>Quadrants</span>
                     {libraryView === 'quadrants' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'dual' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('dual');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Dual</span>
+                    {libraryView === 'dual' && (
                       <span
                         className="library-view-check"
                         aria-hidden="true"
@@ -2545,6 +2732,8 @@ export default function Library({ onBack }) {
             ? renderTriView()
             : libraryView === 'quadrants'
             ? renderQuadrantView()
+            : libraryView === 'dual'
+            ? renderDualView()
             : sortMode === 'color'
             ? (
               <div className="color-groups">
