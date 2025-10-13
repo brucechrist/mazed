@@ -47,6 +47,20 @@ const TRI_VIEW_CATEGORIES = [
 
 const TRI_CATEGORY_IDS = TRI_VIEW_CATEGORIES.map((category) => category.id);
 
+const TRI_CATEGORY_TO_TAG = {
+  form: 'P',
+  'semi-formless': 'M',
+  formless: 'F',
+};
+
+const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
+  (acc, [category, tag]) => {
+    acc[tag] = category;
+    return acc;
+  },
+  {}
+);
+
 const normalizeTriCategory = (value) =>
   TRI_CATEGORY_IDS.includes(value) ? value : null;
 
@@ -336,6 +350,46 @@ const normalizeImageTags = (tags) => {
   });
 };
 
+const deriveTriCategoryFromTags = (tags) => {
+  const preset = findPresetTag(tags, CATEGORY_TAGS);
+  return preset ? TRI_TAG_TO_CATEGORY[preset] ?? null : null;
+};
+
+const mergeTriCategoryIntoTags = (tags, triCategory) => {
+  const categoryTag = triCategory ? TRI_CATEGORY_TO_TAG[triCategory] ?? '' : '';
+  return buildImageTags({
+    orientation: getOrientationTag(tags),
+    category: categoryTag,
+    gender: findPresetTag(tags, GENDER_TAGS),
+    quality: findPresetTag(tags, QUALITY_TAGS),
+    customTags: extractCustomTags(tags),
+  });
+};
+
+const syncTriCategoryWithTags = (tags, triCategory) => {
+  const normalizedTags = normalizeImageTags(tags);
+  const normalizedCategory = normalizeTriCategory(triCategory);
+  const tagDerived = deriveTriCategoryFromTags(normalizedTags);
+
+  if (normalizedCategory) {
+    if (tagDerived !== normalizedCategory) {
+      return {
+        tags: mergeTriCategoryIntoTags(normalizedTags, normalizedCategory),
+        triCategory: normalizedCategory,
+      };
+    }
+    return {
+      tags: normalizedTags,
+      triCategory: normalizedCategory,
+    };
+  }
+
+  return {
+    tags: normalizedTags,
+    triCategory: tagDerived,
+  };
+};
+
 function QuadrantPicker({ value = [], onChange }) {
   const main = value[0];
   const sub = value[1];
@@ -583,8 +637,10 @@ export default function Library({ onBack }) {
         }
 
         const base = { ...entry };
-        const normalizedTags = normalizeImageTags(base.tags);
-        const triCategory = normalizeTriCategory(base.triCategory);
+        const { tags: normalizedTags, triCategory } = syncTriCategoryWithTags(
+          base.tags,
+          base.triCategory
+        );
         const triOrder = normalizeTriOrder(base.triOrder);
         base.tags = normalizedTags;
         base.triCategory = triCategory;
@@ -820,9 +876,11 @@ export default function Library({ onBack }) {
 
   const saveImages = (imgs) => {
     const normalized = imgs.map((img) => {
-      const normalizedTags = normalizeImageTags(img.tags);
+      const { tags: normalizedTags, triCategory } = syncTriCategoryWithTags(
+        img.tags,
+        img.triCategory
+      );
       const mimeType = img.mimeType || extractMimeType(img.dataUrl) || null;
-      const triCategory = normalizeTriCategory(img.triCategory);
       const triOrder = normalizeTriOrder(img.triOrder);
       return {
         ...img,
@@ -1143,11 +1201,51 @@ export default function Library({ onBack }) {
   };
 
   const updateImage = (id, updates) => {
+    const currentImage = images.find((img) => img.id === id) || null;
     let payload = updates;
-    if (updates && typeof updates === 'object' && 'dataUrl' in updates) {
-      const mimeType =
-        updates.mimeType || extractMimeType(updates.dataUrl) || null;
-      payload = { ...updates, mimeType };
+
+    if (updates && typeof updates === 'object') {
+      if ('dataUrl' in updates) {
+        const mimeType =
+          updates.mimeType || extractMimeType(updates.dataUrl) || null;
+        payload = { ...payload, mimeType };
+      }
+
+      if ('tags' in updates) {
+        const { tags: normalizedTags, triCategory } = syncTriCategoryWithTags(
+          updates.tags,
+          updates.triCategory
+        );
+        const previousCategory = normalizeTriCategory(currentImage?.triCategory);
+        const nextCategory = normalizeTriCategory(triCategory);
+        payload = {
+          ...payload,
+          tags: normalizedTags,
+          triCategory: nextCategory,
+          triOrder:
+            previousCategory && previousCategory === nextCategory
+              ? currentImage?.triOrder ?? null
+              : null,
+        };
+      } else if ('triCategory' in updates) {
+        const nextCategory = normalizeTriCategory(updates.triCategory);
+        payload = {
+          ...payload,
+          triCategory: nextCategory,
+          tags: mergeTriCategoryIntoTags(
+            'tags' in updates ? updates.tags : currentImage?.tags,
+            nextCategory
+          ),
+          triOrder: nextCategory ? currentImage?.triOrder ?? null : null,
+        };
+      }
+
+      if ('triOrder' in updates) {
+        payload = {
+          ...payload,
+          triOrder: normalizeTriOrder(updates.triOrder),
+        };
+      }
     }
 
     const updated = images.map((img) =>
@@ -1815,11 +1913,16 @@ export default function Library({ onBack }) {
       const nextOrder = normalizeTriOrder(nextPlacement.order);
       const currentCategory = normalizeTriCategory(img.triCategory);
       const currentOrder = normalizeTriOrder(img.triOrder);
-      if (currentCategory !== nextCategory || currentOrder !== nextOrder) {
+      const categoryChanged = currentCategory !== nextCategory;
+      const orderChanged = currentOrder !== nextOrder;
+      if (categoryChanged || orderChanged) {
         return {
           ...img,
           triCategory: nextCategory,
           triOrder: nextOrder,
+          tags: categoryChanged
+            ? mergeTriCategoryIntoTags(img.tags, nextCategory)
+            : img.tags,
         };
       }
       return img;
