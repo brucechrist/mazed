@@ -603,6 +603,47 @@
   width: 100%;
 }
 
+.taste-t-game--tagging {
+  flex: 1 1 auto;
+}
+
+.taste-t-tablist {
+  display: inline-flex;
+  gap: 12px;
+  padding: 6px;
+  background: rgba(15, 20, 40, 0.88);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 18px;
+}
+
+.taste-t-tab {
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 600;
+  background: transparent !important;
+  color: rgba(226, 232, 240, 0.72) !important;
+  border: none !important;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.taste-t-tab:hover:not(:disabled) {
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.taste-t-tab.is-active {
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.25)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.28);
+}
+
+.taste-t-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .taste-t-app button {
   font: inherit;
   border-radius: 12px;
@@ -702,6 +743,197 @@
   box-sizing: border-box;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.tagging-panel {
+  gap: 24px;
+}
+
+.tagging-mode-toggle {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tagging-mode-button {
+  border-radius: 10px;
+  padding: 8px 16px;
+  background: rgba(129, 140, 248, 0.16) !important;
+  color: rgba(226, 232, 240, 0.86) !important;
+  border: 1px solid transparent !important;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.tagging-mode-button:hover {
+  transform: translateY(-1px);
+  background: rgba(129, 140, 248, 0.24) !important;
+}
+
+.tagging-mode-button.is-active {
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.38), rgba(129, 140, 248, 0.45)) !important;
+  color: #ffffff !important;
+  border-color: rgba(244, 114, 182, 0.55) !important;
+  box-shadow: 0 10px 24px rgba(129, 140, 248, 0.25);
+}
+
+.tagging-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 960px) {
+  .tagging-content {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.tagging-preview {
+  flex: 1 1 50%;
+  background: rgba(18, 22, 42, 0.65);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tagging-preview img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 16px;
+  background: rgba(9, 11, 24, 0.8);
+}
+
+.tagging-preview-fallback {
+  width: 100%;
+  height: 320px;
+  border-radius: 16px;
+  background: rgba(9, 11, 24, 0.8);
+  display: grid;
+  place-items: center;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.95rem;
+}
+
+.tagging-preview-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tagging-preview-meta strong {
+  font-size: 1.1rem;
+}
+
+.tagging-preview-meta ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.tagging-preview-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tagging-remaining {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.tagging-options {
+  flex: 1 1 45%;
+  display: grid;
+  gap: 18px;
+}
+
+.tagging-option-group {
+  background: rgba(18, 22, 42, 0.65);
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tagging-option-group h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.tagging-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tagging-option {
+  border-radius: 10px;
+  padding: 8px 16px;
+  background: rgba(79, 70, 229, 0.18) !important;
+  color: rgba(226, 232, 240, 0.85) !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.tagging-option:hover:not(:disabled) {
+  background: rgba(79, 70, 229, 0.26) !important;
+  transform: translateY(-1px);
+}
+
+.tagging-option.is-active {
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.42), rgba(244, 114, 182, 0.45)) !important;
+  color: #ffffff !important;
+  border-color: rgba(244, 114, 182, 0.55) !important;
+  cursor: default;
+  transform: none;
+}
+
+.tagging-option:disabled {
+  opacity: 0.6;
+}
+
+.tagging-empty {
+  background: rgba(18, 22, 42, 0.65);
+  border-radius: 20px;
+  padding: 40px 32px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tagging-empty h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.tagging-empty p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.95rem;
+}
+
+.tagging-empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .panel-header {
