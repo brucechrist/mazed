@@ -81,7 +81,7 @@ const TAGGING_MODES = [
 const DEFAULT_TAGGING_MODE = TAGGING_MODES[0].key;
 const DUAL_GENDER_TAGS = ["feminine", "masculine"];
 const DUAL_FLOW_TAGS = ["up", "neutral", "down"];
-const TRI_TAGS = ["form", "semi-formless", "formless"];
+const TRI_TAGS = ["form", "semi-formless", "formless", "X"];
 const QUADRANT_TAGS = ["II", "IE", "EI", "EE"];
 
 export function shouldFinalizeSwissStatus(status) {
