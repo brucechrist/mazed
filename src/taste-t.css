@@ -1,20 +1,24 @@
 .taste-t-app {
   display: flex;
   flex-direction: column;
-  height: min(100%, 100vh);
-  min-height: 0;
+  height: 100vh;
+  min-height: 100vh;
   width: 100%;
-  padding: clamp(24px, 5vw, 48px) clamp(20px, 6vw, 72px);
-  color: #f7f8ff;
-  background: radial-gradient(circle at top, #1d2240 0%, #101324 55%, #080914 100%);
+  padding: clamp(24px, 4vw, 48px);
+  color: #0f172a;
+  background: linear-gradient(135deg, #f9fbff 0%, #eef2ff 60%, #e0e7ff 100%);
   box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .taste-t-app.is-playing {
   padding: clamp(16px, 4vw, 32px);
+  color: #f7f8ff;
+  background: radial-gradient(circle at top, #1d2240 0%, #101324 55%, #080914 100%);
   overflow-y: auto;
+  height: auto;
+  min-height: 100vh;
 }
 
 .taste-t-app.is-playing .taste-t-frame {
@@ -76,6 +80,100 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+}
+
+.taste-t-dashboard {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 32px);
+  min-height: 0;
+  height: 100%;
+  align-items: stretch;
+}
+
+.taste-t-summary-column {
+  display: grid;
+  grid-template-rows: minmax(0, 0.55fr) minmax(0, 1fr);
+  gap: clamp(18px, 3vw, 28px);
+  min-height: 0;
+  height: 100%;
+}
+
+.taste-t-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 3vw, 24px);
+  min-height: 0;
+}
+
+.taste-t-overview-panel,
+.taste-t-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 28px;
+  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.12);
+  padding: clamp(24px, 4vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2vw, 24px);
+  min-height: 0;
+}
+
+.taste-t-card {
+  gap: clamp(14px, 2vw, 20px);
+}
+
+.taste-t-overview-panel h1,
+.taste-t-overview-panel h2,
+.taste-t-card h2,
+.taste-t-card h3 {
+  color: #0f172a;
+}
+
+.taste-t-overview-panel p,
+.taste-t-card p,
+.taste-t-card span {
+  color: #475569;
+}
+
+.taste-t-overview-header {
+  display: flex;
+  justify-content: space-between;
+  gap: clamp(20px, 3vw, 32px);
+  align-items: flex-start;
+}
+
+.taste-t-overview-header h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  letter-spacing: -0.01em;
+}
+
+.taste-t-overview-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.taste-t-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.taste-t-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
 }
 
 .taste-t-toolbar .ghost {
@@ -153,18 +251,34 @@
   display: flex;
   flex-direction: column;
   font-size: 0.85rem;
-  gap: 4px;
-  color: rgba(238, 241, 255, 0.75);
+  gap: 6px;
+  color: #475569;
+  font-weight: 600;
 }
 
 .mini-size-control select,
-.panel-actions select {
-  background: rgba(12, 16, 32, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+.taste-t-card select {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
   border-radius: 12px;
   padding: 8px 12px;
-  color: #f7f8ff;
+  color: #312e81;
   font-size: 0.95rem;
+  font-weight: 600;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mini-size-control select:focus,
+.taste-t-card select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.18);
+}
+
+.taste-t-app.is-playing .panel-actions select {
+  background: rgba(12, 16, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f7f8ff;
 }
 
 .taste-t-play-button {
@@ -182,49 +296,304 @@
 }
 
 .taste-t-stat-card {
-  flex: 1 1 220px;
-  background: rgba(12, 16, 32, 0.55);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 16px 20px;
+  flex: 1 1 180px;
+  background: rgba(248, 250, 255, 0.9);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
 .taste-t-stat-card .stat-label {
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
-  color: rgba(238, 241, 255, 0.6);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: #6366f1;
+  font-weight: 700;
 }
 
 .taste-t-stat-card strong {
-  font-size: 1.6rem;
-  letter-spacing: 0.05em;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  letter-spacing: -0.02em;
+  color: #0f172a;
 }
 
 .taste-t-stat-card p {
   margin: 0;
-  font-size: 0.9rem;
-  color: rgba(238, 241, 255, 0.72);
+  font-size: 0.85rem;
+  color: #64748b;
 }
 
 .taste-t-hero-note {
   margin: 0;
   font-size: 0.9rem;
-  color: rgba(255, 186, 107, 0.9);
+  color: #f97316;
+  font-weight: 600;
 }
 
-.taste-t-lobby-grid {
-  flex: 1 1 520px;
+.taste-t-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.taste-t-card-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+}
+
+.taste-t-card-header p {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.taste-t-card-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px dashed rgba(99, 102, 241, 0.28);
+  color: #94a3b8;
+  font-weight: 600;
+  background: rgba(248, 250, 255, 0.6);
+}
+
+.taste-t-ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.taste-t-ranking-list li {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: clamp(16px, 3vw, 28px);
-  width: 100%;
-  align-content: start;
-  min-height: 0;
-  grid-auto-rows: minmax(0, 1fr);
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 20px;
+  background: rgba(248, 250, 255, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.taste-t-card .rank-index {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4338ca;
+  width: auto;
+}
+
+.taste-t-card .ranking-meta h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.taste-t-card .ranking-meta p {
+  margin: 2px 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.taste-t-card .ranking-tags {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.taste-t-card .rank-rating {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #1e293b;
+}
+
+.taste-t-card .tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.tier-grid--compact {
+  gap: 14px;
+}
+
+.taste-t-card .tier-card {
+  background: rgba(248, 250, 255, 0.72);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.taste-t-card .tier-card header {
+  padding: 14px 16px;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  border-left: 4px solid rgba(99, 102, 241, 0.4);
+}
+
+.taste-t-card .tier-card header h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.taste-t-card .tier-card header p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.taste-t-card .tier-card ol {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.taste-t-card .tier-card li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.taste-t-card .tier-card li.empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.taste-t-card--activity {
+  gap: 24px;
+}
+
+.taste-t-activity-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.taste-t-activity-group h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.taste-t-duel-list,
+.taste-t-swiss-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.taste-t-duel-list li,
+.taste-t-swiss-list li {
+  background: rgba(248, 250, 255, 0.75);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.duel-names {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.duel-names strong {
+  color: #0f172a;
+}
+
+.duel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.duel-outcome {
+  font-weight: 600;
+  color: #4338ca;
+}
+
+.duel-delta {
+  font-variant-numeric: tabular-nums;
+}
+
+.duel-time {
+  color: #94a3b8;
+}
+
+.swiss-summary {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.swiss-summary strong {
+  color: #0f172a;
+}
+
+.swiss-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.taste-t-placement-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+}
+
+.taste-t-placement-card h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  color: #312e81;
+}
+
+.taste-t-placement-card p {
+  margin: 0;
+  color: #4338ca;
+  font-weight: 500;
+}
+
+.taste-t-placement-card button {
+  white-space: nowrap;
 }
 
 .taste-t-game {
@@ -234,49 +603,86 @@
   width: 100%;
 }
 
-.taste-t-placement-callout {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: rgba(18, 24, 48, 0.78);
-  flex: 0 0 auto;
-}
-
-.taste-t-placement-callout h2 {
-  margin: 0 0 4px;
-}
-
-.taste-t-placement-callout p {
-  margin: 0;
-  color: rgba(238, 241, 255, 0.75);
-}
-
 .taste-t-app button {
   font: inherit;
-  border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 10px 18px;
-  background: linear-gradient(120deg, #ffba6b, #ff6e8f);
-  color: #0c0f1a;
-  cursor: pointer;
   font-weight: 600;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, color 0.2s ease;
+  border: none;
 }
 
-.taste-t-app button:hover {
+.taste-t-app:not(.is-playing) button {
+  background: #e2e8f0;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.taste-t-app:not(.is-playing) button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.18);
+}
+
+.taste-t-app:not(.is-playing) button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.taste-t-primary {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 24px rgba(99, 102, 241, 0.28);
+}
+
+.taste-t-primary:hover {
+  box-shadow: 0 18px 32px rgba(99, 102, 241, 0.34);
+}
+
+.taste-t-secondary {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #4338ca !important;
+  border: 1px solid rgba(99, 102, 241, 0.28) !important;
+  box-shadow: none;
+}
+
+.taste-t-secondary:hover {
+  background: rgba(99, 102, 241, 0.18) !important;
+}
+
+.taste-t-app:not(.is-playing) button.ghost {
+  background: transparent;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+  box-shadow: none;
+}
+
+.taste-t-app:not(.is-playing) button.ghost:hover {
+  border-color: rgba(15, 23, 42, 0.2);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+}
+
+.taste-t-app.is-playing button {
+  background: linear-gradient(120deg, #ffba6b, #ff6e8f);
+  color: #0c0f1a;
+  box-shadow: none;
+}
+
+.taste-t-app.is-playing button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(255, 144, 171, 0.35);
 }
 
-.taste-t-app button:disabled {
+.taste-t-app.is-playing button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
-.taste-t-app button.ghost {
+.taste-t-app.is-playing button.ghost {
   background: transparent;
   color: rgba(238, 241, 255, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);
