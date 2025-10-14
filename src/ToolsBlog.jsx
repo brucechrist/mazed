@@ -72,6 +72,7 @@ const MEDIA_BLUEPRINTS = [
 ];
 
 const STORAGE_KEY = 'tools-blog-posts';
+const ACTIVITY_INDEX_KEY = 'activity-blog-index';
 
 const sanitizeImages = (images) =>
   Array.isArray(images)
@@ -185,6 +186,36 @@ const PLACEHOLDER_POSTS = Array.from({ length: 48 }, (_, index) => {
   };
 });
 
+const sanitizeActivitySession = (session) => {
+  if (session == null || typeof session !== 'object') {
+    return null;
+  }
+
+  const sanitizedId = Number(session.id);
+  const parsedId = Number.isInteger(sanitizedId) ? sanitizedId : undefined;
+  const startedAt =
+    typeof session.startedAt === 'string' && session.startedAt.trim()
+      ? session.startedAt
+      : null;
+  const endedAt =
+    typeof session.endedAt === 'string' && session.endedAt.trim()
+      ? session.endedAt
+      : null;
+  const durationMs = Number(session.durationMs);
+  const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+
+  if (!startedAt && !endedAt && safeDuration === 0) {
+    return null;
+  }
+
+  return {
+    id: parsedId ?? Date.now(),
+    startedAt,
+    endedAt,
+    durationMs: safeDuration,
+  };
+};
+
 const sanitizePostRecord = (post) => {
   if (post == null || typeof post !== 'object') {
     return null;
@@ -195,7 +226,7 @@ const sanitizePostRecord = (post) => {
     return null;
   }
 
-  return {
+  const sanitized = {
     id: parsedId,
     title: typeof post.title === 'string' ? post.title : '',
     status: typeof post.status === 'string' ? post.status : STATUSES[0],
@@ -204,7 +235,49 @@ const sanitizePostRecord = (post) => {
     mood: typeof post.mood === 'string' ? post.mood : MOODS[0],
     images: sanitizeImages(post.images),
     link: sanitizeLink(post.link),
+    activityName:
+      typeof post.activityName === 'string' && post.activityName.trim()
+        ? post.activityName.trim()
+        : '',
+    activitySessions: Array.isArray(post.activitySessions)
+      ? post.activitySessions.map((session) => sanitizeActivitySession(session)).filter(Boolean)
+      : [],
   };
+
+  const preserved = { ...post };
+  Object.keys(sanitized).forEach((key) => {
+    preserved[key] = sanitized[key];
+  });
+
+  return preserved;
+};
+
+const loadSanitizedBlogPosts = () => {
+  const { posts } = loadStoredPosts();
+  if (!Array.isArray(posts)) {
+    return [];
+  }
+
+  return posts.map((post) => sanitizePostRecord(post)).filter(Boolean);
+};
+
+const generateActivityPostId = (posts) => {
+  const usedIds = new Set(posts.map((post) => post.id));
+  let candidate = Date.now();
+
+  while (usedIds.has(candidate)) {
+    candidate += 1;
+  }
+
+  return candidate;
+};
+
+export const sanitizeActivityName = (name) => {
+  if (typeof name !== 'string') {
+    return '';
+  }
+
+  return name.trim();
 };
 
 const loadStoredPosts = () => {
@@ -257,6 +330,145 @@ const VIEW_MODES = {
   CLASSIC: 'classic',
 };
 
+const persistBlogPosts = (posts) => {
+  if (typeof window === 'undefined' || !('localStorage' in window)) {
+    return;
+  }
+
+  try {
+    const sanitizedPosts = posts
+      .map((post) => sanitizePostRecord(post))
+      .filter(Boolean);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedPosts));
+  } catch (error) {
+    // Ignore persistence errors so the UI remains responsive even if storage is unavailable.
+  }
+};
+
+const formatActivityDuration = (ms) => {
+  if (!ms || ms <= 0) {
+    return '0m 00s';
+  }
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+
+  if (hours > 0) {
+    parts.push(`${hours}h`);
+  }
+
+  parts.push(`${hours > 0 ? String(minutes).padStart(2, '0') : minutes}m`);
+  parts.push(String(seconds).padStart(2, '0') + 's');
+  return parts.join(' ');
+};
+
+const formatActivityDateTime = (value) => {
+  if (!value) {
+    return 'Unknown time';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time';
+  }
+
+  return date.toLocaleString();
+};
+
+const sanitizeActivityIndex = (value) => {
+  if (value == null || typeof value !== 'object') {
+    return {};
+  }
+
+  return Object.entries(value).reduce((accumulator, [activityName, postId]) => {
+    if (typeof activityName !== 'string') {
+      return accumulator;
+    }
+
+    const trimmedName = activityName.trim();
+    if (!trimmedName) {
+      return accumulator;
+    }
+
+    const numericId = Number(postId);
+    if (!Number.isInteger(numericId)) {
+      return accumulator;
+    }
+
+    accumulator[trimmedName] = numericId;
+    return accumulator;
+  }, {});
+};
+
+export const BLOG_STORAGE_KEY = STORAGE_KEY;
+export const BLOG_ACTIVITY_INDEX_KEY = ACTIVITY_INDEX_KEY;
+export const sanitizeBlogPostRecord = sanitizePostRecord;
+export const loadBlogPostsFromStorage = () => loadStoredPosts().posts;
+export const persistBlogPostsToStorage = persistBlogPosts;
+export const loadActivityBlogIndex = () => {
+  if (typeof window === 'undefined' || !('localStorage' in window)) {
+    return {};
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(ACTIVITY_INDEX_KEY);
+    if (storedValue == null) {
+      return {};
+    }
+
+    const parsedValue = JSON.parse(storedValue);
+    return sanitizeActivityIndex(parsedValue);
+  } catch (error) {
+    return {};
+  }
+};
+
+export const persistActivityBlogIndex = (index) => {
+  if (typeof window === 'undefined' || !('localStorage' in window)) {
+    return;
+  }
+
+  try {
+    const sanitizedIndex = sanitizeActivityIndex(index);
+    window.localStorage.setItem(ACTIVITY_INDEX_KEY, JSON.stringify(sanitizedIndex));
+  } catch (error) {
+    // Ignore persistence errors to keep the UI responsive even when storage is unavailable.
+  }
+};
+
+export const loadRegisteredActivityNames = () => {
+  const posts = loadSanitizedBlogPosts();
+  const index = loadActivityBlogIndex();
+  const names = new Map();
+
+  const register = (name) => {
+    const sanitized = sanitizeActivityName(name);
+    if (!sanitized) {
+      return;
+    }
+
+    const key = sanitized.toLowerCase();
+    if (!names.has(key)) {
+      names.set(key, sanitized);
+    }
+  };
+
+  posts.forEach((post) => {
+    register(post?.activityName ?? post?.title);
+  });
+
+  Object.keys(index || {}).forEach((activityName) => {
+    register(activityName);
+  });
+
+  return Array.from(names.values()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+};
+
 export default function ToolsBlog({ onBack }) {
   const [posts, setPosts] = useState(buildInitialPosts);
   const [editingPostId, setEditingPostId] = useState(null);
@@ -265,18 +477,7 @@ export default function ToolsBlog({ onBack }) {
   const [viewMode, setViewMode] = useState(VIEW_MODES.LIST);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !('localStorage' in window)) {
-      return;
-    }
-
-    try {
-      const sanitizedPosts = posts
-        .map((post) => sanitizePostRecord(post))
-        .filter(Boolean);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedPosts));
-    } catch (error) {
-      // Ignore persistence errors so the UI remains responsive even if storage is unavailable.
-    }
+    persistBlogPosts(posts);
   }, [posts]);
 
   const closeActionMenu = () => setOpenMenuPostId(null);
@@ -520,6 +721,16 @@ export default function ToolsBlog({ onBack }) {
           const isEditing = editingPostId === post.id;
           const currentStatus = isEditing && editDraft ? editDraft.status : post.status;
           const displayIndex = `#${String(index + 1).padStart(2, '0')}`;
+          const activitySessions = Array.isArray(post.activitySessions)
+            ? post.activitySessions
+            : [];
+          const hasActivityTimeline = Boolean(post.activityName) && activitySessions.length > 0;
+          const totalActivityDuration = hasActivityTimeline
+            ? activitySessions.reduce(
+                (total, session) => total + (session?.durationMs ?? 0),
+                0
+              )
+            : 0;
           const articleClassName = [
             'blog-card',
             viewMode === VIEW_MODES.GRID ? 'blog-card--grid' : '',
@@ -767,6 +978,41 @@ export default function ToolsBlog({ onBack }) {
                 <>
                   <h2 className="blog-card-title">{post.title}</h2>
                   <p className="blog-card-body">{post.excerpt}</p>
+                  {hasActivityTimeline && (
+                    <div className="blog-card-activity" aria-live="polite">
+                      <div className="blog-card-activity-header">
+                        <div className="blog-card-activity-title">
+                          <span className="blog-card-activity-label">Linked activity</span>
+                          <span className="blog-card-activity-name">{post.activityName}</span>
+                        </div>
+                        <div className="blog-card-activity-total">
+                          Total logged time: {formatActivityDuration(totalActivityDuration)}
+                        </div>
+                      </div>
+                      <ul className="blog-card-activity-list">
+                        {activitySessions
+                          .slice()
+                          .sort((a, b) => {
+                            const aDate = new Date(a?.endedAt ?? a?.startedAt ?? 0).getTime();
+                            const bDate = new Date(b?.endedAt ?? b?.startedAt ?? 0).getTime();
+                            return bDate - aDate;
+                          })
+                          .map((session) => {
+                            const key = session.id ?? `${session.startedAt}-${session.endedAt}`;
+                            return (
+                              <li key={key} className="blog-card-activity-item">
+                                <span className="blog-card-activity-time">
+                                  {formatActivityDateTime(session.startedAt)}
+                                </span>
+                                <span className="blog-card-activity-duration">
+                                  {formatActivityDuration(session.durationMs)}
+                                </span>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                    </div>
+                  )}
                   {hasMedia && (
                     <div className="blog-card-media">
                       {imageSources.length > 0 && (

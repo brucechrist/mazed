@@ -26,7 +26,7 @@ const readFileAsDataURL = (file) =>
   });
 
 const CATEGORY_TAGS = ['P', 'M', 'F'];
-const GENDER_TAGS = ['♂', '♀'];
+const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
 
 const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
@@ -38,6 +38,99 @@ const SOUND_PRESET_TAGS = [
   ...GENDER_TAGS,
   ...QUALITY_TAGS,
 ];
+
+const TRI_VIEW_CATEGORIES = [
+  { id: 'form', label: 'Form' },
+  { id: 'semi-formless', label: 'Semi-Formless' },
+  { id: 'formless', label: 'Formless' },
+];
+
+const TRI_CATEGORY_IDS = TRI_VIEW_CATEGORIES.map((category) => category.id);
+
+const TRI_CATEGORY_TO_TAG = {
+  form: 'P',
+  'semi-formless': 'M',
+  formless: 'F',
+};
+
+const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
+  (acc, [category, tag]) => {
+    acc[tag] = category;
+    return acc;
+  },
+  {}
+);
+
+const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
+const DUAL_COLUMNS = ['♀', '♂'];
+const DUAL_ROW_ICONS = {
+  Good: '▲',
+  Neutral: '–',
+  Bad: '▼',
+};
+const DUAL_ROW_LABELS = {
+  Good: 'Good',
+  Neutral: 'Neutral',
+  Bad: 'Bad',
+};
+const DUAL_COLUMN_LABELS = {
+  '♀': 'Feminine',
+  '♂': 'Masculine',
+};
+
+const normalizeTriCategory = (value) =>
+  TRI_CATEGORY_IDS.includes(value) ? value : null;
+
+const normalizeTriOrder = (value) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const buildTriIdLists = (items) => {
+  const indexMap = new Map(items.map((item, idx) => [item.id, idx]));
+  const buckets = {
+    form: [],
+    'semi-formless': [],
+    formless: [],
+    drawer: [],
+  };
+
+  items.forEach((img) => {
+    const category = normalizeTriCategory(img.triCategory);
+    if (category) {
+      buckets[category].push({
+        id: img.id,
+        order: normalizeTriOrder(img.triOrder),
+      });
+    } else {
+      buckets.drawer.push(img.id);
+    }
+  });
+
+  const sortCategory = (entries) =>
+    entries
+      .slice()
+      .sort((a, b) => {
+        const orderA =
+          typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+        const orderB =
+          typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return (indexMap.get(a.id) ?? 0) - (indexMap.get(b.id) ?? 0);
+      })
+      .map((entry) => entry.id);
+
+  return {
+    form: sortCategory(buckets.form),
+    'semi-formless': sortCategory(buckets['semi-formless']),
+    formless: sortCategory(buckets.formless),
+    drawer: buckets.drawer
+      .slice()
+      .sort(
+        (a, b) => (indexMap.get(a) ?? 0) - (indexMap.get(b) ?? 0)
+      ),
+  };
+};
 
 const parseSoundTags = (sound) => {
   const seen = new Set();
@@ -274,6 +367,46 @@ const normalizeImageTags = (tags) => {
   });
 };
 
+const deriveTriCategoryFromTags = (tags) => {
+  const preset = findPresetTag(tags, CATEGORY_TAGS);
+  return preset ? TRI_TAG_TO_CATEGORY[preset] ?? null : null;
+};
+
+const mergeTriCategoryIntoTags = (tags, triCategory) => {
+  const categoryTag = triCategory ? TRI_CATEGORY_TO_TAG[triCategory] ?? '' : '';
+  return buildImageTags({
+    orientation: getOrientationTag(tags),
+    category: categoryTag,
+    gender: findPresetTag(tags, GENDER_TAGS),
+    quality: findPresetTag(tags, QUALITY_TAGS),
+    customTags: extractCustomTags(tags),
+  });
+};
+
+const syncTriCategoryWithTags = (tags, triCategory) => {
+  const normalizedTags = normalizeImageTags(tags);
+  const normalizedCategory = normalizeTriCategory(triCategory);
+  const tagDerived = deriveTriCategoryFromTags(normalizedTags);
+
+  if (normalizedCategory) {
+    if (tagDerived !== normalizedCategory) {
+      return {
+        tags: mergeTriCategoryIntoTags(normalizedTags, normalizedCategory),
+        triCategory: normalizedCategory,
+      };
+    }
+    return {
+      tags: normalizedTags,
+      triCategory: normalizedCategory,
+    };
+  }
+
+  return {
+    tags: normalizedTags,
+    triCategory: tagDerived,
+  };
+};
+
 function QuadrantPicker({ value = [], onChange }) {
   const main = value[0];
   const sub = value[1];
@@ -321,6 +454,7 @@ export default function Library({ onBack }) {
   const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'random'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [libraryTheme, setLibraryTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedTheme = localStorage.getItem('libraryTheme');
@@ -336,8 +470,20 @@ export default function Library({ onBack }) {
     }
     return 'dark';
   });
+  const [libraryView, setLibraryView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedView = localStorage.getItem('libraryView');
+      if (storedView === 'tri' || storedView === 'quadrants' || storedView === 'dual') {
+        return storedView;
+      }
+    }
+    return 'classic';
+  });
   const [originalImages, setOriginalImages] = useState([]);
   const [draggedId, setDraggedId] = useState(null);
+  const [triDraggingId, setTriDraggingId] = useState(null);
+  const [triActiveZone, setTriActiveZone] = useState(null);
+  const [dualActiveCell, setDualActiveCell] = useState(null);
 
   const saveSequenceRef = useRef(0);
   const lastSavedImagesRef = useRef(new Map());
@@ -509,8 +655,14 @@ export default function Library({ onBack }) {
         }
 
         const base = { ...entry };
-        const normalizedTags = normalizeImageTags(base.tags);
+        const { tags: normalizedTags, triCategory } = syncTriCategoryWithTags(
+          base.tags,
+          base.triCategory
+        );
+        const triOrder = normalizeTriOrder(base.triOrder);
         base.tags = normalizedTags;
+        base.triCategory = triCategory;
+        base.triOrder = triOrder;
 
         const dataUrl =
           typeof base.dataUrl === 'string' && base.dataUrl.length
@@ -742,12 +894,18 @@ export default function Library({ onBack }) {
 
   const saveImages = (imgs) => {
     const normalized = imgs.map((img) => {
-      const normalizedTags = normalizeImageTags(img.tags);
+      const { tags: normalizedTags, triCategory } = syncTriCategoryWithTags(
+        img.tags,
+        img.triCategory
+      );
       const mimeType = img.mimeType || extractMimeType(img.dataUrl) || null;
+      const triOrder = normalizeTriOrder(img.triOrder);
       return {
         ...img,
         tags: normalizedTags,
         mimeType,
+        triCategory,
+        triOrder,
       };
     });
     setImages(normalized);
@@ -903,6 +1061,11 @@ export default function Library({ onBack }) {
       localStorage.setItem('libraryTheme', libraryTheme);
     }
   }, [libraryTheme]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('libraryView', libraryView);
+    }
+  }, [libraryView]);
   const maxZoom = 1; // max 100% of native size
   const colWidth = 250 * zoom;
   const rowHeight = 1; // finer base row height for masonry grid
@@ -1020,6 +1183,7 @@ export default function Library({ onBack }) {
       setSoundMenu(null);
       setSortMenuOpen(false);
       setSettingsOpen(false);
+      setViewMenuOpen(false);
     };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
@@ -1055,11 +1219,51 @@ export default function Library({ onBack }) {
   };
 
   const updateImage = (id, updates) => {
+    const currentImage = images.find((img) => img.id === id) || null;
     let payload = updates;
-    if (updates && typeof updates === 'object' && 'dataUrl' in updates) {
-      const mimeType =
-        updates.mimeType || extractMimeType(updates.dataUrl) || null;
-      payload = { ...updates, mimeType };
+
+    if (updates && typeof updates === 'object') {
+      if ('dataUrl' in updates) {
+        const mimeType =
+          updates.mimeType || extractMimeType(updates.dataUrl) || null;
+        payload = { ...payload, mimeType };
+      }
+
+      if ('tags' in updates) {
+        const { tags: normalizedTags, triCategory } = syncTriCategoryWithTags(
+          updates.tags,
+          updates.triCategory
+        );
+        const previousCategory = normalizeTriCategory(currentImage?.triCategory);
+        const nextCategory = normalizeTriCategory(triCategory);
+        payload = {
+          ...payload,
+          tags: normalizedTags,
+          triCategory: nextCategory,
+          triOrder:
+            previousCategory && previousCategory === nextCategory
+              ? currentImage?.triOrder ?? null
+              : null,
+        };
+      } else if ('triCategory' in updates) {
+        const nextCategory = normalizeTriCategory(updates.triCategory);
+        payload = {
+          ...payload,
+          triCategory: nextCategory,
+          tags: mergeTriCategoryIntoTags(
+            'tags' in updates ? updates.tags : currentImage?.tags,
+            nextCategory
+          ),
+          triOrder: nextCategory ? currentImage?.triOrder ?? null : null,
+        };
+      }
+
+      if ('triOrder' in updates) {
+        payload = {
+          ...payload,
+          triOrder: normalizeTriOrder(updates.triOrder),
+        };
+      }
     }
 
     const updated = images.map((img) =>
@@ -1418,7 +1622,12 @@ export default function Library({ onBack }) {
     );
   };
 
-  const renderImageCard = (img) => {
+  const renderImageCard = (img, options = {}) => {
+    const { disableReorderDrop = false, forceDraggable = false } = options;
+    const canDrag =
+      forceDraggable ||
+      (sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating');
+    const allowInternalReorder = canDrag && !disableReorderDrop;
     const scaledHeight =
       img.width && img.height
         ? (img.height / img.width) * colWidth
@@ -1433,9 +1642,7 @@ export default function Library({ onBack }) {
         key={img.id}
         className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
-        draggable={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-        }
+        draggable={canDrag}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ id: img.id, x: e.clientX, y: e.clientY });
@@ -1443,37 +1650,52 @@ export default function Library({ onBack }) {
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
           sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? () => setDraggedId(img.id)
+            ? (event) => {
+                setDraggedId(img.id);
+                if (event.dataTransfer) {
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData(
+                    'application/x-library-image-id',
+                    String(img.id)
+                  );
+                  event.dataTransfer.setData('text/plain', String(img.id));
+                }
+              }
             : undefined
         }
         onDragOver={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDragOver(e);
-                } else {
-                  e.preventDefault();
+          canDrag
+            ? (event) => {
+                if (event.dataTransfer?.files?.length) {
+                  handleDragOver(event);
+                } else if (allowInternalReorder) {
+                  event.preventDefault();
                 }
               }
             : undefined
         }
         onDrop={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? (e) => {
-                if (e.dataTransfer.files?.length) {
-                  handleDrop(e);
+          canDrag
+            ? (event) => {
+                if (event.dataTransfer?.files?.length) {
+                  handleDrop(event);
                   return;
                 }
-                e.preventDefault();
-                if (draggedId && draggedId !== img.id) {
-                  moveImage(draggedId, img.id);
+                if (allowInternalReorder) {
+                  event.preventDefault();
+                  if (draggedId && draggedId !== img.id) {
+                    moveImage(draggedId, img.id);
+                  }
                 }
               }
-              : undefined
-          }
+            : undefined
+        }
         onDragEnd={
           sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-            ? () => setDraggedId(null)
+            ? () => {
+                setDraggedId(null);
+                setDualActiveCell(null);
+              }
             : undefined
         }
       >
@@ -1596,6 +1818,695 @@ export default function Library({ onBack }) {
     );
   };
 
+  const triAssignments = useMemo(() => {
+    const empty = TRI_CATEGORY_IDS.reduce(
+      (acc, id) => ({ ...acc, [id]: [] }),
+      {}
+    );
+    if (!images.length) {
+      return { categories: empty, drawer: [] };
+    }
+    const lists = buildTriIdLists(images);
+    const imageMap = new Map(images.map((img) => [img.id, img]));
+    const categories = { ...empty };
+    TRI_CATEGORY_IDS.forEach((id) => {
+      const ids = lists[id] || [];
+      categories[id] = ids
+        .map((imageId) => imageMap.get(imageId))
+        .filter(Boolean);
+    });
+    const drawer = (lists.drawer || [])
+      .map((imageId) => imageMap.get(imageId))
+      .filter(Boolean);
+    return { categories, drawer };
+  }, [images]);
+
+  const quadrantAssignments = useMemo(() => {
+    const groups = QUADRANT_ORDER.reduce((acc, primary) => {
+      acc[primary] = {
+        core: [],
+        subs: QUADRANT_ORDER.reduce((subAcc, secondary) => {
+          subAcc[secondary] = [];
+          return subAcc;
+        }, {}),
+      };
+      return acc;
+    }, {});
+
+    const unassigned = [];
+
+    filteredImages.forEach((img) => {
+      const quadrants = Array.isArray(img.quadrants) ? img.quadrants : [];
+      const [primary, secondary] = quadrants;
+      const normalizedPrimary = QUADRANT_ORDER.includes(primary)
+        ? primary
+        : null;
+      const normalizedSecondary = QUADRANT_ORDER.includes(secondary)
+        ? secondary
+        : null;
+
+      if (!normalizedPrimary) {
+        unassigned.push(img);
+        return;
+      }
+
+      const target = groups[normalizedPrimary];
+      if (normalizedSecondary && normalizedSecondary !== normalizedPrimary) {
+        target.subs[normalizedSecondary].push(img);
+      } else {
+        target.core.push(img);
+      }
+    });
+
+    return { groups, unassigned };
+  }, [filteredImages]);
+
+  const dualAssignments = useMemo(() => {
+    const layout = DUAL_ROWS.reduce((acc, row) => {
+      acc[row] = DUAL_COLUMNS.reduce((columnAcc, column) => {
+        columnAcc[column] = [];
+        return columnAcc;
+      }, {});
+      return acc;
+    }, {});
+
+    const unassigned = [];
+
+    filteredImages.forEach((img) => {
+      const gender = findPresetTag(img.tags, GENDER_TAGS);
+      const quality = findPresetTag(img.tags, QUALITY_TAGS);
+      const normalizedGender = DUAL_COLUMNS.includes(gender) ? gender : '';
+      const normalizedQuality = DUAL_ROWS.includes(quality) ? quality : '';
+
+      if (!normalizedGender || !normalizedQuality) {
+        unassigned.push(img);
+        return;
+      }
+
+      layout[normalizedQuality][normalizedGender].push(img);
+    });
+
+    return { layout, unassigned };
+  }, [filteredImages]);
+
+  const isFileTransfer = (dataTransfer) => {
+    if (!dataTransfer) return false;
+    if (dataTransfer.files && dataTransfer.files.length > 0) {
+      return true;
+    }
+    const types = Array.isArray(dataTransfer.types)
+      ? dataTransfer.types
+      : Array.from(dataTransfer.types || []);
+    return types.includes('Files');
+  };
+
+  const updateTriPlacement = (imageId, targetCategory, targetIndex) => {
+    const lists = buildTriIdLists(images);
+    const categories = {
+      form: [...lists.form],
+      'semi-formless': [...lists['semi-formless']],
+      formless: [...lists.formless],
+    };
+    const drawer = [...lists.drawer];
+
+    const removeFromList = (list) => {
+      const idx = list.indexOf(imageId);
+      if (idx !== -1) {
+        list.splice(idx, 1);
+      }
+    };
+
+    Object.values(categories).forEach(removeFromList);
+    removeFromList(drawer);
+
+    const insertInto = (list) => {
+      if (!Array.isArray(list)) return;
+      const safeIndex =
+        typeof targetIndex === 'number'
+          ? Math.max(0, Math.min(targetIndex, list.length))
+          : list.length;
+      list.splice(safeIndex, 0, imageId);
+    };
+
+    if (targetCategory && categories[targetCategory]) {
+      insertInto(categories[targetCategory]);
+    } else {
+      insertInto(drawer);
+    }
+
+    const placement = new Map();
+    TRI_CATEGORY_IDS.forEach((id) => {
+      const list = categories[id] || [];
+      list.forEach((entryId, idx) => {
+        placement.set(entryId, {
+          category: id,
+          order: idx,
+        });
+      });
+    });
+    drawer.forEach((entryId) => {
+      placement.set(entryId, { category: null, order: null });
+    });
+
+    const updated = images.map((img) => {
+      const nextPlacement = placement.get(img.id);
+      if (!nextPlacement) {
+        return img;
+      }
+      const nextCategory = nextPlacement.category;
+      const nextOrder = normalizeTriOrder(nextPlacement.order);
+      const currentCategory = normalizeTriCategory(img.triCategory);
+      const currentOrder = normalizeTriOrder(img.triOrder);
+      const categoryChanged = currentCategory !== nextCategory;
+      const orderChanged = currentOrder !== nextOrder;
+      if (categoryChanged || orderChanged) {
+        return {
+          ...img,
+          triCategory: nextCategory,
+          triOrder: nextOrder,
+          tags: categoryChanged
+            ? mergeTriCategoryIntoTags(img.tags, nextCategory)
+            : img.tags,
+        };
+      }
+      return img;
+    });
+
+    saveImages(updated);
+  };
+
+  const findImageIdFromDragData = (raw) => {
+    if (typeof raw !== 'string' || !raw) return null;
+    const match = images.find((img) => String(img.id) === raw);
+    return match ? match.id : null;
+  };
+
+  const handleTriDragOverZone = (event, zoneId) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    setTriActiveZone((prev) => (prev === zoneId ? prev : zoneId));
+  };
+
+  const handleTriDrop = (event, categoryId, index) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setTriActiveZone(null);
+      setTriDraggingId(null);
+      return;
+    }
+    event.preventDefault();
+    const raw =
+      event.dataTransfer?.getData('application/x-library-tri-image') ||
+      event.dataTransfer?.getData('text/plain');
+    let resolvedId = findImageIdFromDragData(raw);
+    if (resolvedId === null || typeof resolvedId === 'undefined') {
+      resolvedId = triDraggingId ?? null;
+    }
+    if (resolvedId === null || typeof resolvedId === 'undefined') {
+      setTriActiveZone(null);
+      setTriDraggingId(null);
+      return;
+    }
+    updateTriPlacement(resolvedId, categoryId, index);
+    setTriActiveZone(null);
+    setTriDraggingId(null);
+  };
+
+  const getDualCellKey = (row, column) => `${row}::${column}`;
+
+  const resolveDualDragImageId = (event) => {
+    const raw =
+      event.dataTransfer?.getData('application/x-library-image-id') ||
+      event.dataTransfer?.getData('text/plain');
+    let resolvedId = findImageIdFromDragData(raw);
+    if (resolvedId === null || typeof resolvedId === 'undefined') {
+      resolvedId = draggedId ?? null;
+    }
+    return resolvedId === null || typeof resolvedId === 'undefined'
+      ? null
+      : resolvedId;
+  };
+
+  const handleDualDragOverCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    const key = getDualCellKey(row, column);
+    setDualActiveCell((prev) => (prev === key ? prev : key));
+  };
+
+  const handleDualDragLeaveCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragLeave(event);
+      return;
+    }
+    event.preventDefault();
+    const key = getDualCellKey(row, column);
+    setDualActiveCell((prev) => (prev === key ? null : prev));
+  };
+
+  const handleDualDragOverUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragOver(event);
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    setDualActiveCell((prev) => (prev === 'unassigned' ? prev : 'unassigned'));
+  };
+
+  const handleDualDragLeaveUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDragLeave(event);
+      return;
+    }
+    event.preventDefault();
+    setDualActiveCell((prev) => (prev === 'unassigned' ? null : prev));
+  };
+
+  const updateDualPlacement = (imageId, targetGender, targetQuality) => {
+    const image = images.find((img) => img.id === imageId);
+    if (!image) return;
+    const orientation = getOrientationTag(image.tags);
+    const category = findPresetTag(image.tags, CATEGORY_TAGS);
+    const custom = extractCustomTags(image.tags);
+    const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
+    const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
+    const nextTags = buildImageTags({
+      orientation,
+      category,
+      gender,
+      quality,
+      customTags: custom,
+    });
+    updateImage(imageId, { tags: nextTags });
+  };
+
+  const handleDualDropOnCell = (event, row, column) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setDualActiveCell(null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const resolvedId = resolveDualDragImageId(event);
+    setDualActiveCell(null);
+    if (resolvedId === null) {
+      return;
+    }
+    updateDualPlacement(resolvedId, column, row);
+    setDraggedId(null);
+  };
+
+  const handleDualDropOnUnassigned = (event) => {
+    if (isFileTransfer(event.dataTransfer)) {
+      handleDrop(event);
+      setDualActiveCell(null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const resolvedId = resolveDualDragImageId(event);
+    setDualActiveCell(null);
+    if (resolvedId === null) {
+      return;
+    }
+    updateDualPlacement(resolvedId, '', '');
+    setDraggedId(null);
+  };
+
+  const renderTriTile = (img, categoryId = null, index = null) => {
+    const isLoaded = Boolean(img.dataUrl);
+    const zoneId = categoryId || 'drawer';
+    const title = img.title || 'Untitled';
+    return (
+      <div
+        key={img.id}
+        className={`tri-image-tile${
+          triDraggingId === img.id ? ' dragging' : ''
+        }`}
+        draggable
+        onDragStart={(e) => {
+          setTriDraggingId(img.id);
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData(
+              'application/x-library-tri-image',
+              String(img.id)
+            );
+          }
+        }}
+        onDragEnd={() => {
+          setTriDraggingId(null);
+          setTriActiveZone(null);
+        }}
+        onDrop={(e) => {
+          e.stopPropagation();
+          handleTriDrop(e, categoryId, index);
+        }}
+        onDragOver={(e) => {
+          handleTriDragOverZone(e, zoneId);
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
+        }}
+        onClick={isLoaded ? () => setLightbox(img) : undefined}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && isLoaded) {
+            e.preventDefault();
+            setLightbox(img);
+          }
+        }}
+        aria-label={`View ${title}`}
+        title={title}
+      >
+        {isLoaded ? (
+          <img src={img.dataUrl} alt={title} draggable={false} />
+        ) : (
+          <div className="tri-image-placeholder" role="status">
+            <div className="image-loading-spinner" aria-hidden="true" />
+            <span className="image-loading-text">Loading…</span>
+          </div>
+        )}
+        <div className="tri-image-label">
+          {img.color && (
+            <span className="color-dot" style={{ background: img.color }} />
+          )}
+          <span className="tri-image-title">{title}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTriView = () => {
+    const drawerImages = triAssignments.drawer;
+    const message = images.length
+      ? 'Drag images from the drawer into a category to lock them in place.'
+      : 'Upload images to start sorting them into Form, Semi-Formless, and Formless.';
+    return (
+      <div className="tri-view">
+        <p className="tri-instructions">{message}</p>
+        <div className="tri-columns">
+          {TRI_VIEW_CATEGORIES.map(({ id, label }) => {
+            const items = triAssignments.categories[id] || [];
+            return (
+              <div
+                key={id}
+                className={`tri-column${
+                  triActiveZone === id ? ' active-drop' : ''
+                }`}
+              >
+                <div className="tri-column-header">
+                  <h3>{label}</h3>
+                  <span className="tri-column-count">{items.length}</span>
+                </div>
+                <div
+                  className={`tri-column-body${
+                    triActiveZone === id ? ' active-drop' : ''
+                  }`}
+                  onDragOver={(e) => handleTriDragOverZone(e, id)}
+                  onDrop={(e) => handleTriDrop(e, id)}
+                >
+                  {items.length ? (
+                    items.map((img, index) => renderTriTile(img, id, index))
+                  ) : (
+                    <div className="tri-column-empty">Drop images here</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="tri-drawer">
+          <div className="tri-drawer-header">
+            <span>Library Drawer</span>
+            <span className="tri-drawer-count">{drawerImages.length}</span>
+          </div>
+          <div
+            className={`tri-drawer-body${
+              triActiveZone === 'drawer' ? ' active-drop' : ''
+            }`}
+            onDragOver={(e) => handleTriDragOverZone(e, 'drawer')}
+            onDrop={(e) => handleTriDrop(e, null)}
+          >
+            {drawerImages.length ? (
+              drawerImages.map((img, index) => renderTriTile(img, null, index))
+            ) : (
+              <div className="tri-drawer-empty">
+                Images you add appear here until you place them in a category.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderQuadrantView = () => {
+    const gridStyle = {
+      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+      gridAutoRows: `${rowHeight}px`,
+      gap: `${gridGap}px`,
+    };
+
+    const hasContent =
+      QUADRANT_ORDER.some((primary) => {
+        const group = quadrantAssignments.groups[primary];
+        if (!group) return false;
+        const secondaryCount = QUADRANT_ORDER.reduce(
+          (sum, secondary) => sum + group.subs[secondary].length,
+          0
+        );
+        return group.core.length > 0 || secondaryCount > 0;
+      }) || quadrantAssignments.unassigned.length > 0;
+
+    if (!hasContent) {
+      return (
+        <div className="quadrant-view-empty">
+          <p>
+            Assign quadrants to your library images from the lightbox to see
+            them organized here.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="quadrant-view">
+        {QUADRANT_ORDER.map((primary) => {
+          const group = quadrantAssignments.groups[primary];
+          const total = group
+            ? group.core.length +
+              QUADRANT_ORDER.reduce(
+                (sum, secondary) => sum + group.subs[secondary].length,
+                0
+              )
+            : 0;
+          return (
+            <section key={primary} className="quadrant-column">
+              <header className="quadrant-column-header">
+                <h3>{`Quadrant ${primary}`}</h3>
+                <span className="quadrant-count">{total}</span>
+              </header>
+              <div className="quadrant-column-body">
+                {group && total > 0 ? (
+                  <>
+                    {group.core.length > 0 && (
+                      <div className="quadrant-group">
+                        <h4 className="quadrant-group-label">Core</h4>
+                        <div style={{ width: '100%', overflow: 'hidden' }}>
+                          <div className="image-grid" style={gridStyle}>
+                            {group.core.map((img) => renderImageCard(img))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {QUADRANT_ORDER.map((secondary) => {
+                      const items = group.subs[secondary];
+                      if (!items.length) return null;
+                      return (
+                        <div key={secondary} className="quadrant-group">
+                          <h4 className="quadrant-group-label">{`${primary} → ${secondary}`}</h4>
+                          <div style={{ width: '100%', overflow: 'hidden' }}>
+                            <div className="image-grid" style={gridStyle}>
+                              {items.map((img) => renderImageCard(img))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <div className="quadrant-group-empty">
+                    No images assigned to this quadrant yet.
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
+        {quadrantAssignments.unassigned.length > 0 && (
+          <section className="quadrant-column">
+            <header className="quadrant-column-header">
+              <h3>Unassigned</h3>
+              <span className="quadrant-count">{quadrantAssignments.unassigned.length}</span>
+            </header>
+            <div className="quadrant-column-body">
+              <div style={{ width: '100%', overflow: 'hidden' }}>
+                <div className="image-grid" style={gridStyle}>
+                  {quadrantAssignments.unassigned.map((img) =>
+                    renderImageCard(img)
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  };
+
+  const renderDualView = () => {
+    const gridStyle = {
+      gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+      gridAutoRows: `${rowHeight}px`,
+      gap: `${gridGap}px`,
+    };
+
+    const hasContent =
+      DUAL_ROWS.some((row) =>
+        DUAL_COLUMNS.some(
+          (column) => dualAssignments.layout[row][column].length > 0,
+        ),
+      ) || dualAssignments.unassigned.length > 0;
+
+    if (!hasContent) {
+      return (
+        <div className="dual-view-empty">
+          <p>
+            Tag your images with a gender (♂ or ♀) and a quality (Good, Neutral,
+            Bad) from the lightbox to see them on the Dual board.
+          </p>
+        </div>
+      );
+    }
+
+    const columnTotals = DUAL_COLUMNS.reduce((acc, column) => {
+      acc[column] = DUAL_ROWS.reduce(
+        (sum, row) => sum + dualAssignments.layout[row][column].length,
+        0,
+      );
+      return acc;
+    }, {});
+
+    const rowTotals = DUAL_ROWS.reduce((acc, row) => {
+      acc[row] = DUAL_COLUMNS.reduce(
+        (sum, column) => sum + dualAssignments.layout[row][column].length,
+        0,
+      );
+      return acc;
+    }, {});
+
+    return (
+      <div className="dual-view">
+        <div className="dual-grid">
+          <div className="dual-grid-corner" aria-hidden="true" />
+          {DUAL_COLUMNS.map((column) => (
+            <div
+              key={column}
+              className={`dual-column-header ${
+                column === '♂' ? 'dual-column-masculine' : 'dual-column-feminine'
+              }`}
+            >
+              <span className="dual-column-icon" aria-hidden="true">
+                {column}
+              </span>
+              <div className="dual-column-labels">
+                <span className="dual-column-name">{DUAL_COLUMN_LABELS[column]}</span>
+                <span className="dual-count" aria-label={`${DUAL_COLUMN_LABELS[column]} images`}>
+                  {columnTotals[column]}
+                </span>
+              </div>
+            </div>
+          ))}
+          {DUAL_ROWS.map((row) => (
+            <React.Fragment key={row}>
+              <div className={`dual-row-header dual-row-${row.toLowerCase()}`}>
+                <span className="dual-row-icon" aria-hidden="true">
+                  {DUAL_ROW_ICONS[row]}
+                </span>
+                <div className="dual-row-labels">
+                  <span className="dual-row-name">{DUAL_ROW_LABELS[row]}</span>
+                  <span className="dual-count" aria-label={`${DUAL_ROW_LABELS[row]} images`}>
+                    {rowTotals[row]}
+                  </span>
+                </div>
+              </div>
+              {DUAL_COLUMNS.map((column) => {
+                const key = `${row}-${column}`;
+                const items = dualAssignments.layout[row][column];
+                return (
+                  <div
+                    key={key}
+                    className={`dual-cell dual-column-${
+                      column === '♂' ? 'masculine' : 'feminine'
+                    } dual-row-${row.toLowerCase()}`}
+                  >
+                    {items.length ? (
+                      <div style={{ width: '100%', overflow: 'hidden' }}>
+                        <div className="image-grid" style={gridStyle}>
+                          {items.map((img) => renderImageCard(img))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="dual-cell-empty">No images yet</div>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+        {dualAssignments.unassigned.length > 0 && (
+          <section className="dual-unassigned">
+            <header className="dual-unassigned-header">
+              <h3>Unassigned</h3>
+              <span className="dual-count" aria-label="Unassigned images">
+                {dualAssignments.unassigned.length}
+              </span>
+            </header>
+            <div style={{ width: '100%', overflow: 'hidden' }}>
+              <div className="image-grid" style={gridStyle}>
+                {dualAssignments.unassigned.map((img) => renderImageCard(img))}
+              </div>
+            </div>
+            <p className="dual-unassigned-help">
+              Add a gender (♂ or ♀) and a quality (Good, Neutral, Bad) tag from
+              the lightbox to place these images on the board.
+            </p>
+          </section>
+        )}
+      </div>
+    );
+  };
+
   const lightboxOrientation = getOrientationTag(lightbox?.tags);
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
@@ -1622,7 +2533,7 @@ export default function Library({ onBack }) {
     <div
       className={`library-container ${
         isDragging ? 'dragging' : ''
-      } ${libraryTheme === 'light' ? 'light-mode' : 'dark-mode'}`}
+      } ${libraryTheme === 'light' ? 'light-mode' : 'dark-mode'} library-view-${libraryView}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -1637,6 +2548,103 @@ export default function Library({ onBack }) {
           </button>
           <h2>Library</h2>
           <div className="library-actions">
+            <div className="library-view-selector">
+              <button
+                type="button"
+                className={`library-view-button${
+                  viewMenuOpen ? ' open' : ''
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewMenuOpen((open) => !open);
+                  setSettingsOpen(false);
+                  setSortMenuOpen(false);
+                }}
+                aria-haspopup="true"
+                aria-expanded={viewMenuOpen}
+              >
+                View
+              </button>
+              {viewMenuOpen && (
+                <div
+                  className="library-view-menu"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className={libraryView === 'classic' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('classic');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Classic</span>
+                    {libraryView === 'classic' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'tri' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('tri');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Tri</span>
+                    {libraryView === 'tri' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'quadrants' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('quadrants');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Quadrants</span>
+                    {libraryView === 'quadrants' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={libraryView === 'dual' ? 'active' : ''}
+                    onClick={() => {
+                      setLibraryView('dual');
+                      setViewMenuOpen(false);
+                    }}
+                  >
+                    <span>Dual</span>
+                    {libraryView === 'dual' && (
+                      <span
+                        className="library-view-check"
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="library-settings">
               <button
                 type="button"
@@ -1849,148 +2857,155 @@ export default function Library({ onBack }) {
             Sounds
           </button>
         </div>
-        {(activeTab === 'all' || activeTab === 'images') && (
-          sortMode === 'color' ? (
-            <div className="color-groups">
-              {palette.map((c) => {
-                const groupImgs = filteredImages.filter((img) => img.color === c);
-                const groupSounds = sounds.filter((s) => s.color === c);
-                if (!groupImgs.length && !groupSounds.length) return null;
-                return (
-                  <div key={c} className="color-group">
-                    <h3 className="color-title" style={{ color: c }}>
-                      {hexToName(c)}
-                    </h3>
-                      <div style={{ width: '100%', overflow: 'hidden' }}>
-                        <div
-                          className="image-grid"
-                          style={{
-                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
-                            gridAutoRows: `${rowHeight}px`,
-                            gap: `${gridGap}px`,
+        {(activeTab === 'all' || activeTab === 'images') &&
+          (libraryView === 'tri'
+            ? renderTriView()
+            : libraryView === 'quadrants'
+            ? renderQuadrantView()
+            : libraryView === 'dual'
+            ? renderDualView()
+            : sortMode === 'color'
+            ? (
+              <div className="color-groups">
+                {palette.map((c) => {
+                  const groupImgs = filteredImages.filter((img) => img.color === c);
+                  const groupSounds = sounds.filter((s) => s.color === c);
+                  if (!groupImgs.length && !groupSounds.length) return null;
+                  return (
+                    <div key={c} className="color-group">
+                      <h3 className="color-title" style={{ color: c }}>
+                        {hexToName(c)}
+                      </h3>
+                        <div style={{ width: '100%', overflow: 'hidden' }}>
+                          <div
+                            className="image-grid"
+                            style={{
+                              gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                              gridAutoRows: `${rowHeight}px`,
+                              gap: `${gridGap}px`,
+                            }}
+                            onDragOver={(e) => {
+                            if (e.dataTransfer.files?.length) {
+                              handleDragOver(e);
+                            } else {
+                              e.preventDefault();
+                            }
                           }}
-                          onDragOver={(e) => {
-                          if (e.dataTransfer.files?.length) {
-                            handleDragOver(e);
-                          } else {
+                          onDrop={(e) => {
+                            if (e.dataTransfer.files?.length) {
+                              handleDrop(e);
+                              return;
+                            }
                             e.preventDefault();
-                          }
-                        }}
-                        onDrop={(e) => {
+                            if (draggedId) {
+                              const updated = images.filter((img) => img.id !== draggedId);
+                              const moved = images.find((img) => img.id === draggedId);
+                              if (moved) {
+                                moved.color = c;
+                                moved.title = hexToName(c);
+                                updated.push(moved);
+                                saveImages(updated);
+                              }
+                              setDraggedId(null);
+                            }
+                          }}
+                        >
+                          {groupImgs.map((img) => renderImageCard(img))}
+                          {activeTab === 'all' &&
+                            groupSounds.map((s) => renderSoundCard(s))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {activeTab === 'all' && sounds.length > 0 && (
+                  <div className="color-group">
+                    <h3 className="color-title" style={{ color: '#fff' }}>
+                      Sounds
+                    </h3>
+                        <div style={{ width: '100%', overflow: 'hidden' }}>
+                          <div
+                            className="image-grid"
+                            style={{
+                              gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                              gridAutoRows: `${rowHeight}px`,
+                              gap: `${gridGap}px`,
+                            }}
+                          >
+                          {sounds.map((s) => renderSoundCard(s))}
+                        </div>
+                      </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                className="image-grid"
+                style={{
+                  gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                  gridAutoRows: `${rowHeight}px`,
+                  gap: `${gridGap}px`,
+                }}
+                onDragOver={
+                  sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+                    ? (e) => {
+                        if (e.dataTransfer.files?.length) {
+                          handleDragOver(e);
+                        } else {
+                          e.preventDefault();
+                        }
+                      }
+                    : undefined
+                }
+                  onDrop={
+                    sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+                      ? (e) => {
                           if (e.dataTransfer.files?.length) {
                             handleDrop(e);
                             return;
                           }
                           e.preventDefault();
                           if (draggedId) {
-                            const updated = images.filter((img) => img.id !== draggedId);
-                            const moved = images.find((img) => img.id === draggedId);
-                            if (moved) {
-                              moved.color = c;
-                              moved.title = hexToName(c);
+                            const fromIndex = images.findIndex(
+                              (img) => img.id === draggedId
+                            );
+                            if (fromIndex !== -1) {
+                              const updated = [...images];
+                              const [moved] = updated.splice(fromIndex, 1);
                               updated.push(moved);
                               saveImages(updated);
                             }
                             setDraggedId(null);
                           }
-                        }}
-                      >
-                        {groupImgs.map((img) => renderImageCard(img))}
-                        {activeTab === 'all' &&
-                          groupSounds.map((s) => renderSoundCard(s))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {activeTab === 'all' && sounds.length > 0 && (
-                <div className="color-group">
-                  <h3 className="color-title" style={{ color: '#fff' }}>
-                    Sounds
-                  </h3>
-                      <div style={{ width: '100%', overflow: 'hidden' }}>
-                        <div
-                          className="image-grid"
-                          style={{
-                            gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
-                            gridAutoRows: `${rowHeight}px`,
-                            gap: `${gridGap}px`,
-                          }}
-                        >
-                        {sounds.map((s) => renderSoundCard(s))}
-                      </div>
-                    </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div
-              className="image-grid"
-              style={{
-                gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
-                gridAutoRows: `${rowHeight}px`,
-                gap: `${gridGap}px`,
-              }}
-              onDragOver={
-                sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-                  ? (e) => {
-                      if (e.dataTransfer.files?.length) {
-                        handleDragOver(e);
-                      } else {
-                        e.preventDefault();
-                      }
-                    }
-                  : undefined
-              }
-                onDrop={
-                  sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
-                    ? (e) => {
-                        if (e.dataTransfer.files?.length) {
-                          handleDrop(e);
-                          return;
                         }
-                        e.preventDefault();
-                        if (draggedId) {
-                          const fromIndex = images.findIndex(
-                            (img) => img.id === draggedId
+                      : undefined
+                  }
+                  >
+                    {activeTab === 'all'
+                      ? (() => {
+                          const combined = [
+                            ...filteredImages.map((img) => ({
+                              type: 'image',
+                              item: img,
+                            })),
+                            ...sounds.map((s) => ({ type: 'sound', item: s })),
+                          ];
+                          const ordered =
+                            sortMode === 'date'
+                              ? combined
+                                  .slice()
+                                  .sort((a, b) => a.item.id - b.item.id)
+                              : combined;
+                          return ordered.map(({ type, item }) =>
+                            type === 'image'
+                              ? renderImageCard(item)
+                              : renderSoundCard(item)
                           );
-                          if (fromIndex !== -1) {
-                            const updated = [...images];
-                            const [moved] = updated.splice(fromIndex, 1);
-                            updated.push(moved);
-                            saveImages(updated);
-                          }
-                          setDraggedId(null);
-                        }
-                      }
-                    : undefined
-                }
-                >
-                  {activeTab === 'all'
-                    ? (() => {
-                        const combined = [
-                          ...filteredImages.map((img) => ({
-                            type: 'image',
-                            item: img,
-                          })),
-                          ...sounds.map((s) => ({ type: 'sound', item: s })),
-                        ];
-                        const ordered =
-                          sortMode === 'date'
-                            ? combined
-                                .slice()
-                                .sort((a, b) => a.item.id - b.item.id)
-                            : combined;
-                        return ordered.map(({ type, item }) =>
-                          type === 'image'
-                            ? renderImageCard(item)
-                            : renderSoundCard(item)
-                        );
-                      })()
-                    : filteredImages.map((img) => renderImageCard(img))}
-                </div>
-            ))}
-          {(activeTab === 'all' || activeTab === 'words') && (
+                        })()
+                      : filteredImages.map((img) => renderImageCard(img))}
+                  </div>
+              ))}
+        {(activeTab === 'all' || activeTab === 'words') && (
           <div className="word-section">
             {activeTab === 'words' && (
               <form onSubmit={handleAddWord} className="word-form">
@@ -2012,6 +3027,22 @@ export default function Library({ onBack }) {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {libraryView === 'tri' && activeTab === 'all' && sounds.length > 0 && (
+          <div className="sound-section tri-sound-section">
+            <div style={{ width: '100%', overflow: 'hidden' }}>
+              <div
+                className="image-grid"
+                style={{
+                  gridTemplateColumns: `repeat(auto-fill, ${colWidth}px)`,
+                  gridAutoRows: `${rowHeight}px`,
+                  gap: `${gridGap}px`,
+                }}
+              >
+                {sounds.map((s) => renderSoundCard(s))}
+              </div>
+            </div>
           </div>
         )}
         {activeTab === 'sounds' && (

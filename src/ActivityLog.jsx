@@ -1,9 +1,25 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  loadActivityBlogIndex,
+  loadBlogPostsFromStorage,
+  loadRegisteredActivityNames,
+  persistActivityBlogIndex,
+  persistBlogPostsToStorage,
+  sanitizeBlogPostRecord,
+} from './ToolsBlog.jsx';
 import './placeholder-app.css';
 import './activity-log.css';
 
 const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
+
+const DEFAULT_ACTIVITIES = [
+  'Meditation - Vipassana',
+  'Meditation - Ramana',
+  'Yoga',
+  'Workout',
+  'Reading',
+];
 
 const safeParse = (value, fallback) => {
   try {
@@ -66,7 +82,252 @@ const finalizeSession = (session, endTime = new Date()) => {
   };
 };
 
+const sanitizeActivityName = (name) => {
+  if (typeof name !== 'string') {
+    return '';
+  }
+
+  return name.trim();
+};
+
+const loadSanitizedBlogPosts = () => {
+  if (typeof loadBlogPostsFromStorage !== 'function') {
+    return [];
+  }
+
+  try {
+    const storedPosts = loadBlogPostsFromStorage();
+    if (!Array.isArray(storedPosts)) {
+      return [];
+    }
+
+    return storedPosts
+      .map((post) => safeSanitizeBlogPostRecord(post))
+      .filter(Boolean);
+  } catch (error) {
+    console.error('Failed to load blog posts from storage', error);
+    return [];
+  }
+};
+
+const generatePostId = (posts) => {
+  const usedIds = new Set(posts.map((post) => post.id));
+  let candidate = Date.now();
+
+  while (usedIds.has(candidate)) {
+    candidate += 1;
+  }
+
+  return candidate;
+};
+
+const sanitizeSessionForBlog = (session) => {
+  if (session == null || typeof session !== 'object') {
+    return null;
+  }
+
+  const durationMs = Number(session.durationMs);
+  const sanitizedDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
+
+  const sanitizedSession = {
+    id: Number.isInteger(Number(session.id)) ? Number(session.id) : Date.now(),
+    startedAt: typeof session.startedAt === 'string' ? session.startedAt : null,
+    endedAt: typeof session.endedAt === 'string' ? session.endedAt : null,
+    durationMs: sanitizedDuration,
+  };
+
+  if (!sanitizedSession.startedAt && !sanitizedSession.endedAt && sanitizedSession.durationMs === 0) {
+    return null;
+  }
+
+  return sanitizedSession;
+};
+
+const safeSanitizeBlogPostRecord = (post) => {
+  if (typeof sanitizeBlogPostRecord === 'function') {
+    try {
+      return sanitizeBlogPostRecord(post);
+    } catch (error) {
+      console.error('Failed to sanitize blog post record', error);
+      return null;
+    }
+  }
+
+  if (post && typeof post === 'object') {
+    return { ...post };
+  }
+
+  return null;
+};
+
+const buildActivityOptions = (names) => {
+  if (!Array.isArray(names)) {
+    return [];
+  }
+
+  const byKey = new Map();
+  names.forEach((name) => {
+    const sanitized = sanitizeActivityName(name);
+    if (!sanitized) {
+      return;
+    }
+
+    const key = sanitized.toLowerCase();
+    if (!byKey.has(key)) {
+      byKey.set(key, sanitized);
+    }
+  });
+
+  return Array.from(byKey.values()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+};
+
+const withActivityBlogPost = (activityName, updater) => {
+  const trimmedName = sanitizeActivityName(activityName);
+  if (!trimmedName || typeof window === 'undefined') {
+    return null;
+  }
+
+  const posts = loadSanitizedBlogPosts();
+  const index =
+    typeof loadActivityBlogIndex === 'function'
+      ? loadActivityBlogIndex() || {}
+      : {};
+  const mappedId = Number(index[trimmedName]);
+  const hasMappedId = Number.isInteger(mappedId);
+  let postId = hasMappedId ? mappedId : null;
+  let postIndex = posts.findIndex((post) => post.id === postId);
+
+  if (postIndex === -1) {
+    const matchedIndex = posts.findIndex((post) => {
+      const candidate = sanitizeActivityName(post?.activityName ?? post?.title);
+      return (
+        !!candidate &&
+        candidate.localeCompare(trimmedName, undefined, { sensitivity: 'base' }) === 0
+      );
+    });
+
+    if (matchedIndex !== -1) {
+      postIndex = matchedIndex;
+      postId = posts[matchedIndex].id;
+    }
+  }
+
+  if (postIndex === -1) {
+    postId = generatePostId(posts);
+    const newPost = safeSanitizeBlogPostRecord({
+      id: postId,
+      title: `${trimmedName} activity stream`,
+      status: 'Draft',
+      excerpt: `Automatically collecting moments linked to ${trimmedName}.`,
+      stream: 'training-layer',
+      mood: 'listening',
+      images: [],
+      link: '',
+      activityName: trimmedName,
+      activitySessions: [],
+    });
+
+    if (newPost) {
+      posts.unshift(newPost);
+      postIndex = 0;
+    }
+  }
+
+  if (postIndex === -1) {
+    return null;
+  }
+
+  index[trimmedName] = postId;
+  const post = posts[postIndex];
+  const updatedPost = updater ? updater(post) ?? post : post;
+  const sanitizedPost = safeSanitizeBlogPostRecord({
+    ...updatedPost,
+    id: postId,
+    activityName: updatedPost.activityName || trimmedName,
+  });
+
+  if (!sanitizedPost) {
+    return null;
+  }
+
+  posts[postIndex] = sanitizedPost;
+  if (typeof persistBlogPostsToStorage === 'function') {
+    try {
+      persistBlogPostsToStorage(posts);
+    } catch (error) {
+      console.error('Failed to persist blog posts to storage', error);
+    }
+  }
+  if (typeof persistActivityBlogIndex === 'function') {
+    try {
+      persistActivityBlogIndex(index);
+    } catch (error) {
+      console.error('Failed to persist activity blog index', error);
+    }
+  }
+
+  return sanitizedPost;
+};
+
+const ensureActivityBlogPost = (activityName) =>
+  withActivityBlogPost(activityName, (post) => post);
+
+const recordSessionInBlog = (session) => {
+  const sanitizedSession = sanitizeSessionForBlog(session);
+  const activityName = sanitizeActivityName(session?.name);
+
+  if (!sanitizedSession || !activityName) {
+    return;
+  }
+
+  withActivityBlogPost(activityName, (post) => {
+    const existingSessions = Array.isArray(post.activitySessions)
+      ? post.activitySessions
+      : [];
+
+    const hasExistingSession = existingSessions.some(
+      (item) => Number(item?.id) === Number(sanitizedSession.id)
+    );
+
+    if (hasExistingSession) {
+      return {
+        ...post,
+        activitySessions: existingSessions.map((item) =>
+          Number(item?.id) === Number(sanitizedSession.id) ? sanitizedSession : item
+        ),
+      };
+    }
+
+    return {
+      ...post,
+      activitySessions: [...existingSessions, sanitizedSession],
+    };
+  });
+};
+
 export default function ActivityLog({ onBack }) {
+  const buildOptionsFromStorage = useCallback(() => {
+    let storedNames = [];
+    try {
+      storedNames =
+        typeof loadRegisteredActivityNames === 'function'
+          ? loadRegisteredActivityNames()
+          : [];
+    } catch (error) {
+      console.error('Failed to load registered activity names', error);
+      storedNames = [];
+    }
+    const sanitizedStored = Array.isArray(storedNames)
+      ? buildActivityOptions(storedNames)
+      : [];
+    if (sanitizedStored.length > 0) {
+      return sanitizedStored;
+    }
+    return buildActivityOptions(DEFAULT_ACTIVITIES);
+  }, []);
+
   const [entries, setEntries] = useState(() =>
     safeParse(localStorage.getItem(ENTRIES_KEY), [])
   );
@@ -74,7 +335,16 @@ export default function ActivityLog({ onBack }) {
     safeParse(localStorage.getItem(CURRENT_KEY), null)
   );
   const [activityName, setActivityName] = useState(() => current?.name || '');
+  const [activityOptions, setActivityOptions] = useState(() =>
+    buildOptionsFromStorage()
+  );
+  const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
+
+  const refreshActivityOptions = useCallback(() => {
+    setActivityOptions(buildOptionsFromStorage());
+  }, [buildOptionsFromStorage]);
 
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
@@ -82,16 +352,87 @@ export default function ActivityLog({ onBack }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    try {
+      localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    } catch (error) {
+      console.error('Failed to persist activity log entries', error);
+    }
   }, [entries]);
 
   useEffect(() => {
-    if (current) {
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
-    } else {
-      localStorage.removeItem(CURRENT_KEY);
+    try {
+      if (current) {
+        localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
+      } else {
+        localStorage.removeItem(CURRENT_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to persist current activity session', error);
     }
   }, [current]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const ensureRegistered = (names) => {
+      names.forEach((name) => ensureActivityBlogPost(name));
+    };
+
+    const syncActivityNetwork = (overrideNames) => {
+      const names = overrideNames || buildOptionsFromStorage();
+      setActivityOptions(names);
+      ensureRegistered(names);
+    };
+
+    syncActivityNetwork();
+
+    const handleActivitiesUpdated = (event) => {
+      const detailNames = Array.isArray(event?.detail)
+        ? event.detail
+            .map((item) =>
+              typeof item === 'string' ? item : sanitizeActivityName(item?.title)
+            )
+            .filter(Boolean)
+        : [];
+      const merged = buildActivityOptions([
+        ...detailNames,
+        ...buildOptionsFromStorage(),
+      ]);
+      syncActivityNetwork(merged);
+    };
+
+    const handleStorage = (event) => {
+      if (
+        !event ||
+        event.key === 'activities' ||
+        event.key === ENTRIES_KEY ||
+        event.key === CURRENT_KEY
+      ) {
+        syncActivityNetwork();
+      }
+    };
+
+    window.addEventListener('activities-updated', handleActivitiesUpdated);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('activities-updated', handleActivitiesUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [buildOptionsFromStorage]);
+
+  useEffect(() => {
+    const sanitizedCurrent = sanitizeActivityName(activityName);
+    if (
+      !isAddingActivity &&
+      !sanitizedCurrent &&
+      activityOptions.length > 0
+    ) {
+      setActivityName(activityOptions[0]);
+    }
+  }, [activityOptions, activityName, isAddingActivity]);
 
   const currentElapsed = useMemo(() => {
     if (!current) return 0;
@@ -111,22 +452,18 @@ export default function ActivityLog({ onBack }) {
   const totals = useMemo(() => {
     const map = new Map();
     entries.forEach((entry) => {
-      if (!entry?.name || !entry?.durationMs) return;
-      const prev = map.get(entry.name) || 0;
-      map.set(entry.name, prev + entry.durationMs);
+      const sanitizedName = sanitizeActivityName(entry?.name);
+      if (!sanitizedName || !entry?.durationMs) return;
+      const prev = map.get(sanitizedName) || 0;
+      map.set(sanitizedName, prev + entry.durationMs);
     });
     if (current?.name) {
-      const prev = map.get(current.name) || 0;
-      map.set(current.name, prev + currentElapsed);
+      const sanitizedName = sanitizeActivityName(current.name);
+      const prev = map.get(sanitizedName) || 0;
+      map.set(sanitizedName, prev + currentElapsed);
     }
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [entries, current, currentElapsed]);
-
-  const suggestions = useMemo(() => {
-    const set = new Set(entries.map((entry) => entry.name).filter(Boolean));
-    if (current?.name) set.add(current.name);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [entries, current]);
 
   const sortedHistory = useMemo(() => {
     return [...entries].sort((a, b) => {
@@ -137,10 +474,12 @@ export default function ActivityLog({ onBack }) {
   }, [entries]);
 
   const isRunning = Boolean(current?.activeSegmentStart);
-  const trimmedName = activityName.trim();
-  const isSameActivity = current?.name && trimmedName === current.name;
-  const startDisabled = !trimmedName || (isSameActivity && isRunning);
-  const startLabel = !trimmedName
+  const sanitizedSelectedName = sanitizeActivityName(activityName);
+  const sanitizedCurrentName = sanitizeActivityName(current?.name);
+  const isSameActivity =
+    Boolean(sanitizedSelectedName) && sanitizedSelectedName === sanitizedCurrentName;
+  const startDisabled = !sanitizedSelectedName || (isSameActivity && isRunning);
+  const startLabel = !sanitizedSelectedName
     ? 'Start Activity'
     : isSameActivity
       ? isRunning
@@ -152,30 +491,26 @@ export default function ActivityLog({ onBack }) {
 
   const persistEntries = (next) => {
     setEntries(next);
-    localStorage.setItem(ENTRIES_KEY, JSON.stringify(next));
   };
 
   const persistCurrent = (next) => {
     setCurrent(next);
-    if (next) {
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(next));
-    } else {
-      localStorage.removeItem(CURRENT_KEY);
-    }
   };
 
   const handleStart = () => {
     if (startDisabled) return;
     const now = new Date();
+    ensureActivityBlogPost(sanitizedSelectedName);
 
-    if (current && current.name !== trimmedName) {
+    if (current && sanitizeActivityName(current.name) !== sanitizedSelectedName) {
       const finished = finalizeSession(current, now);
       if (finished) {
         persistEntries([...entries, finished]);
+        recordSessionInBlog(finished);
       }
     }
 
-    if (current && current.name === trimmedName) {
+    if (current && sanitizeActivityName(current.name) === sanitizedSelectedName) {
       if (current.activeSegmentStart) return;
       const resumed = {
         ...current,
@@ -185,14 +520,14 @@ export default function ActivityLog({ onBack }) {
     } else {
       const nextSession = {
         id: now.getTime(),
-        name: trimmedName,
+        name: sanitizedSelectedName,
         startedAt: now.toISOString(),
         elapsed: 0,
         segments: [],
         activeSegmentStart: now.toISOString(),
       };
       persistCurrent(nextSession);
-      setActivityName(trimmedName);
+      setActivityName(sanitizedSelectedName);
     }
   };
 
@@ -223,6 +558,7 @@ export default function ActivityLog({ onBack }) {
     const finished = finalizeSession(current, new Date());
     if (finished) {
       persistEntries([...entries, finished]);
+      recordSessionInBlog(finished);
     }
     persistCurrent(null);
   };
@@ -234,6 +570,45 @@ export default function ActivityLog({ onBack }) {
       persistCurrent(null);
       setActivityName('');
     }
+  };
+
+  const handleSelectActivity = (event) => {
+    setActivityName(event.target.value);
+  };
+
+  const handleStartAdding = () => {
+    setIsAddingActivity(true);
+    setNewActivityName('');
+  };
+
+  const handleCancelAdding = () => {
+    setIsAddingActivity(false);
+    setNewActivityName('');
+  };
+
+  const handleCreateActivity = (event) => {
+    event.preventDefault();
+    const sanitizedName = sanitizeActivityName(newActivityName);
+    if (!sanitizedName) {
+      return;
+    }
+
+    const existingMatch = activityOptions.find(
+      (option) => option.toLowerCase() === sanitizedName.toLowerCase()
+    );
+
+    if (existingMatch) {
+      setActivityName(existingMatch);
+      setIsAddingActivity(false);
+      setNewActivityName('');
+      return;
+    }
+
+    ensureActivityBlogPost(sanitizedName);
+    refreshActivityOptions();
+    setActivityName(sanitizedName);
+    setIsAddingActivity(false);
+    setNewActivityName('');
   };
 
   return (
@@ -265,33 +640,51 @@ export default function ActivityLog({ onBack }) {
         <label htmlFor="activity-input" className="activity-input-label">
           What are you doing right now?
         </label>
-        <input
-          id="activity-input"
-          className="activity-input"
-          type="text"
-          placeholder="e.g. Singing, Coding, Reading"
-          value={activityName}
-          onChange={(event) => setActivityName(event.target.value)}
-        />
-        {suggestions.length > 0 && (
-          <div className="activity-suggestions">
-            <span>Recent:</span>
-            <div className="chips">
-              {suggestions.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={
-                    name === trimmedName ? 'chip selected' : 'chip'
-                  }
-                  onClick={() => setActivityName(name)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
+        <div className="activity-picker">
+          <select
+            id="activity-input"
+            className="activity-select"
+            value={activityOptions.includes(activityName) ? activityName : ''}
+            onChange={handleSelectActivity}
+          >
+            <option value="" disabled>
+              Select a tracked activity
+            </option>
+            {activityOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <div className="activity-picker-actions">
+            {isAddingActivity ? (
+              <form className="activity-picker-new" onSubmit={handleCreateActivity}>
+                <input
+                  type="text"
+                  className="activity-input"
+                  placeholder="Name the new activity"
+                  value={newActivityName}
+                  onChange={(event) => setNewActivityName(event.target.value)}
+                />
+                <div className="activity-picker-buttons">
+                  <button type="submit" className="primary">
+                    Save activity
+                  </button>
+                  <button type="button" onClick={handleCancelAdding}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" className="secondary" onClick={handleStartAdding}>
+                Add a new activity
+              </button>
+            )}
           </div>
-        )}
+        </div>
+        <p className="activity-picker-hint">
+          Each activity in this list has a dedicated blog page where moments from across the app are collected.
+        </p>
         <div className="control-buttons">
           <button
             type="button"
