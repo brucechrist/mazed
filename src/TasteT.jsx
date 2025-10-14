@@ -184,6 +184,49 @@ function formatTagLabel(tag) {
   return tag.charAt(0).toUpperCase() + tag.slice(1);
 }
 
+const TRI_TAG_OPTIONS = [
+  { key: "form", tags: ["form"], label: "Form" },
+  { key: "semi-formless", tags: ["semi-formless"], label: "Semi-formless" },
+  { key: "formless", tags: ["formless"], label: "Formless" },
+  { key: "1+2", tags: ["form", "semi-formless"], label: "1+2" },
+  { key: "1+3", tags: ["form", "formless"], label: "1+3" },
+  { key: "2+3", tags: ["semi-formless", "formless"], label: "2+3" },
+  { key: "333", tags: ["form", "semi-formless", "formless"], label: "333" },
+];
+
+const TRI_TAG_OPTION_LOOKUP = TRI_TAG_OPTIONS.reduce((acc, option) => {
+  acc[option.key] = option;
+  return acc;
+}, {});
+
+const TRI_TAG_SIGNATURE_LOOKUP = TRI_TAG_OPTIONS.reduce((acc, option) => {
+  const signature = option.tags.slice().sort().join("|");
+  acc[signature] = option.key;
+  return acc;
+}, {});
+
+function getTriAssignmentKeyFromTags(tags) {
+  if (!Array.isArray(tags) || !tags.length) {
+    return null;
+  }
+  const triTags = normalizeLibraryTags(tags).filter((tag) => TRI_TAGS.includes(tag));
+  if (!triTags.length) {
+    return null;
+  }
+  const uniqueSorted = Array.from(new Set(triTags)).sort();
+  const signature = uniqueSorted.join("|");
+  return TRI_TAG_SIGNATURE_LOOKUP[signature] || uniqueSorted[0] || null;
+}
+
+function getTriLabelForKey(key) {
+  if (!key) return "";
+  const option = TRI_TAG_OPTION_LOOKUP[key];
+  if (option && option.label) {
+    return option.label;
+  }
+  return formatTagLabel(key);
+}
+
 function getDualStatusFromTags(tags) {
   const gender = DUAL_GENDER_TAGS.find((tag) => tags?.includes(tag)) || null;
   const flow = DUAL_FLOW_TAGS.find((tag) => tags?.includes(tag)) || null;
@@ -2475,6 +2518,7 @@ function TaggingPanel({
   remaining,
   assignments,
 }) {
+  const triLabel = assignments.tri ? getTriLabelForKey(assignments.tri) : null;
   const renderModeToggle = () => (
     <div className="tagging-mode-toggle" role="tablist" aria-label="Tagging modes">
       {TAGGING_MODES.map(({ key, label }) => (
@@ -2494,16 +2538,22 @@ function TaggingPanel({
   const renderOptionButtons = (options, activeValue, group) => (
     <div className="tagging-buttons">
       {options.map((option) => {
-        const isActive = activeValue === option;
+        const value = typeof option === "string" ? option : option.key;
+        const label =
+          typeof option === "string"
+            ? formatTagLabel(option)
+            : option.label || formatTagLabel(option.key);
+        const optionTags = typeof option === "string" ? null : option.tags;
+        const isActive = activeValue === value;
         return (
           <button
-            key={option}
+            key={value}
             type="button"
             className={`tagging-option${isActive ? " is-active" : ""}`}
-            onClick={() => onAssignTag(option, group)}
+            onClick={() => onAssignTag(value, group, optionTags)}
             disabled={isActive}
           >
-            {formatTagLabel(option)}
+            {label}
           </button>
         );
       })}
@@ -2516,7 +2566,7 @@ function TaggingPanel({
         return (
           <div className="tagging-option-group">
             <h3>Form</h3>
-            {renderOptionButtons(TRI_TAGS, assignments.tri, "tri")}
+            {renderOptionButtons(TRI_TAG_OPTIONS, assignments.tri, "tri")}
           </div>
         );
       case "quadrant":
@@ -2565,7 +2615,7 @@ function TaggingPanel({
               <ul>
                 <li>Gender · {assignments.gender || "—"}</li>
                 <li>Flow · {assignments.flow || "—"}</li>
-                <li>Tri · {assignments.tri || "—"}</li>
+                <li>Tri · {triLabel || "—"}</li>
                 <li>Quadrant · {assignments.quadrant || "—"}</li>
               </ul>
               <div className="tagging-preview-actions">
@@ -2706,7 +2756,7 @@ function TasteT() {
   const taggingAssignments = useMemo(() => {
     const tags = Array.isArray(taggingImage?.tags) ? taggingImage.tags : [];
     const { gender, flow } = getDualStatusFromTags(tags);
-    const tri = TRI_TAGS.find((tag) => tags.includes(tag)) || null;
+    const tri = getTriAssignmentKeyFromTags(tags);
     const quadrant = QUADRANT_TAGS.find((tag) => tags.includes(tag)) || null;
     return { gender, flow, tri, quadrant };
   }, [taggingImage]);
@@ -2777,25 +2827,30 @@ function TasteT() {
   );
 
   const handleTaggingAssign = useCallback(
-    (tag, group) => {
+    (tag, group, comboTags = null) => {
       const targetId = taggingImageId;
       if (!targetId) return;
       const image = imagesById[targetId];
       if (!image) return;
       const baseTags = Array.isArray(image.tags) ? image.tags : [];
       let nextTags = baseTags.slice();
+      let tagsToAdd = [tag];
       if (group === "gender") {
         nextTags = nextTags.filter((entry) => !DUAL_GENDER_TAGS.includes(entry));
       } else if (group === "flow") {
         nextTags = nextTags.filter((entry) => !DUAL_FLOW_TAGS.includes(entry));
       } else if (group === "tri") {
         nextTags = nextTags.filter((entry) => !TRI_TAGS.includes(entry));
+        const triSet = Array.isArray(comboTags) && comboTags.length ? comboTags : TRI_TAG_OPTION_LOOKUP[tag]?.tags;
+        tagsToAdd = Array.isArray(triSet) && triSet.length ? triSet : [];
       } else if (group === "quadrant") {
         nextTags = nextTags.filter((entry) => !QUADRANT_TAGS.includes(entry));
       }
-      if (!nextTags.includes(tag)) {
-        nextTags.push(tag);
-      }
+      tagsToAdd.forEach((entry) => {
+        if (entry && !nextTags.includes(entry)) {
+          nextTags.push(entry);
+        }
+      });
       const sanitizedTags = normalizeLibraryTags(nextTags);
       const currentTags = normalizeLibraryTags(baseTags);
       if (arraysEqual(currentTags, sanitizedTags)) {
