@@ -191,7 +191,6 @@ const TRI_TAG_OPTIONS = [
   { key: "1+2", tags: ["form", "semi-formless"], label: "1+2" },
   { key: "1+3", tags: ["form", "formless"], label: "1+3" },
   { key: "2+3", tags: ["semi-formless", "formless"], label: "2+3" },
-  { key: "X", tags: ["X"], label: "X" },
   { key: "333", tags: ["form", "semi-formless", "formless"], label: "333" },
 ];
 
