@@ -30,7 +30,14 @@ const CATEGORY_LABEL = CATEGORY_TAGS.join(' / ');
 const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
 
-const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
+const ITEM_TYPE_INFO = {
+  image: { label: 'Image', symbol: '🖼️' },
+  word: { label: 'Word', symbol: '🔤' },
+  sound: { label: 'Sound', symbol: '🔊' },
+};
+
+const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
+const SOUND_ORIENTATION_TAGS = ORIENTATION_TAGS;
 const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const SOUND_PRESET_TAGS = [
   ...SOUND_ORIENTATION_TAGS,
@@ -191,7 +198,8 @@ const parseSoundTags = (sound) => {
     }
   }
 
-  return tags.filter((tag) => {
+  const normalizedTags = canonicalizeOrientationTags(tags);
+  return normalizedTags.filter((tag) => {
     const lower = tag.toLowerCase();
     const matchingPresets = SOUND_PRESET_TAGS.filter((preset) =>
       new RegExp(`\\b${preset.toLowerCase()}\\b`).test(lower)
@@ -323,6 +331,64 @@ const sanitizeTag = (tag) => {
   return trimmed ? trimmed : null;
 };
 
+const ORIENTATION_TAG_SET = new Set(
+  ORIENTATION_TAGS.map((tag) => tag.toLowerCase())
+);
+
+const matchOrientationPreset = (value) => {
+  const tag = sanitizeTag(value);
+  if (!tag) return '';
+  const lower = tag.toLowerCase();
+  if (!ORIENTATION_TAG_SET.has(lower)) {
+    return '';
+  }
+  const match = ORIENTATION_TAGS.find(
+    (preset) => preset.toLowerCase() === lower
+  );
+  return match || '';
+};
+
+const canonicalizeOrientationTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set();
+  const output = [];
+  tags.forEach((raw) => {
+    const preset = matchOrientationPreset(raw);
+    if (preset) {
+      const lower = preset.toLowerCase();
+      if (!seen.has(lower)) {
+        output.push(preset);
+        seen.add(lower);
+      }
+    } else if (sanitizeTag(raw)) {
+      output.push(raw);
+    }
+  });
+  return output;
+};
+
+const extractOrientationTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const present = new Set();
+  tags.forEach((raw) => {
+    const preset = matchOrientationPreset(raw);
+    if (preset) {
+      present.add(preset.toLowerCase());
+    }
+  });
+  return ORIENTATION_TAGS.filter((preset) =>
+    present.has(preset.toLowerCase())
+  );
+};
+
+const excludeOrientationTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  return tags.filter((raw) => {
+    const preset = matchOrientationPreset(raw);
+    return !preset;
+  });
+};
+
 const buildImageTags = ({
   orientation = UP_TAG,
   category = '',
@@ -407,13 +473,15 @@ const normalizeImageTags = (tags) => {
   const gender = findPresetTag(tags, GENDER_TAGS);
   const quality = findPresetTag(tags, QUALITY_TAGS);
   const custom = extractCustomTags(tags);
-  return buildImageTags({
-    orientation,
-    category,
-    gender,
-    quality,
-    customTags: custom,
-  });
+  return canonicalizeOrientationTags(
+    buildImageTags({
+      orientation,
+      category,
+      gender,
+      quality,
+      customTags: custom,
+    })
+  );
 };
 
 const tagsAreEqual = (a, b) => {
@@ -1853,11 +1921,24 @@ export default function Library({ onBack }) {
     const placeholderHeight = Math.max(scaledHeight, colWidth * 0.75);
     const ratingInfo = ratingSummary.get(img.id);
     const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
+    const typeInfo = ITEM_TYPE_INFO.image;
+    const normalizedTags = normalizeImageTags(img.tags);
+    const displayTags = Array.isArray(normalizedTags)
+      ? normalizedTags.filter(
+          (tag) =>
+            typeof tag === 'string' &&
+            tag.toLowerCase() !== UP_TAG.toLowerCase()
+        )
+      : [];
+    const orientationTags = extractOrientationTags(displayTags);
+    const nonOrientationTags = excludeOrientationTags(displayTags);
     return (
       <div
         key={img.id}
         className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
+        data-item-type="image"
+        data-pretty-symbol={typeInfo.symbol}
         draggable={canDrag}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -1970,6 +2051,42 @@ export default function Library({ onBack }) {
           ) : (
             <p className="image-meta image-meta-unranked">Unranked</p>
           )}
+          <div className="image-tags card-tags">
+            {orientationTags.length > 0 && (
+              <div className="orientation-tag-list">
+                {orientationTags.map((tag) => (
+                  <span
+                    key={`${img.id}-orientation-${tag}`}
+                    className="tag orientation-tag"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="tag-column">
+              <div className="tag-row type-tag-row">
+                <span
+                  className="tag type-tag type-symbol-tag"
+                  aria-hidden="true"
+                >
+                  {typeInfo.symbol}
+                </span>
+                <span className="tag type-tag type-label-tag">
+                  {typeInfo.label}
+                </span>
+              </div>
+              {nonOrientationTags.length > 0 && (
+                <div className="tag-row">
+                  {nonOrientationTags.map((tag) => (
+                    <span key={`${img.id}-${tag}`} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1977,12 +2094,20 @@ export default function Library({ onBack }) {
 
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
-    const tags = parseSoundTags(snd);
+    const rawTags = parseSoundTags(snd);
+    const tags = Array.isArray(rawTags)
+      ? rawTags.filter((tag) => typeof tag === 'string')
+      : [];
+    const orientationTags = extractOrientationTags(tags);
+    const nonOrientationTags = excludeOrientationTags(tags);
+    const typeInfo = ITEM_TYPE_INFO.sound;
     return (
       <div
         key={snd.id}
         className="image-card sound-card"
         style={{ gridRowEnd: `span ${span}` }}
+        data-item-type="sound"
+        data-pretty-symbol={typeInfo.symbol}
         onContextMenu={(e) => {
           e.preventDefault();
           setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
@@ -2013,15 +2138,42 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          {tags.length > 0 && (
-            <div className="sound-tags">
-              {tags.map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
+          <div className="sound-tags card-tags">
+            {orientationTags.length > 0 && (
+              <div className="orientation-tag-list">
+                {orientationTags.map((tag) => (
+                  <span
+                    key={`${snd.id}-orientation-${tag}`}
+                    className="tag orientation-tag"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="tag-column">
+              <div className="tag-row type-tag-row">
+                <span
+                  className="tag type-tag type-symbol-tag"
+                  aria-hidden="true"
+                >
+                  {typeInfo.symbol}
                 </span>
-              ))}
+                <span className="tag type-tag type-label-tag">
+                  {typeInfo.label}
+                </span>
+              </div>
+              {nonOrientationTags.length > 0 && (
+                <div className="tag-row">
+                  {nonOrientationTags.map((tag) => (
+                    <span key={`${snd.id}-${tag}`} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
           <audio
             controls
             src={snd.dataUrl}
@@ -3262,33 +3414,73 @@ export default function Library({ onBack }) {
               {words.map((w) => {
                 const orientation = getOrientationTag(w.tags);
                 const normalizedTags = normalizeImageTags(w.tags);
-                const displayTags = normalizedTags.filter(
-                  (tag) => tag.toLowerCase() !== UP_TAG.toLowerCase()
-                );
+                const baseTags = Array.isArray(normalizedTags)
+                  ? normalizedTags.filter(
+                      (tag) =>
+                        typeof tag === 'string' &&
+                        tag.toLowerCase() !== UP_TAG.toLowerCase()
+                    )
+                  : [];
+                const orientationTags = extractOrientationTags(baseTags);
+                const otherTags = excludeOrientationTags(baseTags);
+                const sortedOtherTags = [...otherTags];
                 if (orientation === DOWN_TAG) {
-                  displayTags.sort((a, b) => {
+                  sortedOtherTags.sort((a, b) => {
                     if (a === DOWN_TAG) return -1;
                     if (b === DOWN_TAG) return 1;
                     return 0;
                   });
                 }
+                const typeInfo = ITEM_TYPE_INFO.word;
                 return (
                   <li key={w.id} className="word-item">
                     <button
                       type="button"
                       className="word-card"
+                      data-item-type="word"
+                      data-pretty-symbol={typeInfo.symbol}
                       onClick={() => openWordInspector(w)}
                     >
                       <span className="word-card-text">{w.text || 'Untitled'}</span>
-                      {displayTags.length > 0 && (
-                        <div className="word-card-tags">
-                          {displayTags.map((tag) => (
-                            <span key={`${w.id}-${tag}`} className="tag">
-                              {tag}
+                      <div className="word-card-tags card-tags">
+                        {orientationTags.length > 0 && (
+                          <div className="orientation-tag-list">
+                            {orientationTags.map((tag) => (
+                              <span
+                                key={`${w.id}-orientation-${tag}`}
+                                className="tag orientation-tag"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="tag-column">
+                          <div className="tag-row type-tag-row">
+                            <span
+                              className="tag type-tag type-symbol-tag"
+                              aria-hidden="true"
+                            >
+                              {typeInfo.symbol}
                             </span>
-                          ))}
+                            <span className="tag type-tag type-label-tag">
+                              {typeInfo.label}
+                            </span>
+                          </div>
+                          {sortedOtherTags.length > 0 && (
+                            <div className="tag-row">
+                              {sortedOtherTags.map((tag) => (
+                                <span
+                                  key={`${w.id}-${tag}`}
+                                  className="tag"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </button>
                   </li>
                 );
