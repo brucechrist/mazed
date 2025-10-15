@@ -25,7 +25,8 @@ const readFileAsDataURL = (file) =>
     reader.readAsDataURL(file);
   });
 
-const CATEGORY_TAGS = ['P', 'M', 'F'];
+const CATEGORY_TAGS = ['P', 'M', 'F', 'X'];
+const CATEGORY_LABEL = CATEGORY_TAGS.join(' / ');
 const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
 
@@ -3205,7 +3206,7 @@ export default function Library({ onBack }) {
                   </div>
                 </div>
                 <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">P / M / F</span>
+                  <span className="sound-tag-subheading">{CATEGORY_LABEL}</span>
                   <div className="sound-tag-row">
                     {CATEGORY_TAGS.map((tag) => {
                       const selected = soundCategory === tag;
@@ -3464,7 +3465,7 @@ export default function Library({ onBack }) {
                       </button>
                     </div>
                     <div className="tag-control-group">
-                      <span className="tag-control-label">P / M / F</span>
+                      <span className="tag-control-label">{CATEGORY_LABEL}</span>
                       <div className="tag-control-options">
                         {CATEGORY_TAGS.map((tag) => {
                           const selected = lightboxCategory === tag;

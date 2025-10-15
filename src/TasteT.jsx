@@ -81,43 +81,7 @@ const TAGGING_MODES = [
 const DEFAULT_TAGGING_MODE = TAGGING_MODES[0].key;
 const DUAL_GENDER_TAGS = ["feminine", "masculine"];
 const DUAL_FLOW_TAGS = ["up", "neutral", "down"];
-const TRI_TAGS = ["P", "M", "F"];
-const LEGACY_TRI_TAG_MAP = {
-  form: "P",
-  "semi-formless": "M",
-  formless: "F",
-};
-const LEGACY_TRI_TAGS = Object.keys(LEGACY_TRI_TAG_MAP);
-const TRI_TAG_CANONICAL_LOOKUP = (() => {
-  const map = {};
-  TRI_TAGS.forEach((tag) => {
-    map[tag.toLowerCase()] = tag;
-  });
-  Object.entries(LEGACY_TRI_TAG_MAP).forEach(([legacy, canonical]) => {
-    const normalized = legacy.toLowerCase();
-    map[normalized] = canonical;
-    const collapsed = normalized.replace(/[\s_-]+/g, '');
-    if (!map[collapsed]) {
-      map[collapsed] = canonical;
-    }
-  });
-  return map;
-})();
-const ALL_TRI_TAGS = [...TRI_TAGS, ...LEGACY_TRI_TAGS];
-
-function resolveTriTag(value) {
-  if (typeof value !== "string") return null;
-  const normalized = value.trim().toLowerCase();
-  if (!normalized.length) return null;
-  const collapsed = normalized.replace(/[\s_-]+/g, "");
-  const dashed = normalized.replace(/[\s_]+/g, "-");
-  return (
-    TRI_TAG_CANONICAL_LOOKUP[normalized] ||
-    TRI_TAG_CANONICAL_LOOKUP[collapsed] ||
-    TRI_TAG_CANONICAL_LOOKUP[dashed] ||
-    null
-  );
-}
+const TRI_TAGS = ["form", "semi-formless", "formless", "X"];
 const QUADRANT_TAGS = ["II", "IE", "EI", "EE"];
 
 export function shouldFinalizeSwissStatus(status) {
@@ -230,13 +194,13 @@ function formatTagLabel(tag) {
 }
 
 const TRI_TAG_OPTIONS = [
-  { key: "form", tags: ["P"], label: "Form" },
-  { key: "semi-formless", tags: ["M"], label: "Semi-formless" },
-  { key: "formless", tags: ["F"], label: "Formless" },
-  { key: "1+2", tags: ["P", "M"], label: "1+2" },
-  { key: "1+3", tags: ["P", "F"], label: "1+3" },
-  { key: "2+3", tags: ["M", "F"], label: "2+3" },
-  { key: "333", tags: ["P", "M", "F"], label: "333" },
+  { key: "form", tags: ["form"], label: "Form" },
+  { key: "semi-formless", tags: ["semi-formless"], label: "Semi-formless" },
+  { key: "formless", tags: ["formless"], label: "Formless" },
+  { key: "1+2", tags: ["form", "semi-formless"], label: "1+2" },
+  { key: "1+3", tags: ["form", "formless"], label: "1+3" },
+  { key: "2+3", tags: ["semi-formless", "formless"], label: "2+3" },
+  { key: "333", tags: ["form", "semi-formless", "formless"], label: "333" },
 ];
 
 const TRI_TAG_OPTION_LOOKUP = TRI_TAG_OPTIONS.reduce((acc, option) => {
@@ -254,15 +218,10 @@ function getTriAssignmentKeyFromTags(tags) {
   if (!Array.isArray(tags) || !tags.length) {
     return null;
   }
-  const normalized = normalizeLibraryTags(tags);
-  const triTags = normalized
-    .map((tag) => resolveTriTag(tag))
-    .filter((tag) => tag && TRI_TAGS.includes(tag));
-
+  const triTags = normalizeLibraryTags(tags).filter((tag) => TRI_TAGS.includes(tag));
   if (!triTags.length) {
     return null;
   }
-
   const uniqueSorted = Array.from(new Set(triTags)).sort();
   const signature = uniqueSorted.join("|");
   return TRI_TAG_SIGNATURE_LOOKUP[signature] || uniqueSorted[0] || null;
@@ -2890,7 +2849,7 @@ function TasteT() {
       } else if (group === "flow") {
         nextTags = nextTags.filter((entry) => !DUAL_FLOW_TAGS.includes(entry));
       } else if (group === "tri") {
-        nextTags = nextTags.filter((entry) => !ALL_TRI_TAGS.includes(entry));
+        nextTags = nextTags.filter((entry) => !TRI_TAGS.includes(entry));
         const triSet = Array.isArray(comboTags) && comboTags.length ? comboTags : TRI_TAG_OPTION_LOOKUP[tag]?.tags;
         tagsToAdd = Array.isArray(triSet) && triSet.length ? triSet : [];
       } else if (group === "quadrant") {
