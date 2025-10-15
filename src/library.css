@@ -727,7 +727,8 @@
 .word-card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .word-card-tags .tag {
@@ -895,10 +896,42 @@
   width: 100%;
 }
 
-.sound-tags {
+.image-tags {
+  margin-top: 6px;
+}
+
+.card-tags {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 6px;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.orientation-tag-list {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+
+.orientation-tag {
+  min-width: 40px;
+  text-align: center;
+}
+
+.sound-tags {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .sound-tags .tag {
