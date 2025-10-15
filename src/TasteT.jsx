@@ -156,9 +156,18 @@ function sanitizeText(value, fallback = "") {
 
 function normalizeLibraryTags(tags) {
   if (!Array.isArray(tags)) return [];
-  return tags
-    .map((tag) => sanitizeText(typeof tag === "string" ? tag : ""))
-    .filter((tag) => tag.length > 0);
+  const seen = new Set();
+  const normalized = [];
+  tags.forEach((tag) => {
+    const base = sanitizeText(typeof tag === "string" ? tag : "");
+    if (!base) return;
+    const canonical = resolveTriTag(base) || base;
+    const key = canonical.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    normalized.push(canonical);
+  });
+  return normalized;
 }
 
 function sanitizeTabKey(value) {
@@ -243,7 +252,7 @@ function imageNeedsDualTags(image) {
 function imageNeedsTriTag(image) {
   if (!image) return false;
   const tags = Array.isArray(image.tags) ? image.tags : [];
-  return !hasAnyTag(tags, TRI_TAGS);
+  return !tags.some((tag) => resolveTriTag(tag));
 }
 
 function imageNeedsQuadrantTag(image) {
