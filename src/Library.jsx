@@ -416,6 +416,24 @@ const normalizeImageTags = (tags) => {
   });
 };
 
+const tagsAreEqual = (a, b) => {
+  if (!Array.isArray(a) && !Array.isArray(b)) {
+    return true;
+  }
+  if (!Array.isArray(a) || !Array.isArray(b)) {
+    return false;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const deriveTriCategoryFromTags = (tags) => {
   const preset = findTriPresetTag(tags);
   return preset ? TRI_TAG_TO_CATEGORY[preset] ?? null : null;
@@ -542,6 +560,9 @@ export default function Library({ onBack }) {
   );
 
   const [words, setWords] = useState([]);
+  const [wordInspector, setWordInspector] = useState(null);
+  const [wordTextDraft, setWordTextDraft] = useState('');
+  const [wordTagInput, setWordTagInput] = useState('');
   const [wordInput, setWordInput] = useState('');
   const [sounds, setSounds] = useState([]);
   const [soundModal, setSoundModal] = useState(null);
@@ -871,7 +892,55 @@ export default function Library({ onBack }) {
     const savedWords = localStorage.getItem('mazedWords');
     if (savedWords) {
       try {
-        setWords(JSON.parse(savedWords));
+        const parsed = JSON.parse(savedWords);
+        if (Array.isArray(parsed)) {
+          let changed = false;
+          const validEntries = parsed.filter(
+            (entry) => entry && typeof entry.id !== 'undefined',
+          );
+          if (validEntries.length !== parsed.length) {
+            changed = true;
+          }
+          const normalized = validEntries.map((entry) => {
+            const text =
+              typeof entry.text === 'string' ? entry.text : '';
+            if (text !== entry.text) {
+              changed = true;
+            }
+            const tags = normalizeImageTags(entry.tags);
+            if (!tagsAreEqual(tags, entry.tags)) {
+              changed = true;
+            }
+            const createdAt =
+              typeof entry.createdAt === 'number'
+                ? entry.createdAt
+                : typeof entry.id === 'number'
+                ? entry.id
+                : Date.now();
+            if (createdAt !== entry.createdAt) {
+              changed = true;
+            }
+            return {
+              ...entry,
+              text,
+              tags,
+              createdAt,
+            };
+          });
+          setWords(normalized);
+          if (changed) {
+            try {
+              localStorage.setItem(
+                'mazedWords',
+                JSON.stringify(normalized),
+              );
+            } catch (err) {
+              console.error('Failed to persist normalized words', err);
+            }
+          }
+        } else {
+          setWords([]);
+        }
       } catch (e) {
         console.error('Failed to parse saved words', e);
       }
@@ -1095,6 +1164,73 @@ export default function Library({ onBack }) {
     return results;
   };
 
+  const updateWord = (id, updates) => {
+    if (!updates || typeof updates !== 'object') {
+      return;
+    }
+    let hasUpdate = false;
+    let nextWord = null;
+    const nextWords = words.map((word) => {
+      if (word.id !== id) {
+        return word;
+      }
+      const payload = { ...updates };
+      if ('text' in payload) {
+        const nextText =
+          typeof payload.text === 'string' ? payload.text.trim() : '';
+        payload.text = nextText || word.text || '';
+      }
+      if ('tags' in payload) {
+        payload.tags = normalizeImageTags(payload.tags);
+      }
+      if ('createdAt' in payload) {
+        payload.createdAt =
+          typeof payload.createdAt === 'number'
+            ? payload.createdAt
+            : word.createdAt;
+      }
+      nextWord = { ...word, ...payload };
+      if (!hasUpdate) {
+        hasUpdate = JSON.stringify(nextWord) !== JSON.stringify(word);
+      }
+      return nextWord;
+    });
+    if (!nextWord) {
+      return;
+    }
+    if (hasUpdate) {
+      saveWords(nextWords);
+    }
+    setWordInspector((current) =>
+      current && current.id === id ? nextWord : current
+    );
+  };
+
+  const deleteWord = (id) => {
+    const updated = words.filter((word) => word.id !== id);
+    if (updated.length === words.length) {
+      return;
+    }
+    saveWords(updated);
+    setWordInspector((current) =>
+      current && current.id === id ? null : current
+    );
+  };
+
+  const openWordInspector = (word) => {
+    if (!word) {
+      return;
+    }
+    const target =
+      typeof word === 'object'
+        ? word
+        : words.find((entry) => entry.id === word) || null;
+    if (!target) {
+      return;
+    }
+    setWordInspector(target);
+  };
+
   const handleThemeChange = (nextTheme) => {
     setLibraryTheme(nextTheme);
     setSettingsOpen(false);
@@ -1143,6 +1279,31 @@ export default function Library({ onBack }) {
       setEditingTitle(false);
     }
   }, [lightbox?.id]);
+
+  useEffect(() => {
+    if (wordInspector) {
+      setWordTextDraft(wordInspector.text || '');
+      setWordTagInput('');
+    } else {
+      setWordTextDraft('');
+      setWordTagInput('');
+    }
+  }, [wordInspector?.id]);
+
+  useEffect(() => {
+    if (!wordInspector) {
+      return undefined;
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setWordInspector(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [wordInspector]);
 
   useEffect(() => {
     if (!lightbox) {
@@ -1587,7 +1748,13 @@ export default function Library({ onBack }) {
   const handleAddWord = (e) => {
     e.preventDefault();
     if (!wordInput.trim()) return;
-    const newWord = { id: Date.now(), text: wordInput.trim() };
+    const timestamp = Date.now();
+    const newWord = {
+      id: timestamp,
+      text: wordInput.trim(),
+      tags: buildImageTags({}),
+      createdAt: timestamp,
+    };
     const updated = [...words, newWord];
     saveWords(updated);
     setWordInput('');
@@ -2578,6 +2745,30 @@ export default function Library({ onBack }) {
       customTags,
     });
 
+  const wordOrientation = getOrientationTag(wordInspector?.tags);
+  const wordCategory = findPresetTag(wordInspector?.tags, CATEGORY_TAGS);
+  const wordGender = findPresetTag(wordInspector?.tags, GENDER_TAGS);
+  const wordQuality = findPresetTag(wordInspector?.tags, QUALITY_TAGS);
+  const wordCustomTags = extractCustomTags(wordInspector?.tags);
+  const wordIsDown = wordOrientation === DOWN_TAG;
+
+  const composeWordTags = ({
+    orientation = wordOrientation,
+    category = wordCategory,
+    gender = wordGender,
+    quality = wordQuality,
+    customTags = wordCustomTags,
+  } = {}) =>
+    buildImageTags({
+      orientation,
+      category,
+      gender,
+      quality,
+      customTags,
+    });
+
+  const wordActiveTags = normalizeImageTags(wordInspector?.tags);
+
   return (
     <div
       className={`library-container ${
@@ -3068,13 +3259,40 @@ export default function Library({ onBack }) {
               </form>
             )}
             <ul className="word-list">
-              {words.map((w) => (
-                <li key={w.id} className="word-item">
-                  <div className="word-card">
-                    <span className="word-card-text">{w.text}</span>
-                  </div>
-                </li>
-              ))}
+              {words.map((w) => {
+                const orientation = getOrientationTag(w.tags);
+                const normalizedTags = normalizeImageTags(w.tags);
+                const displayTags = normalizedTags.filter(
+                  (tag) => tag.toLowerCase() !== UP_TAG.toLowerCase()
+                );
+                if (orientation === DOWN_TAG) {
+                  displayTags.sort((a, b) => {
+                    if (a === DOWN_TAG) return -1;
+                    if (b === DOWN_TAG) return 1;
+                    return 0;
+                  });
+                }
+                return (
+                  <li key={w.id} className="word-item">
+                    <button
+                      type="button"
+                      className="word-card"
+                      onClick={() => openWordInspector(w)}
+                    >
+                      <span className="word-card-text">{w.text || 'Untitled'}</span>
+                      {displayTags.length > 0 && (
+                        <div className="word-card-tags">
+                          {displayTags.map((tag) => (
+                            <span key={`${w.id}-${tag}`} className="tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -3316,6 +3534,239 @@ export default function Library({ onBack }) {
             >
               Delete
             </button>
+          </div>
+        )}
+        {wordInspector && (
+          <div
+            className="word-inspector-backdrop"
+            onClick={() => setWordInspector(null)}
+          >
+            <div
+              className="word-inspector-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="word-inspector-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="word-inspector-header">
+                <div className="word-inspector-heading">
+                  <h1 id="word-inspector-title">
+                    {wordInspector.text || 'Untitled'}
+                  </h1>
+                  <p className="word-inspector-meta">
+                    Added{' '}
+                    {wordInspector.createdAt
+                      ? new Date(wordInspector.createdAt).toLocaleString()
+                      : 'recently'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="word-inspector-close"
+                  onClick={() => setWordInspector(null)}
+                  aria-label="Close word details"
+                >
+                  ×
+                </button>
+              </div>
+              <label className="word-inspector-field">
+                <span>Word or phrase</span>
+                <input
+                  type="text"
+                  value={wordTextDraft}
+                  onChange={(e) => setWordTextDraft(e.target.value)}
+                  onBlur={() =>
+                    updateWord(wordInspector.id, { text: wordTextDraft })
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      updateWord(wordInspector.id, { text: wordTextDraft });
+                    }
+                  }}
+                />
+              </label>
+              <section className="word-inspector-section">
+                <h2>Tags</h2>
+                <div className="tag-controls">
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">Orientation</span>
+                    <button
+                      type="button"
+                      className={`shadow-tag-button${
+                        wordIsDown ? ' active' : ''
+                      }`}
+                      onClick={() => {
+                        const nextOrientation = wordIsDown ? UP_TAG : DOWN_TAG;
+                        const nextTags = composeWordTags({
+                          orientation: nextOrientation,
+                        });
+                        updateWord(wordInspector.id, { tags: nextTags });
+                      }}
+                      aria-pressed={wordIsDown}
+                      aria-label={
+                        wordIsDown ? 'Mark word as UP' : 'Mark word as DOWN'
+                      }
+                      title={wordIsDown ? 'Mark word as UP' : 'Mark word as DOWN'}
+                    >
+                      {wordIsDown ? 'DOWN' : 'UP'}
+                    </button>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">{CATEGORY_LABEL}</span>
+                    <div className="tag-control-options">
+                      {CATEGORY_TAGS.map((tag) => {
+                        const selected = wordCategory === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`tag-toggle-button${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextCategory = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                category: nextCategory,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={`Set tag ${tag}`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">Gender</span>
+                    <div className="tag-control-options">
+                      {GENDER_TAGS.map((tag) => {
+                        const selected = wordGender === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`tag-toggle-button${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextGender = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                gender: nextGender,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={`Set tag ${tag}`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">Quality</span>
+                    <div className="quality-toggle">
+                      {QUALITY_TAGS.map((tag) => {
+                        const selected = wordQuality === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`quality-level${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextQuality = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                quality: nextQuality,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={tag}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="word-inspector-active-tags">
+                  {wordActiveTags.map((tag) => (
+                    <span
+                      key={`${wordInspector.id}-${tag}`}
+                      className="tag"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {!wordActiveTags.length && (
+                    <span className="word-inspector-meta">No tags yet.</span>
+                  )}
+                </div>
+                <div className="tag-list">
+                  {wordCustomTags.map((tag, idx) => (
+                    <span
+                      key={`${tag}-${idx}`}
+                      className="tag"
+                      onClick={() => {
+                        const nextCustom = wordCustomTags.filter(
+                          (_, i) => i !== idx
+                        );
+                        const nextTags = composeWordTags({
+                          customTags: nextCustom,
+                        });
+                        updateWord(wordInspector.id, { tags: nextTags });
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={wordTagInput}
+                    placeholder="Add custom tag"
+                    onChange={(e) => setWordTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && wordTagInput.trim()) {
+                        const nextCustom = [
+                          ...wordCustomTags,
+                          wordTagInput.trim(),
+                        ];
+                        const nextTags = composeWordTags({
+                          customTags: nextCustom,
+                        });
+                        updateWord(wordInspector.id, { tags: nextTags });
+                        setWordTagInput('');
+                      }
+                    }}
+                  />
+                </div>
+              </section>
+              <div className="word-inspector-actions">
+                <button
+                  type="button"
+                  className="word-inspector-delete"
+                  onClick={() => {
+                    const confirmDelete =
+                      typeof window === 'undefined'
+                        ? true
+                        : window.confirm('Delete this word?');
+                    if (confirmDelete) {
+                      deleteWord(wordInspector.id);
+                    }
+                  }}
+                >
+                  Delete word
+                </button>
+              </div>
+            </div>
           </div>
         )}
         {menu && (
