@@ -61,6 +61,36 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
   {}
 );
 
+const TRI_PRESET_LOOKUP = (() => {
+  const map = {};
+  CATEGORY_TAGS.forEach((tag) => {
+    map[tag.toLowerCase()] = tag;
+  });
+  Object.entries(TRI_CATEGORY_TO_TAG).forEach(([category, tag]) => {
+    const normalized = category.toLowerCase();
+    map[normalized] = tag;
+    const collapsed = normalized.replace(/[\s_-]+/g, '');
+    if (!map[collapsed]) {
+      map[collapsed] = tag;
+    }
+  });
+  return map;
+})();
+
+const resolveTriPresetTag = (value) => {
+  if (typeof value !== 'string') return '';
+  const normalized = value.trim().toLowerCase();
+  if (!normalized.length) return '';
+  const collapsed = normalized.replace(/[\s_-]+/g, '');
+  const dashed = normalized.replace(/[\s_]+/g, '-');
+  return (
+    TRI_PRESET_LOOKUP[normalized] ||
+    TRI_PRESET_LOOKUP[collapsed] ||
+    TRI_PRESET_LOOKUP[dashed] ||
+    ''
+  );
+};
+
 const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
 const DUAL_COLUMNS = ['♀', '♂'];
 const DUAL_ROW_ICONS = {
@@ -138,10 +168,12 @@ const parseSoundTags = (sound) => {
   const addTag = (value) => {
     const tag = sanitizeTag(value);
     if (!tag) return;
-    const lower = tag.toLowerCase();
+    const triPreset = resolveTriPresetTag(tag);
+    const normalized = triPreset || tag;
+    const lower = normalized.toLowerCase();
     if (seen.has(lower)) return;
     seen.add(lower);
-    tags.push(tag);
+    tags.push(normalized);
   };
 
   if (Array.isArray(sound?.tags)) {
@@ -190,6 +222,17 @@ const findPresetTag = (tags, presets) => {
   return '';
 };
 
+const findTriPresetTag = (tags) => {
+  if (!Array.isArray(tags)) return '';
+  for (const raw of tags) {
+    const preset = resolveTriPresetTag(raw);
+    if (preset) {
+      return preset;
+    }
+  }
+  return '';
+};
+
 const extractCustomSoundTags = (tags) => {
   if (!Array.isArray(tags)) return [];
   const custom = [];
@@ -197,9 +240,13 @@ const extractCustomSoundTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
+    const triPreset = resolveTriPresetTag(tag);
     if (
       SOUND_PRESET_TAGS.some((preset) => preset.toLowerCase() === lower)
     ) {
+      continue;
+    }
+    if (triPreset) {
       continue;
     }
     if (!custom.some((existing) => existing.toLowerCase() === lower)) {
@@ -337,11 +384,12 @@ const extractCustomTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
+    const triPreset = resolveTriPresetTag(tag);
     if (
       lower === UP_TAG.toLowerCase() ||
       lower === DOWN_TAG.toLowerCase() ||
       lower === LEGACY_SHADOW_TAG ||
-      CATEGORY_TAGS.some((preset) => preset.toLowerCase() === lower) ||
+      Boolean(triPreset) ||
       GENDER_TAGS.some((preset) => preset.toLowerCase() === lower) ||
       QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower)
     ) {
@@ -354,7 +402,7 @@ const extractCustomTags = (tags) => {
 
 const normalizeImageTags = (tags) => {
   const orientation = getOrientationTag(tags);
-  const category = findPresetTag(tags, CATEGORY_TAGS);
+  const category = findTriPresetTag(tags);
   const gender = findPresetTag(tags, GENDER_TAGS);
   const quality = findPresetTag(tags, QUALITY_TAGS);
   const custom = extractCustomTags(tags);
@@ -368,7 +416,7 @@ const normalizeImageTags = (tags) => {
 };
 
 const deriveTriCategoryFromTags = (tags) => {
-  const preset = findPresetTag(tags, CATEGORY_TAGS);
+  const preset = findTriPresetTag(tags);
   return preset ? TRI_TAG_TO_CATEGORY[preset] ?? null : null;
 };
 
