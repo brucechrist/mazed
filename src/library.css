@@ -1440,6 +1440,14 @@
   flex-wrap: wrap;
   align-items: center;
 }
+.sound-tag-row.vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+.sound-tag-row.vertical .sound-tag-button {
+  width: 100%;
+  text-align: center;
+}
 
 .sound-tag-button {
   background: var(--library-button-bg);
@@ -1725,6 +1733,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+.tag-control-options.vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+.tag-control-options.vertical .tag-toggle-button {
+  width: 100%;
+  text-align: center;
 }
 
 .tag-toggle-button {
