@@ -366,13 +366,13 @@
   background: var(--library-accent);
 }
 
-.library-settings-hide-row.active .library-settings-orientation-toggle {
+.library-settings-hide-row.active .library-settings-quality-toggle {
   background: var(--library-accent);
   color: var(--library-accent-contrast);
   border-color: var(--library-accent);
 }
 
-.library-settings-orientation-toggle {
+.library-settings-quality-toggle {
   width: 36px;
   height: 36px;
   padding: 0;
@@ -390,22 +390,22 @@
   flex-shrink: 0;
 }
 
-.library-settings-orientation-toggle.flipped {
+.library-settings-quality-toggle.flipped {
   transform: rotate(180deg);
 }
 
-.library-settings-orientation-toggle:hover {
+.library-settings-quality-toggle:hover {
   background: var(--library-accent);
   color: var(--library-accent-contrast);
   border-color: var(--library-accent);
 }
 
-.library-settings-hide-row:hover .library-settings-orientation-toggle {
+.library-settings-hide-row:hover .library-settings-quality-toggle {
   border-color: var(--library-accent);
   color: var(--library-accent);
 }
 
-.library-settings-orientation-toggle:focus-visible,
+.library-settings-quality-toggle:focus-visible,
 .library-settings-hide-toggle:focus-visible {
   outline: 2px solid var(--library-accent);
   outline-offset: 2px;
@@ -1841,35 +1841,5 @@
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
-}
-
-.shadow-tag-button {
-  flex: 0 0 auto;
-  background: var(--library-button-bg);
-  border: 1px solid var(--library-button-border);
-  color: var(--library-text);
-  padding: 4px 10px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: background 0.3s ease, color 0.3s ease,
-    border-color 0.3s ease, box-shadow 0.3s ease;
-  font: inherit;
-}
-
-.shadow-tag-button:hover {
-  background: var(--library-soft-highlight);
-  color: var(--library-accent);
-  border-color: var(--library-accent);
-}
-
-.shadow-tag-button.active {
-  background: var(--library-accent);
-  color: var(--library-accent-contrast);
-  border-color: transparent;
-}
-
-.shadow-tag-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--library-ring);
 }
 

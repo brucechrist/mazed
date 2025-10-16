@@ -207,7 +207,7 @@ const parseSoundTags = (sound) => {
     }
   }
 
-  const normalizedTags = canonicalizeOrientationTags(tags);
+  const normalizedTags = stripLegacyOrientationTags(tags);
   return normalizedTags.filter((tag) => {
     const lower = tag.toLowerCase();
     const matchingPresets = SOUND_PRESET_TAGS.filter((preset) =>
@@ -332,8 +332,6 @@ const hexToName = (hex) => {
 
 const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
 
-const UP_TAG = 'UP';
-const DOWN_TAG = 'DOWN';
 const LEGACY_SHADOW_TAG = 'shadow';
 
 const sanitizeTag = (tag) => {
@@ -342,44 +340,33 @@ const sanitizeTag = (tag) => {
   return trimmed ? trimmed : null;
 };
 
-const ORIENTATION_TAG_SET = new Set(
-  ORIENTATION_TAGS.map((tag) => tag.toLowerCase())
+const LEGACY_ORIENTATION_TAGS = new Set(
+  ['up', 'down', 'top', 'mid', 'base', LEGACY_SHADOW_TAG].map((tag) =>
+    tag.toLowerCase()
+  )
 );
 
-const matchOrientationPreset = (value) => {
+const isLegacyOrientationTag = (value) => {
   const tag = sanitizeTag(value);
-  if (!tag) return '';
-  const lower = tag.toLowerCase();
-  if (!ORIENTATION_TAG_SET.has(lower)) {
-    return '';
-  }
-  const match = ORIENTATION_TAGS.find(
-    (preset) => preset.toLowerCase() === lower
-  );
-  return match || '';
+  if (!tag) return false;
+  return LEGACY_ORIENTATION_TAGS.has(tag.toLowerCase());
 };
 
-const canonicalizeOrientationTags = (tags) => {
+const stripLegacyOrientationTags = (tags) => {
   if (!Array.isArray(tags)) return [];
   const seen = new Set();
-  const output = [];
+  const cleaned = [];
   tags.forEach((raw) => {
-    const preset = matchOrientationPreset(raw);
-    if (preset) {
-      const lower = preset.toLowerCase();
-      if (!seen.has(lower)) {
-        output.push(preset);
-        seen.add(lower);
-      }
-    } else if (sanitizeTag(raw)) {
-      output.push(raw);
+    const tag = sanitizeTag(raw);
+    if (!tag) return;
+    if (isLegacyOrientationTag(tag)) {
+      return;
     }
   });
   return output;
 };
 
 const buildImageTags = ({
-  orientation = UP_TAG,
   category = '',
   gender = '',
   quality = '',
@@ -389,6 +376,7 @@ const buildImageTags = ({
   const pushTag = (value) => {
     const tag = sanitizeTag(value);
     if (!tag) return;
+    if (isLegacyOrientationTag(tag)) return;
     const lower = tag.toLowerCase();
     if (tags.some((existing) => existing.toLowerCase() === lower)) {
       return;
@@ -396,7 +384,6 @@ const buildImageTags = ({
     tags.push(tag);
   };
 
-  pushTag(sanitizeTag(orientation) || UP_TAG);
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
@@ -405,32 +392,7 @@ const buildImageTags = ({
     customTags.forEach(pushTag);
   }
 
-  return canonicalizeOrientationTags(tags);
-};
-
-const parseOrientationPreference = (value) => {
-  if (typeof value !== 'string') {
-    return DOWN_TAG;
-  }
-  const normalized = value.trim().toUpperCase();
-  return normalized === UP_TAG ? UP_TAG : DOWN_TAG;
-};
-
-const getOrientationTag = (tags) => {
-  if (!Array.isArray(tags)) return UP_TAG;
-  let orientation = UP_TAG;
-  for (const raw of tags) {
-    const tag = sanitizeTag(raw);
-    if (!tag) continue;
-    const lower = tag.toLowerCase();
-    if (lower === DOWN_TAG.toLowerCase() || lower === LEGACY_SHADOW_TAG) {
-      return DOWN_TAG;
-    }
-    if (lower === UP_TAG.toLowerCase()) {
-      orientation = UP_TAG;
-    }
-  }
-  return orientation;
+  return tags;
 };
 
 const extractCustomTags = (tags) => {
@@ -439,12 +401,12 @@ const extractCustomTags = (tags) => {
   for (const raw of tags) {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
+    if (isLegacyOrientationTag(tag)) {
+      continue;
+    }
     const lower = tag.toLowerCase();
     const triPreset = resolveTriPresetTag(tag);
     if (
-      lower === UP_TAG.toLowerCase() ||
-      lower === DOWN_TAG.toLowerCase() ||
-      lower === LEGACY_SHADOW_TAG ||
       Boolean(triPreset) ||
       GENDER_TAGS.some((preset) => preset.toLowerCase() === lower) ||
       QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower)
@@ -457,20 +419,39 @@ const extractCustomTags = (tags) => {
 };
 
 const normalizeImageTags = (tags) => {
-  const orientation = getOrientationTag(tags);
-  const category = findTriPresetTag(tags);
-  const gender = findPresetTag(tags, GENDER_TAGS);
-  const quality = findPresetTag(tags, QUALITY_TAGS);
-  const custom = extractCustomTags(tags);
-  return canonicalizeOrientationTags(
-    buildImageTags({
-      orientation,
-      category,
-      gender,
-      quality,
-      customTags: custom,
-    })
+  const cleaned = stripLegacyOrientationTags(tags);
+  const category = findTriPresetTag(cleaned);
+  const gender = findPresetTag(cleaned, GENDER_TAGS);
+  const quality = findPresetTag(cleaned, QUALITY_TAGS);
+  const custom = extractCustomTags(cleaned);
+  return buildImageTags({
+    category,
+    gender,
+    quality,
+    customTags: custom,
+  });
+};
+
+const DEFAULT_HIDDEN_QUALITY = 'Bad';
+
+const parseHiddenQualityPreference = (value) => {
+  if (typeof value !== 'string') {
+    return DEFAULT_HIDDEN_QUALITY;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return DEFAULT_HIDDEN_QUALITY;
+  }
+  if (normalized === 'up') {
+    return 'Good';
+  }
+  if (normalized === 'down') {
+    return 'Bad';
+  }
+  const match = QUALITY_TAGS.find(
+    (tag) => tag.toLowerCase() === normalized
   );
+  return match || DEFAULT_HIDDEN_QUALITY;
 };
 
 const tagsAreEqual = (a, b) => {
@@ -499,7 +480,6 @@ const deriveTriCategoryFromTags = (tags) => {
 const mergeTriCategoryIntoTags = (tags, triCategory) => {
   const categoryTag = triCategory ? TRI_CATEGORY_TO_TAG[triCategory] ?? '' : '';
   return buildImageTags({
-    orientation: getOrientationTag(tags),
     category: categoryTag,
     gender: findPresetTag(tags, GENDER_TAGS),
     quality: findPresetTag(tags, QUALITY_TAGS),
@@ -634,23 +614,36 @@ export default function Library({ onBack }) {
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
-  const [hideShadowImages, setHideShadowImages] = useState(() => {
+  const [hideQualityImages, setHideQualityImages] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('hideShadowImages') === 'true';
+      const stored = localStorage.getItem('hideQualityImages');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      const legacy = localStorage.getItem('hideShadowImages');
+      if (legacy !== null) {
+        return legacy === 'true';
+      }
     }
     return false;
   });
-  const [hiddenOrientation, setHiddenOrientation] = useState(() => {
+  const [hiddenQuality, setHiddenQuality] = useState(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('hideShadowOrientation');
-      return parseOrientationPreference(stored);
+      const stored = localStorage.getItem('hideQualitySelection');
+      if (stored) {
+        return parseHiddenQualityPreference(stored);
+      }
+      const legacy = localStorage.getItem('hideShadowOrientation');
+      if (legacy) {
+        return parseHiddenQualityPreference(legacy);
+      }
     }
-    return DOWN_TAG;
+    return DEFAULT_HIDDEN_QUALITY;
   });
 
-  const filteredImages = hideShadowImages
+  const filteredImages = hideQualityImages
     ? images.filter(
-        (img) => getOrientationTag(img.tags) !== hiddenOrientation
+        (img) => findPresetTag(img.tags, QUALITY_TAGS) !== hiddenQuality
       )
     : images;
 
@@ -1417,17 +1410,22 @@ export default function Library({ onBack }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
-      localStorage.setItem('hideShadowOrientation', hiddenOrientation);
+      localStorage.setItem(
+        'hideQualityImages',
+        hideQualityImages ? 'true' : 'false'
+      );
+      localStorage.setItem('hideQualitySelection', hiddenQuality);
+      localStorage.removeItem('hideShadowImages');
+      localStorage.removeItem('hideShadowOrientation');
     }
     if (
-      hideShadowImages &&
+      hideQualityImages &&
       lightbox &&
-      getOrientationTag(lightbox.tags) === hiddenOrientation
+      findPresetTag(lightbox.tags, QUALITY_TAGS) === hiddenQuality
     ) {
       setLightbox(null);
     }
-  }, [hideShadowImages, hiddenOrientation, lightbox]);
+  }, [hideQualityImages, hiddenQuality, lightbox]);
 
   useEffect(() => {
     loadPalette().then(setPalette);
@@ -2359,13 +2357,11 @@ export default function Library({ onBack }) {
   const updateDualPlacement = (imageId, targetGender, targetQuality) => {
     const image = images.find((img) => img.id === imageId);
     if (!image) return;
-    const orientation = getOrientationTag(image.tags);
     const category = findPresetTag(image.tags, CATEGORY_TAGS);
     const custom = extractCustomTags(image.tags);
     const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
     const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
     const nextTags = buildImageTags({
-      orientation,
       category,
       gender,
       quality,
@@ -2766,44 +2762,36 @@ export default function Library({ onBack }) {
     );
   };
 
-  const lightboxOrientation = getOrientationTag(lightbox?.tags);
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
   const lightboxQuality = findPresetTag(lightbox?.tags, QUALITY_TAGS);
   const lightboxCustomTags = extractCustomTags(lightbox?.tags);
-  const lightboxIsDown = lightboxOrientation === DOWN_TAG;
 
   const composeImageTags = ({
-    orientation = lightboxOrientation,
     category = lightboxCategory,
     gender = lightboxGender,
     quality = lightboxQuality,
     customTags = lightboxCustomTags,
   } = {}) =>
     buildImageTags({
-      orientation,
       category,
       gender,
       quality,
       customTags,
     });
 
-  const wordOrientation = getOrientationTag(wordInspector?.tags);
   const wordCategory = findPresetTag(wordInspector?.tags, CATEGORY_TAGS);
   const wordGender = findPresetTag(wordInspector?.tags, GENDER_TAGS);
   const wordQuality = findPresetTag(wordInspector?.tags, QUALITY_TAGS);
   const wordCustomTags = extractCustomTags(wordInspector?.tags);
-  const wordIsDown = wordOrientation === DOWN_TAG;
 
   const composeWordTags = ({
-    orientation = wordOrientation,
     category = wordCategory,
     gender = wordGender,
     quality = wordQuality,
     customTags = wordCustomTags,
   } = {}) =>
     buildImageTags({
-      orientation,
       category,
       gender,
       quality,
@@ -3000,25 +2988,25 @@ export default function Library({ onBack }) {
                   </button>
                   <div
                     className={`library-settings-hide-row${
-                      hideShadowImages ? ' active' : ''
+                      hideQualityImages ? ' active' : ''
                     }`}
                   >
                     <button
                       type="button"
-                      className={`library-settings-orientation-toggle${
-                        hiddenOrientation === DOWN_TAG ? '' : ' flipped'
+                      className={`library-settings-quality-toggle${
+                        hiddenQuality === 'Bad' ? '' : ' flipped'
                       }`}
                       onClick={() =>
-                        setHiddenOrientation((prev) =>
-                          prev === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        setHiddenQuality((prev) =>
+                          prev === 'Bad' ? 'Good' : 'Bad'
                         )
                       }
-                      aria-pressed={hiddenOrientation === UP_TAG}
+                      aria-pressed={hiddenQuality === 'Good'}
                       aria-label={`Switch to hiding ${
-                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
                       } images`}
                       title={`Switch to hiding ${
-                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
                       } images`}
                     >
                       ⇄
@@ -3026,12 +3014,12 @@ export default function Library({ onBack }) {
                     <button
                       type="button"
                       className={`library-settings-hide-toggle${
-                        hideShadowImages ? ' active' : ''
+                        hideQualityImages ? ' active' : ''
                       }`}
-                      onClick={() => setHideShadowImages((prev) => !prev)}
+                      onClick={() => setHideQualityImages((prev) => !prev)}
                     >
-                      <span>{`Hide ${hiddenOrientation}`}</span>
-                      {hideShadowImages && (
+                      <span>{`Hide ${hiddenQuality}`}</span>
+                      {hideQualityImages && (
                         <span
                           className="library-settings-check"
                           aria-hidden="true"
@@ -3571,29 +3559,6 @@ export default function Library({ onBack }) {
                 <h2>Tags</h2>
                 <div className="tag-controls">
                   <div className="tag-control-group">
-                    <span className="tag-control-label">Orientation</span>
-                    <button
-                      type="button"
-                      className={`shadow-tag-button${
-                        wordIsDown ? ' active' : ''
-                      }`}
-                      onClick={() => {
-                        const nextOrientation = wordIsDown ? UP_TAG : DOWN_TAG;
-                        const nextTags = composeWordTags({
-                          orientation: nextOrientation,
-                        });
-                        updateWord(wordInspector.id, { tags: nextTags });
-                      }}
-                      aria-pressed={wordIsDown}
-                      aria-label={
-                        wordIsDown ? 'Mark word as UP' : 'Mark word as DOWN'
-                      }
-                      title={wordIsDown ? 'Mark word as UP' : 'Mark word as DOWN'}
-                    >
-                      {wordIsDown ? 'DOWN' : 'UP'}
-                    </button>
-                  </div>
-                  <div className="tag-control-group">
                     <span className="tag-control-label">{CATEGORY_LABEL}</span>
                     <div className="tag-control-options">
                       {CATEGORY_TAGS.map((tag) => {
@@ -3865,37 +3830,6 @@ export default function Library({ onBack }) {
                     </div>
                   </div>
                   <div className="tag-controls">
-                    <div className="tag-control-group">
-                      <span className="tag-control-label">Orientation</span>
-                      <button
-                        type="button"
-                        className={`shadow-tag-button${
-                          lightboxIsDown ? ' active' : ''
-                        }`}
-                        aria-label={
-                          lightboxIsDown
-                            ? 'Mark image as UP'
-                            : 'Mark image as DOWN'
-                        }
-                        title={
-                          lightboxIsDown
-                            ? 'Mark image as UP'
-                            : 'Mark image as DOWN'
-                        }
-                        aria-pressed={lightboxIsDown}
-                        onClick={() => {
-                          const nextOrientation = lightboxIsDown
-                            ? UP_TAG
-                            : DOWN_TAG;
-                          const nextTags = composeImageTags({
-                            orientation: nextOrientation,
-                          });
-                          updateImage(lightbox.id, { tags: nextTags });
-                        }}
-                      >
-                        {lightboxIsDown ? 'DOWN' : 'UP'}
-                      </button>
-                    </div>
                     <div className="tag-control-group">
                       <span className="tag-control-label">{CATEGORY_LABEL}</span>
                       <div className="tag-control-options">
