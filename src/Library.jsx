@@ -36,6 +36,8 @@ const ITEM_TYPE_INFO = {
   sound: { label: 'Sound', symbol: '🔊' },
 };
 
+const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
+const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const SOUND_PRESET_TAGS = [...CATEGORY_TAGS, ...GENDER_TAGS, ...QUALITY_TAGS];
 const LEGACY_SOUND_POSITION_TAGS = [
   '1st',
@@ -360,13 +362,8 @@ const stripLegacyOrientationTags = (tags) => {
     if (isLegacyOrientationTag(tag)) {
       return;
     }
-    const lower = tag.toLowerCase();
-    if (!seen.has(lower)) {
-      cleaned.push(tag);
-      seen.add(lower);
-    }
   });
-  return cleaned;
+  return output;
 };
 
 const buildImageTags = ({
