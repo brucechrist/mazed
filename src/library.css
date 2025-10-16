@@ -724,19 +724,6 @@
   word-break: break-word;
 }
 
-.word-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.word-card-tags .tag {
-  font-size: 0.7rem;
-  padding: 2px 5px;
-  cursor: default;
-}
-
 .word-inspector-backdrop {
   position: fixed;
   inset: 0;
@@ -894,72 +881,6 @@
 
 .sound-card .sound-player {
   width: 100%;
-}
-
-.image-tags {
-  margin-top: 6px;
-}
-
-.card-tags {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.tag-column {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1 1 auto;
-}
-
-.tag-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.orientation-tag-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 0 0 auto;
-}
-
-.orientation-tag {
-  min-width: 40px;
-  text-align: center;
-}
-
-.type-tag-row .tag {
-  font-weight: 600;
-}
-
-.type-tag {
-  background: var(--library-button-bg);
-  color: var(--library-text);
-}
-
-.type-symbol-tag {
-  font-size: 0.85rem;
-}
-
-.sound-tags {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.sound-tags .tag {
-  border-radius: 999px;
-  font-size: 0.75rem;
-  padding: 2px 8px;
 }
 
 .sound-modal {
