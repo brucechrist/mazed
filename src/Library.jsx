@@ -53,6 +53,12 @@ const LEGACY_SOUND_POSITION_SET = new Set(
   LEGACY_SOUND_POSITION_TAGS.map((tag) => tag.toLowerCase())
 );
 
+const LEGACY_ORIENTATION_TAGS = new Set(
+  ['up', 'down', 'top', 'mid', 'base', 'shadow'].map((tag) =>
+    tag.toLowerCase()
+  )
+);
+
 const TRI_VIEW_CATEGORIES = [
   { id: 'form', label: 'Form' },
   { id: 'semi-formless', label: 'Semi-Formless' },
@@ -258,7 +264,7 @@ const extractCustomSoundTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
-    if (LEGACY_SOUND_POSITION_SET.has(lower)) {
+    if (LEGACY_SOUND_POSITION_SET.has(lower) || isLegacyOrientationTag(tag)) {
       continue;
     }
     const triPreset = resolveTriPresetTag(tag);
@@ -288,7 +294,7 @@ const buildSoundTagsPayload = ({
     const tag = sanitizeTag(value);
     if (!tag) return;
     const lower = tag.toLowerCase();
-    if (LEGACY_SOUND_POSITION_SET.has(lower)) {
+    if (LEGACY_SOUND_POSITION_SET.has(lower) || isLegacyOrientationTag(tag)) {
       return;
     }
     if (tags.some((existing) => existing.toLowerCase() === lower)) {
@@ -305,7 +311,7 @@ const buildSoundTagsPayload = ({
     customInput.split(',').forEach(pushTag);
   }
 
-  return tags;
+  return canonicalizeTags(tags);
 };
 
 const getSoundMetadata = (sound) => {
@@ -479,11 +485,12 @@ const deriveTriCategoryFromTags = (tags) => {
 
 const mergeTriCategoryIntoTags = (tags, triCategory) => {
   const categoryTag = triCategory ? TRI_CATEGORY_TO_TAG[triCategory] ?? '' : '';
+  const cleaned = canonicalizeTags(tags);
   return buildImageTags({
     category: categoryTag,
-    gender: findPresetTag(tags, GENDER_TAGS),
-    quality: findPresetTag(tags, QUALITY_TAGS),
-    customTags: extractCustomTags(tags),
+    gender: findPresetTag(cleaned, GENDER_TAGS),
+    quality: findPresetTag(cleaned, QUALITY_TAGS),
+    customTags: extractCustomTags(cleaned),
   });
 };
 
