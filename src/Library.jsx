@@ -29,6 +29,8 @@ const CATEGORY_TAGS = ['P', 'M', 'F', 'X'];
 const CATEGORY_LABEL = CATEGORY_TAGS.join(' / ');
 const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
+const POSITION_TAGS = ['TOP', 'MID', 'BASE'];
+const POSITION_LABEL = POSITION_TAGS.join(' / ');
 
 const ITEM_TYPE_INFO = {
   image: { label: 'Image', symbol: '🖼️' },
@@ -36,7 +38,12 @@ const ITEM_TYPE_INFO = {
   sound: { label: 'Sound', symbol: '🔊' },
 };
 
-const SOUND_PRESET_TAGS = [...CATEGORY_TAGS, ...GENDER_TAGS, ...QUALITY_TAGS];
+const SOUND_PRESET_TAGS = [
+  ...CATEGORY_TAGS,
+  ...GENDER_TAGS,
+  ...QUALITY_TAGS,
+  ...POSITION_TAGS,
+];
 
 const TRI_VIEW_CATEGORIES = [
   { id: 'form', label: 'Form' },
@@ -259,6 +266,7 @@ const buildSoundTagsPayload = ({
   category = '',
   gender = '',
   quality = '',
+  position = '',
   customInput = '',
 } = {}) => {
   const tags = [];
@@ -275,6 +283,7 @@ const buildSoundTagsPayload = ({
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
+  pushTag(position);
 
   if (typeof customInput === 'string') {
     customInput.split(',').forEach(pushTag);
@@ -332,6 +341,7 @@ const buildImageTags = ({
   category = '',
   gender = '',
   quality = '',
+  position = '',
   customTags = [],
 } = {}) => {
   const tags = [];
@@ -348,6 +358,7 @@ const buildImageTags = ({
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
+  pushTag(position);
 
   if (Array.isArray(customTags)) {
     customTags.forEach(pushTag);
@@ -367,7 +378,8 @@ const extractCustomTags = (tags) => {
     if (
       Boolean(triPreset) ||
       GENDER_TAGS.some((preset) => preset.toLowerCase() === lower) ||
-      QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower)
+      QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower) ||
+      POSITION_TAGS.some((preset) => preset.toLowerCase() === lower)
     ) {
       continue;
     }
@@ -381,11 +393,13 @@ const normalizeImageTags = (tags) => {
   const category = findTriPresetTag(cleaned);
   const gender = findPresetTag(cleaned, GENDER_TAGS);
   const quality = findPresetTag(cleaned, QUALITY_TAGS);
+  const position = findPresetTag(cleaned, POSITION_TAGS);
   const custom = extractCustomTags(cleaned);
   return buildImageTags({
     category,
     gender,
     quality,
+    position,
     customTags: custom,
   });
 };
@@ -436,6 +450,7 @@ const mergeTriCategoryIntoTags = (tags, triCategory) => {
     category: categoryTag,
     gender: findPresetTag(cleaned, GENDER_TAGS),
     quality: findPresetTag(cleaned, QUALITY_TAGS),
+    position: findPresetTag(cleaned, POSITION_TAGS),
     customTags: extractCustomTags(cleaned),
   });
 };
@@ -562,6 +577,7 @@ export default function Library({ onBack }) {
   const [soundCategory, setSoundCategory] = useState('');
   const [soundGender, setSoundGender] = useState('');
   const [soundQuality, setSoundQuality] = useState('');
+  const [soundPosition, setSoundPosition] = useState('');
   const [soundCustomTags, setSoundCustomTags] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [soundMenu, setSoundMenu] = useState(null);
@@ -1734,6 +1750,7 @@ export default function Library({ onBack }) {
         setSoundCategory('');
         setSoundGender('');
         setSoundQuality('');
+        setSoundPosition('');
         setSoundCustomTags('');
         setEditingSoundId(null);
       };
@@ -1767,6 +1784,7 @@ export default function Library({ onBack }) {
         category: soundCategory,
         gender: soundGender,
         quality: soundQuality,
+        position: soundPosition,
         customInput: soundCustomTags,
       });
       const tagString = tags.join(', ');
@@ -1803,6 +1821,7 @@ export default function Library({ onBack }) {
     setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
     setSoundGender(findPresetTag(tags, GENDER_TAGS));
     setSoundQuality(findPresetTag(tags, QUALITY_TAGS));
+    setSoundPosition(findPresetTag(tags, POSITION_TAGS));
     setSoundCustomTags(extractCustomSoundTags(tags).join(', '));
     setEditingSoundId(snd.id);
   };
@@ -1816,6 +1835,7 @@ export default function Library({ onBack }) {
     setSoundCategory('');
     setSoundGender('');
     setSoundQuality('');
+    setSoundPosition('');
     setSoundCustomTags('');
     setEditingSoundId(null);
   };
@@ -2306,10 +2326,12 @@ export default function Library({ onBack }) {
     const custom = extractCustomTags(image.tags);
     const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
     const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
+    const position = findPresetTag(image.tags, POSITION_TAGS);
     const nextTags = buildImageTags({
       category,
       gender,
       quality,
+      position,
       customTags: custom,
     });
     updateImage(imageId, { tags: nextTags });
@@ -2710,36 +2732,42 @@ export default function Library({ onBack }) {
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
   const lightboxQuality = findPresetTag(lightbox?.tags, QUALITY_TAGS);
+  const lightboxPosition = findPresetTag(lightbox?.tags, POSITION_TAGS);
   const lightboxCustomTags = extractCustomTags(lightbox?.tags);
 
   const composeImageTags = ({
     category = lightboxCategory,
     gender = lightboxGender,
     quality = lightboxQuality,
+    position = lightboxPosition,
     customTags = lightboxCustomTags,
   } = {}) =>
     buildImageTags({
       category,
       gender,
       quality,
+      position,
       customTags,
     });
 
   const wordCategory = findPresetTag(wordInspector?.tags, CATEGORY_TAGS);
   const wordGender = findPresetTag(wordInspector?.tags, GENDER_TAGS);
   const wordQuality = findPresetTag(wordInspector?.tags, QUALITY_TAGS);
+  const wordPosition = findPresetTag(wordInspector?.tags, POSITION_TAGS);
   const wordCustomTags = extractCustomTags(wordInspector?.tags);
 
   const composeWordTags = ({
     category = wordCategory,
     gender = wordGender,
     quality = wordQuality,
+    position = wordPosition,
     customTags = wordCustomTags,
   } = {}) =>
     buildImageTags({
       category,
       gender,
       quality,
+      position,
       customTags,
     });
 
@@ -3405,6 +3433,28 @@ export default function Library({ onBack }) {
                     })}
                   </div>
                 </div>
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">{POSITION_LABEL}</span>
+                  <div className="sound-tag-row vertical">
+                    {POSITION_TAGS.map((tag) => {
+                      const selected = soundPosition === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`sound-tag-button${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundPosition(selected ? '' : tag)
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <input
                   type="text"
                   value={soundCustomTags}
@@ -3580,6 +3630,34 @@ export default function Library({ onBack }) {
                             }}
                             aria-pressed={selected}
                             title={tag}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">{POSITION_LABEL}</span>
+                    <div className="tag-control-options vertical">
+                      {POSITION_TAGS.map((tag) => {
+                        const selected = wordPosition === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`tag-toggle-button${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextPosition = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                position: nextPosition,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={`Set tag ${tag}`}
                           >
                             {tag}
                           </button>
@@ -3852,6 +3930,34 @@ export default function Library({ onBack }) {
                               }}
                               aria-pressed={selected}
                               title={tag}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="tag-control-group">
+                      <span className="tag-control-label">{POSITION_LABEL}</span>
+                      <div className="tag-control-options vertical">
+                        {POSITION_TAGS.map((tag) => {
+                          const selected = lightboxPosition === tag;
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`tag-toggle-button${
+                                selected ? ' selected' : ''
+                              }`}
+                              onClick={() => {
+                                const nextPosition = selected ? '' : tag;
+                                const nextTags = composeImageTags({
+                                  position: nextPosition,
+                                });
+                                updateImage(lightbox.id, { tags: nextTags });
+                              }}
+                              aria-pressed={selected}
+                              title={`Set tag ${tag}`}
                             >
                               {tag}
                             </button>
