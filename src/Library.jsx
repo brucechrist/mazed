@@ -41,11 +41,14 @@ const SOUND_ORIENTATION_TAGS = ORIENTATION_TAGS;
 const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const SOUND_PRESET_TAGS = [
   ...SOUND_ORIENTATION_TAGS,
-  ...SOUND_POSITION_TAGS,
   ...CATEGORY_TAGS,
   ...GENDER_TAGS,
   ...QUALITY_TAGS,
 ];
+const LEGACY_SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
+const LEGACY_SOUND_POSITION_SET = new Set(
+  LEGACY_SOUND_POSITION_TAGS.map((tag) => tag.toLowerCase())
+);
 
 const TRI_VIEW_CATEGORIES = [
   { id: 'form', label: 'Form' },
@@ -179,6 +182,9 @@ const parseSoundTags = (sound) => {
     const triPreset = resolveTriPresetTag(tag);
     const normalized = triPreset || tag;
     const lower = normalized.toLowerCase();
+    if (LEGACY_SOUND_POSITION_SET.has(lower)) {
+      return;
+    }
     if (seen.has(lower)) return;
     seen.add(lower);
     tags.push(normalized);
@@ -249,6 +255,9 @@ const extractCustomSoundTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
+    if (LEGACY_SOUND_POSITION_SET.has(lower)) {
+      continue;
+    }
     const triPreset = resolveTriPresetTag(tag);
     if (
       SOUND_PRESET_TAGS.some((preset) => preset.toLowerCase() === lower)
@@ -267,7 +276,6 @@ const extractCustomSoundTags = (tags) => {
 
 const buildSoundTagsPayload = ({
   orientation = '',
-  position = '',
   category = '',
   gender = '',
   quality = '',
@@ -278,6 +286,9 @@ const buildSoundTagsPayload = ({
     const tag = sanitizeTag(value);
     if (!tag) return;
     const lower = tag.toLowerCase();
+    if (LEGACY_SOUND_POSITION_SET.has(lower)) {
+      return;
+    }
     if (tags.some((existing) => existing.toLowerCase() === lower)) {
       return;
     }
@@ -285,7 +296,6 @@ const buildSoundTagsPayload = ({
   };
 
   pushTag(orientation);
-  pushTag(position);
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
@@ -416,7 +426,7 @@ const buildImageTags = ({
     customTags.forEach(pushTag);
   }
 
-  return tags;
+  return canonicalizeOrientationTags(tags);
 };
 
 const parseOrientationPreference = (value) => {
@@ -638,7 +648,6 @@ export default function Library({ onBack }) {
   const [soundThumb, setSoundThumb] = useState(null);
   const [soundColor, setSoundColor] = useState('');
   const [soundOrientation, setSoundOrientation] = useState('');
-  const [soundPosition, setSoundPosition] = useState('');
   const [soundCategory, setSoundCategory] = useState('');
   const [soundGender, setSoundGender] = useState('');
   const [soundQuality, setSoundQuality] = useState('');
@@ -1802,7 +1811,6 @@ export default function Library({ onBack }) {
         setSoundThumbPreview(null);
         setSoundColor('');
         setSoundOrientation('');
-        setSoundPosition('');
         setSoundCategory('');
         setSoundGender('');
         setSoundQuality('');
@@ -1837,7 +1845,6 @@ export default function Library({ onBack }) {
 
       const tags = buildSoundTagsPayload({
         orientation: soundOrientation,
-        position: soundPosition,
         category: soundCategory,
         gender: soundGender,
         quality: soundQuality,
@@ -1875,7 +1882,6 @@ export default function Library({ onBack }) {
     setSoundThumbPreview(snd.thumbnail || null);
     setSoundColor(snd.color || '');
     setSoundOrientation(findPresetTag(tags, SOUND_ORIENTATION_TAGS));
-    setSoundPosition(findPresetTag(tags, SOUND_POSITION_TAGS));
     setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
     setSoundGender(findPresetTag(tags, GENDER_TAGS));
     setSoundQuality(findPresetTag(tags, QUALITY_TAGS));
@@ -1890,7 +1896,6 @@ export default function Library({ onBack }) {
     setSoundThumbPreview(null);
     setSoundColor('');
     setSoundOrientation('');
-    setSoundPosition('');
     setSoundCategory('');
     setSoundGender('');
     setSoundQuality('');
@@ -3585,28 +3590,6 @@ export default function Library({ onBack }) {
                           }`}
                           onClick={() =>
                             setSoundOrientation(selected ? '' : tag)
-                          }
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">Position</span>
-                  <div className="sound-tag-row">
-                    {SOUND_POSITION_TAGS.map((tag) => {
-                      const selected = soundPosition === tag;
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={`sound-tag-button${
-                            selected ? ' selected' : ''
-                          }`}
-                          onClick={() =>
-                            setSoundPosition(selected ? '' : tag)
                           }
                         >
                           {tag}
