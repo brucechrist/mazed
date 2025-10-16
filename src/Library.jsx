@@ -36,28 +36,7 @@ const ITEM_TYPE_INFO = {
   sound: { label: 'Sound', symbol: '🔊' },
 };
 
-const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
-const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const SOUND_PRESET_TAGS = [...CATEGORY_TAGS, ...GENDER_TAGS, ...QUALITY_TAGS];
-const LEGACY_SOUND_POSITION_TAGS = [
-  '1st',
-  '2nd',
-  '3rd',
-  'Up',
-  'Down',
-  'Top',
-  'Mid',
-  'Base',
-];
-const LEGACY_SOUND_POSITION_SET = new Set(
-  LEGACY_SOUND_POSITION_TAGS.map((tag) => tag.toLowerCase())
-);
-
-const LEGACY_ORIENTATION_TAGS = new Set(
-  ['up', 'down', 'top', 'mid', 'base', 'shadow'].map((tag) =>
-    tag.toLowerCase()
-  )
-);
 
 const TRI_VIEW_CATEGORIES = [
   { id: 'form', label: 'Form' },
@@ -191,9 +170,6 @@ const parseSoundTags = (sound) => {
     const triPreset = resolveTriPresetTag(tag);
     const normalized = triPreset || tag;
     const lower = normalized.toLowerCase();
-    if (LEGACY_SOUND_POSITION_SET.has(lower)) {
-      return;
-    }
     if (seen.has(lower)) return;
     seen.add(lower);
     tags.push(normalized);
@@ -213,8 +189,7 @@ const parseSoundTags = (sound) => {
     }
   }
 
-  const normalizedTags = stripLegacyOrientationTags(tags);
-  return normalizedTags.filter((tag) => {
+  return tags.filter((tag) => {
     const lower = tag.toLowerCase();
     const matchingPresets = SOUND_PRESET_TAGS.filter((preset) =>
       new RegExp(`\\b${preset.toLowerCase()}\\b`).test(lower)
@@ -264,9 +239,6 @@ const extractCustomSoundTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
-    if (LEGACY_SOUND_POSITION_SET.has(lower) || isLegacyOrientationTag(tag)) {
-      continue;
-    }
     const triPreset = resolveTriPresetTag(tag);
     if (
       SOUND_PRESET_TAGS.some((preset) => preset.toLowerCase() === lower)
@@ -294,9 +266,6 @@ const buildSoundTagsPayload = ({
     const tag = sanitizeTag(value);
     if (!tag) return;
     const lower = tag.toLowerCase();
-    if (LEGACY_SOUND_POSITION_SET.has(lower) || isLegacyOrientationTag(tag)) {
-      return;
-    }
     if (tags.some((existing) => existing.toLowerCase() === lower)) {
       return;
     }
@@ -338,38 +307,25 @@ const hexToName = (hex) => {
 
 const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
 
-const LEGACY_SHADOW_TAG = 'shadow';
-
 const sanitizeTag = (tag) => {
   if (typeof tag !== 'string') return null;
   const trimmed = tag.trim();
   return trimmed ? trimmed : null;
 };
 
-const LEGACY_ORIENTATION_TAGS = new Set(
-  ['up', 'down', 'top', 'mid', 'base', LEGACY_SHADOW_TAG].map((tag) =>
-    tag.toLowerCase()
-  )
-);
-
-const isLegacyOrientationTag = (value) => {
-  const tag = sanitizeTag(value);
-  if (!tag) return false;
-  return LEGACY_ORIENTATION_TAGS.has(tag.toLowerCase());
-};
-
-const stripLegacyOrientationTags = (tags) => {
+const canonicalizeTags = (tags) => {
   if (!Array.isArray(tags)) return [];
   const seen = new Set();
   const cleaned = [];
   tags.forEach((raw) => {
     const tag = sanitizeTag(raw);
     if (!tag) return;
-    if (isLegacyOrientationTag(tag)) {
-      return;
-    }
+    const lower = tag.toLowerCase();
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    cleaned.push(tag);
   });
-  return output;
+  return cleaned;
 };
 
 const buildImageTags = ({
@@ -382,7 +338,6 @@ const buildImageTags = ({
   const pushTag = (value) => {
     const tag = sanitizeTag(value);
     if (!tag) return;
-    if (isLegacyOrientationTag(tag)) return;
     const lower = tag.toLowerCase();
     if (tags.some((existing) => existing.toLowerCase() === lower)) {
       return;
@@ -407,9 +362,6 @@ const extractCustomTags = (tags) => {
   for (const raw of tags) {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
-    if (isLegacyOrientationTag(tag)) {
-      continue;
-    }
     const lower = tag.toLowerCase();
     const triPreset = resolveTriPresetTag(tag);
     if (
@@ -425,7 +377,7 @@ const extractCustomTags = (tags) => {
 };
 
 const normalizeImageTags = (tags) => {
-  const cleaned = stripLegacyOrientationTags(tags);
+  const cleaned = canonicalizeTags(tags);
   const category = findTriPresetTag(cleaned);
   const gender = findPresetTag(cleaned, GENDER_TAGS);
   const quality = findPresetTag(cleaned, QUALITY_TAGS);
@@ -447,12 +399,6 @@ const parseHiddenQualityPreference = (value) => {
   const normalized = value.trim().toLowerCase();
   if (!normalized) {
     return DEFAULT_HIDDEN_QUALITY;
-  }
-  if (normalized === 'up') {
-    return 'Good';
-  }
-  if (normalized === 'down') {
-    return 'Bad';
   }
   const match = QUALITY_TAGS.find(
     (tag) => tag.toLowerCase() === normalized
@@ -627,10 +573,6 @@ export default function Library({ onBack }) {
       if (stored !== null) {
         return stored === 'true';
       }
-      const legacy = localStorage.getItem('hideShadowImages');
-      if (legacy !== null) {
-        return legacy === 'true';
-      }
     }
     return false;
   });
@@ -639,10 +581,6 @@ export default function Library({ onBack }) {
       const stored = localStorage.getItem('hideQualitySelection');
       if (stored) {
         return parseHiddenQualityPreference(stored);
-      }
-      const legacy = localStorage.getItem('hideShadowOrientation');
-      if (legacy) {
-        return parseHiddenQualityPreference(legacy);
       }
     }
     return DEFAULT_HIDDEN_QUALITY;
