@@ -37,15 +37,18 @@ const ITEM_TYPE_INFO = {
 };
 
 const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
-const SOUND_ORIENTATION_TAGS = ORIENTATION_TAGS;
 const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
-const SOUND_PRESET_TAGS = [
-  ...SOUND_ORIENTATION_TAGS,
-  ...CATEGORY_TAGS,
-  ...GENDER_TAGS,
-  ...QUALITY_TAGS,
+const SOUND_PRESET_TAGS = [...CATEGORY_TAGS, ...GENDER_TAGS, ...QUALITY_TAGS];
+const LEGACY_SOUND_POSITION_TAGS = [
+  '1st',
+  '2nd',
+  '3rd',
+  'Up',
+  'Down',
+  'Top',
+  'Mid',
+  'Base',
 ];
-const LEGACY_SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const LEGACY_SOUND_POSITION_SET = new Set(
   LEGACY_SOUND_POSITION_TAGS.map((tag) => tag.toLowerCase())
 );
@@ -275,7 +278,6 @@ const extractCustomSoundTags = (tags) => {
 };
 
 const buildSoundTagsPayload = ({
-  orientation = '',
   category = '',
   gender = '',
   quality = '',
@@ -295,7 +297,6 @@ const buildSoundTagsPayload = ({
     tags.push(tag);
   };
 
-  pushTag(orientation);
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
@@ -625,7 +626,6 @@ export default function Library({ onBack }) {
   const [soundTitle, setSoundTitle] = useState('');
   const [soundThumb, setSoundThumb] = useState(null);
   const [soundColor, setSoundColor] = useState('');
-  const [soundOrientation, setSoundOrientation] = useState('');
   const [soundCategory, setSoundCategory] = useState('');
   const [soundGender, setSoundGender] = useState('');
   const [soundQuality, setSoundQuality] = useState('');
@@ -1788,7 +1788,6 @@ export default function Library({ onBack }) {
         setSoundThumb(null);
         setSoundThumbPreview(null);
         setSoundColor('');
-        setSoundOrientation('');
         setSoundCategory('');
         setSoundGender('');
         setSoundQuality('');
@@ -1822,7 +1821,6 @@ export default function Library({ onBack }) {
         : soundThumbPreview;
 
       const tags = buildSoundTagsPayload({
-        orientation: soundOrientation,
         category: soundCategory,
         gender: soundGender,
         quality: soundQuality,
@@ -1859,7 +1857,6 @@ export default function Library({ onBack }) {
     setSoundThumb(null);
     setSoundThumbPreview(snd.thumbnail || null);
     setSoundColor(snd.color || '');
-    setSoundOrientation(findPresetTag(tags, SOUND_ORIENTATION_TAGS));
     setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
     setSoundGender(findPresetTag(tags, GENDER_TAGS));
     setSoundQuality(findPresetTag(tags, QUALITY_TAGS));
@@ -1873,7 +1870,6 @@ export default function Library({ onBack }) {
     setSoundThumb(null);
     setSoundThumbPreview(null);
     setSoundColor('');
-    setSoundOrientation('');
     setSoundCategory('');
     setSoundGender('');
     setSoundQuality('');
@@ -3408,28 +3404,6 @@ export default function Library({ onBack }) {
               </div>
               <div className="sound-tag-section">
                 <span className="sound-tag-heading">Tags</span>
-                <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">Orientation</span>
-                  <div className="sound-tag-row">
-                    {SOUND_ORIENTATION_TAGS.map((tag) => {
-                      const selected = soundOrientation === tag;
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={`sound-tag-button${
-                            selected ? ' selected' : ''
-                          }`}
-                          onClick={() =>
-                            setSoundOrientation(selected ? '' : tag)
-                          }
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
                 <div className="sound-tag-group">
                   <span className="sound-tag-subheading">{CATEGORY_LABEL}</span>
                   <div className="sound-tag-row">
