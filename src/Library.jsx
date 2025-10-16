@@ -337,6 +337,58 @@ const canonicalizeTags = (tags) => {
   return cleaned;
 };
 
+const TMB_PRIORITY = POSITION_TAGS.map((tag) => tag.toLowerCase());
+
+const getTmbPriority = (tags) => {
+  if (!Array.isArray(tags)) {
+    return TMB_PRIORITY.length;
+  }
+
+  let best = TMB_PRIORITY.length;
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const normalized = tag.toLowerCase();
+    const index = TMB_PRIORITY.indexOf(normalized);
+    if (index !== -1 && index < best) {
+      best = index;
+    }
+  }
+
+  return best;
+};
+
+const sortItemsByTmb = (items, getTags, getTitle = () => '') => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  const originalOrder = new Map();
+  items.forEach((item, index) => {
+    originalOrder.set(item, index);
+  });
+
+  return items
+    .slice()
+    .sort((a, b) => {
+      const priorityA = getTmbPriority(getTags(a));
+      const priorityB = getTmbPriority(getTags(b));
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      const indexA = originalOrder.get(a) ?? 0;
+      const indexB = originalOrder.get(b) ?? 0;
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+
+      const titleA = getTitle(a) || '';
+      const titleB = getTitle(b) || '';
+      return titleA.localeCompare(titleB);
+    });
+};
+
 const buildImageTags = ({
   category = '',
   gender = '',
@@ -523,7 +575,7 @@ export default function Library({ onBack }) {
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [palette, setPalette] = useState(DEFAULT_COLORS);
-  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'random'
+  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'tmb', 'random'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
@@ -607,6 +659,30 @@ export default function Library({ onBack }) {
         (img) => findPresetTag(img.tags, QUALITY_TAGS) !== hiddenQuality
       )
     : images;
+
+  const displayedWords = useMemo(
+    () =>
+      sortMode === 'tmb'
+        ? sortItemsByTmb(
+            words,
+            (word) => word?.tags,
+            (word) => (typeof word?.text === 'string' ? word.text : '')
+          )
+        : words,
+    [sortMode, words]
+  );
+
+  const displayedSounds = useMemo(
+    () =>
+      sortMode === 'tmb'
+        ? sortItemsByTmb(
+            sounds,
+            (sound) => sound?.tags,
+            (sound) => (typeof sound?.title === 'string' ? sound.title : '')
+          )
+        : sounds,
+    [sortMode, sounds]
+  );
 
   const ratingSummary = useMemo(() => {
     if (!images.length) {
@@ -1612,6 +1688,15 @@ export default function Library({ onBack }) {
     sortImages(sorted, 'rating');
   };
 
+  const sortByTmb = () => {
+    const sorted = sortItemsByTmb(
+      images,
+      (img) => img?.tags,
+      (img) => (typeof img?.title === 'string' ? img.title : '')
+    );
+    sortImages(sorted, 'tmb');
+  };
+
   const shuffleImages = () => {
     const shuffled = [...images];
     for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -1852,8 +1937,17 @@ export default function Library({ onBack }) {
     const { disableReorderDrop = false, forceDraggable = false } = options;
     const canDrag =
       forceDraggable ||
-      (sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating');
-    const allowInternalReorder = canDrag && !disableReorderDrop;
+      (sortMode !== 'title' &&
+        sortMode !== 'date' &&
+        sortMode !== 'rating' &&
+        sortMode !== 'tmb');
+    const allowInternalReorder =
+      canDrag &&
+      !disableReorderDrop &&
+      sortMode !== 'title' &&
+      sortMode !== 'date' &&
+      sortMode !== 'rating' &&
+      sortMode !== 'tmb';
     const scaledHeight =
       img.width && img.height
         ? (img.height / img.width) * colWidth
@@ -1878,7 +1972,10 @@ export default function Library({ onBack }) {
         }}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+          sortMode !== 'title' &&
+          sortMode !== 'date' &&
+          sortMode !== 'rating' &&
+          sortMode !== 'tmb'
             ? (event) => {
                 setDraggedId(img.id);
                 if (event.dataTransfer) {
@@ -1920,7 +2017,10 @@ export default function Library({ onBack }) {
             : undefined
         }
         onDragEnd={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+          sortMode !== 'title' &&
+          sortMode !== 'date' &&
+          sortMode !== 'rating' &&
+          sortMode !== 'tmb'
             ? () => {
                 setDraggedId(null);
                 setDualActiveCell(null);
@@ -3064,6 +3164,14 @@ export default function Library({ onBack }) {
                   </button>
                   <button
                     onClick={() => {
+                      sortByTmb();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    TMB (Top → Mid → Base)
+                  </button>
+                  <button
+                    onClick={() => {
                       shuffleImages();
                       setSortMenuOpen(false);
                     }}
@@ -3113,7 +3221,7 @@ export default function Library({ onBack }) {
               <div className="color-groups">
                 {palette.map((c) => {
                   const groupImgs = filteredImages.filter((img) => img.color === c);
-                  const groupSounds = sounds.filter((s) => s.color === c);
+                  const groupSounds = displayedSounds.filter((s) => s.color === c);
                   if (!groupImgs.length && !groupSounds.length) return null;
                   return (
                     <div key={c} className="color-group">
@@ -3162,7 +3270,7 @@ export default function Library({ onBack }) {
                     </div>
                   );
                 })}
-                {activeTab === 'all' && sounds.length > 0 && (
+                {activeTab === 'all' && displayedSounds.length > 0 && (
                   <div className="color-group">
                     <h3 className="color-title" style={{ color: '#fff' }}>
                       Sounds
@@ -3176,7 +3284,7 @@ export default function Library({ onBack }) {
                               gap: `${gridGap}px`,
                             }}
                           >
-                          {sounds.map((s) => renderSoundCard(s))}
+                          {displayedSounds.map((s) => renderSoundCard(s))}
                         </div>
                       </div>
                   </div>
@@ -3191,7 +3299,10 @@ export default function Library({ onBack }) {
                   gap: `${gridGap}px`,
                 }}
                 onDragOver={
-                  sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+                  sortMode !== 'title' &&
+                  sortMode !== 'date' &&
+                  sortMode !== 'rating' &&
+                  sortMode !== 'tmb'
                     ? (e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDragOver(e);
@@ -3202,7 +3313,10 @@ export default function Library({ onBack }) {
                     : undefined
                 }
                   onDrop={
-                    sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+                    sortMode !== 'title' &&
+                    sortMode !== 'date' &&
+                    sortMode !== 'rating' &&
+                    sortMode !== 'tmb'
                       ? (e) => {
                           if (e.dataTransfer.files?.length) {
                             handleDrop(e);
@@ -3232,13 +3346,30 @@ export default function Library({ onBack }) {
                               type: 'image',
                               item: img,
                             })),
-                            ...sounds.map((s) => ({ type: 'sound', item: s })),
+                            ...displayedSounds.map((s) => ({
+                              type: 'sound',
+                              item: s,
+                            })),
                           ];
                           const ordered =
                             sortMode === 'date'
                               ? combined
                                   .slice()
                                   .sort((a, b) => a.item.id - b.item.id)
+                              : sortMode === 'tmb'
+                              ? sortItemsByTmb(
+                                  combined,
+                                  ({ item }) => item?.tags,
+                                  ({ item }) => {
+                                    if (typeof item?.title === 'string') {
+                                      return item.title;
+                                    }
+                                    if (typeof item?.text === 'string') {
+                                      return item.text;
+                                    }
+                                    return '';
+                                  }
+                                )
                               : combined;
                           return ordered.map(({ type, item }) =>
                             type === 'image'
@@ -3263,7 +3394,7 @@ export default function Library({ onBack }) {
               </form>
             )}
             <ul className="word-list">
-              {words.map((w) => {
+              {displayedWords.map((w) => {
                 const typeInfo = ITEM_TYPE_INFO.word;
                 return (
                   <li key={w.id} className="word-item">
@@ -3282,7 +3413,7 @@ export default function Library({ onBack }) {
             </ul>
           </div>
         )}
-        {libraryView === 'tri' && activeTab === 'all' && sounds.length > 0 && (
+        {libraryView === 'tri' && activeTab === 'all' && displayedSounds.length > 0 && (
           <div className="sound-section tri-sound-section">
             <div style={{ width: '100%', overflow: 'hidden' }}>
               <div
@@ -3293,7 +3424,7 @@ export default function Library({ onBack }) {
                   gap: `${gridGap}px`,
                 }}
               >
-                {sounds.map((s) => renderSoundCard(s))}
+                {displayedSounds.map((s) => renderSoundCard(s))}
               </div>
             </div>
           </div>
@@ -3309,7 +3440,7 @@ export default function Library({ onBack }) {
                   gap: `${gridGap}px`,
                 }}
               >
-                {sounds.map((s) => renderSoundCard(s))}
+                {displayedSounds.map((s) => renderSoundCard(s))}
               </div>
             </div>
           </div>
