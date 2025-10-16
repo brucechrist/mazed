@@ -902,29 +902,51 @@
 
 .card-tags {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
   gap: 6px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.tag-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
 }
 
 .tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.orientation-tag-list {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
   flex-wrap: wrap;
+  gap: 4px;
+}
+
+.orientation-tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
 }
 
 .orientation-tag {
   min-width: 40px;
   text-align: center;
+}
+
+.type-tag-row .tag {
+  font-weight: 600;
+}
+
+.type-tag {
+  background: var(--library-button-bg);
+  color: var(--library-text);
+}
+
+.type-symbol-tag {
+  font-size: 0.85rem;
 }
 
 .sound-tags {

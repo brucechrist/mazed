@@ -38,6 +38,7 @@ const ITEM_TYPE_INFO = {
 
 const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
 const SOUND_ORIENTATION_TAGS = ORIENTATION_TAGS;
+const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const SOUND_PRESET_TAGS = [
   ...SOUND_ORIENTATION_TAGS,
   ...CATEGORY_TAGS,
@@ -1926,9 +1927,7 @@ export default function Library({ onBack }) {
     const ratingInfo = ratingSummary.get(img.id);
     const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
     const typeInfo = ITEM_TYPE_INFO.image;
-    const rawTags = Array.isArray(img.tags) ? img.tags : [];
-    const canonicalTags = canonicalizeOrientationTags(rawTags);
-    const normalizedTags = normalizeImageTags(canonicalTags);
+    const normalizedTags = normalizeImageTags(img.tags);
     const displayTags = Array.isArray(normalizedTags)
       ? normalizedTags.filter(
           (tag) =>
@@ -1936,7 +1935,7 @@ export default function Library({ onBack }) {
             tag.toLowerCase() !== UP_TAG.toLowerCase()
         )
       : [];
-    const orientationTags = extractOrientationTags(canonicalTags);
+    const orientationTags = extractOrientationTags(displayTags);
     const nonOrientationTags = excludeOrientationTags(displayTags);
     return (
       <div
@@ -2070,15 +2069,28 @@ export default function Library({ onBack }) {
                 ))}
               </div>
             )}
-            {nonOrientationTags.length > 0 && (
-              <div className="tag-row">
-                {nonOrientationTags.map((tag) => (
-                  <span key={`${img.id}-${tag}`} className="tag">
-                    {tag}
-                  </span>
-                ))}
+            <div className="tag-column">
+              <div className="tag-row type-tag-row">
+                <span
+                  className="tag type-tag type-symbol-tag"
+                  aria-hidden="true"
+                >
+                  {typeInfo.symbol}
+                </span>
+                <span className="tag type-tag type-label-tag">
+                  {typeInfo.label}
+                </span>
               </div>
-            )}
+              {nonOrientationTags.length > 0 && (
+                <div className="tag-row">
+                  {nonOrientationTags.map((tag) => (
+                    <span key={`${img.id}-${tag}`} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -2144,15 +2156,28 @@ export default function Library({ onBack }) {
                 ))}
               </div>
             )}
-            {nonOrientationTags.length > 0 && (
-              <div className="tag-row">
-                {nonOrientationTags.map((tag) => (
-                  <span key={`${snd.id}-${tag}`} className="tag">
-                    {tag}
-                  </span>
-                ))}
+            <div className="tag-column">
+              <div className="tag-row type-tag-row">
+                <span
+                  className="tag type-tag type-symbol-tag"
+                  aria-hidden="true"
+                >
+                  {typeInfo.symbol}
+                </span>
+                <span className="tag type-tag type-label-tag">
+                  {typeInfo.label}
+                </span>
               </div>
-            )}
+              {nonOrientationTags.length > 0 && (
+                <div className="tag-row">
+                  {nonOrientationTags.map((tag) => (
+                    <span key={`${snd.id}-${tag}`} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <audio
             controls
@@ -3392,10 +3417,8 @@ export default function Library({ onBack }) {
             )}
             <ul className="word-list">
               {words.map((w) => {
-                const rawTags = Array.isArray(w.tags) ? w.tags : [];
-                const canonicalTags = canonicalizeOrientationTags(rawTags);
-                const orientation = getOrientationTag(canonicalTags);
-                const normalizedTags = normalizeImageTags(canonicalTags);
+                const orientation = getOrientationTag(w.tags);
+                const normalizedTags = normalizeImageTags(w.tags);
                 const baseTags = Array.isArray(normalizedTags)
                   ? normalizedTags.filter(
                       (tag) =>
@@ -3403,7 +3426,7 @@ export default function Library({ onBack }) {
                         tag.toLowerCase() !== UP_TAG.toLowerCase()
                     )
                   : [];
-                const orientationTags = extractOrientationTags(canonicalTags);
+                const orientationTags = extractOrientationTags(baseTags);
                 const otherTags = excludeOrientationTags(baseTags);
                 const sortedOtherTags = [...otherTags];
                 if (orientation === DOWN_TAG) {
@@ -3437,15 +3460,31 @@ export default function Library({ onBack }) {
                             ))}
                           </div>
                         )}
-                        {sortedOtherTags.length > 0 && (
-                          <div className="tag-row">
-                            {sortedOtherTags.map((tag) => (
-                              <span key={`${w.id}-${tag}`} className="tag">
-                                {tag}
-                              </span>
-                            ))}
+                        <div className="tag-column">
+                          <div className="tag-row type-tag-row">
+                            <span
+                              className="tag type-tag type-symbol-tag"
+                              aria-hidden="true"
+                            >
+                              {typeInfo.symbol}
+                            </span>
+                            <span className="tag type-tag type-label-tag">
+                              {typeInfo.label}
+                            </span>
                           </div>
-                        )}
+                          {sortedOtherTags.length > 0 && (
+                            <div className="tag-row">
+                              {sortedOtherTags.map((tag) => (
+                                <span
+                                  key={`${w.id}-${tag}`}
+                                  className="tag"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </button>
                   </li>
