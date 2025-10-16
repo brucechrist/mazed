@@ -37,15 +37,18 @@ const ITEM_TYPE_INFO = {
 };
 
 const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
-const SOUND_ORIENTATION_TAGS = ORIENTATION_TAGS;
 const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
-const SOUND_PRESET_TAGS = [
-  ...SOUND_ORIENTATION_TAGS,
-  ...CATEGORY_TAGS,
-  ...GENDER_TAGS,
-  ...QUALITY_TAGS,
+const SOUND_PRESET_TAGS = [...CATEGORY_TAGS, ...GENDER_TAGS, ...QUALITY_TAGS];
+const LEGACY_SOUND_POSITION_TAGS = [
+  '1st',
+  '2nd',
+  '3rd',
+  'Up',
+  'Down',
+  'Top',
+  'Mid',
+  'Base',
 ];
-const LEGACY_SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const LEGACY_SOUND_POSITION_SET = new Set(
   LEGACY_SOUND_POSITION_TAGS.map((tag) => tag.toLowerCase())
 );
@@ -275,7 +278,6 @@ const extractCustomSoundTags = (tags) => {
 };
 
 const buildSoundTagsPayload = ({
-  orientation = '',
   category = '',
   gender = '',
   quality = '',
@@ -295,7 +297,6 @@ const buildSoundTagsPayload = ({
     tags.push(tag);
   };
 
-  pushTag(orientation);
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
@@ -375,28 +376,6 @@ const canonicalizeOrientationTags = (tags) => {
     }
   });
   return output;
-};
-
-const extractOrientationTags = (tags) => {
-  if (!Array.isArray(tags)) return [];
-  const present = new Set();
-  tags.forEach((raw) => {
-    const preset = matchOrientationPreset(raw);
-    if (preset) {
-      present.add(preset.toLowerCase());
-    }
-  });
-  return ORIENTATION_TAGS.filter((preset) =>
-    present.has(preset.toLowerCase())
-  );
-};
-
-const excludeOrientationTags = (tags) => {
-  if (!Array.isArray(tags)) return [];
-  return tags.filter((raw) => {
-    const preset = matchOrientationPreset(raw);
-    return !preset;
-  });
 };
 
 const buildImageTags = ({
@@ -647,7 +626,6 @@ export default function Library({ onBack }) {
   const [soundTitle, setSoundTitle] = useState('');
   const [soundThumb, setSoundThumb] = useState(null);
   const [soundColor, setSoundColor] = useState('');
-  const [soundOrientation, setSoundOrientation] = useState('');
   const [soundCategory, setSoundCategory] = useState('');
   const [soundGender, setSoundGender] = useState('');
   const [soundQuality, setSoundQuality] = useState('');
@@ -1810,7 +1788,6 @@ export default function Library({ onBack }) {
         setSoundThumb(null);
         setSoundThumbPreview(null);
         setSoundColor('');
-        setSoundOrientation('');
         setSoundCategory('');
         setSoundGender('');
         setSoundQuality('');
@@ -1844,7 +1821,6 @@ export default function Library({ onBack }) {
         : soundThumbPreview;
 
       const tags = buildSoundTagsPayload({
-        orientation: soundOrientation,
         category: soundCategory,
         gender: soundGender,
         quality: soundQuality,
@@ -1881,7 +1857,6 @@ export default function Library({ onBack }) {
     setSoundThumb(null);
     setSoundThumbPreview(snd.thumbnail || null);
     setSoundColor(snd.color || '');
-    setSoundOrientation(findPresetTag(tags, SOUND_ORIENTATION_TAGS));
     setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
     setSoundGender(findPresetTag(tags, GENDER_TAGS));
     setSoundQuality(findPresetTag(tags, QUALITY_TAGS));
@@ -1895,7 +1870,6 @@ export default function Library({ onBack }) {
     setSoundThumb(null);
     setSoundThumbPreview(null);
     setSoundColor('');
-    setSoundOrientation('');
     setSoundCategory('');
     setSoundGender('');
     setSoundQuality('');
@@ -1927,16 +1901,6 @@ export default function Library({ onBack }) {
     const ratingInfo = ratingSummary.get(img.id);
     const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
     const typeInfo = ITEM_TYPE_INFO.image;
-    const normalizedTags = normalizeImageTags(img.tags);
-    const displayTags = Array.isArray(normalizedTags)
-      ? normalizedTags.filter(
-          (tag) =>
-            typeof tag === 'string' &&
-            tag.toLowerCase() !== UP_TAG.toLowerCase()
-        )
-      : [];
-    const orientationTags = extractOrientationTags(displayTags);
-    const nonOrientationTags = excludeOrientationTags(displayTags);
     return (
       <div
         key={img.id}
@@ -2056,42 +2020,6 @@ export default function Library({ onBack }) {
           ) : (
             <p className="image-meta image-meta-unranked">Unranked</p>
           )}
-          <div className="image-tags card-tags">
-            {orientationTags.length > 0 && (
-              <div className="orientation-tag-list">
-                {orientationTags.map((tag) => (
-                  <span
-                    key={`${img.id}-orientation-${tag}`}
-                    className="tag orientation-tag"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="tag-column">
-              <div className="tag-row type-tag-row">
-                <span
-                  className="tag type-tag type-symbol-tag"
-                  aria-hidden="true"
-                >
-                  {typeInfo.symbol}
-                </span>
-                <span className="tag type-tag type-label-tag">
-                  {typeInfo.label}
-                </span>
-              </div>
-              {nonOrientationTags.length > 0 && (
-                <div className="tag-row">
-                  {nonOrientationTags.map((tag) => (
-                    <span key={`${img.id}-${tag}`} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -2099,12 +2027,6 @@ export default function Library({ onBack }) {
 
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
-    const rawTags = parseSoundTags(snd);
-    const tags = Array.isArray(rawTags)
-      ? rawTags.filter((tag) => typeof tag === 'string')
-      : [];
-    const orientationTags = extractOrientationTags(tags);
-    const nonOrientationTags = excludeOrientationTags(tags);
     const typeInfo = ITEM_TYPE_INFO.sound;
     return (
       <div
@@ -2143,42 +2065,6 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          <div className="sound-tags card-tags">
-            {orientationTags.length > 0 && (
-              <div className="orientation-tag-list">
-                {orientationTags.map((tag) => (
-                  <span
-                    key={`${snd.id}-orientation-${tag}`}
-                    className="tag orientation-tag"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="tag-column">
-              <div className="tag-row type-tag-row">
-                <span
-                  className="tag type-tag type-symbol-tag"
-                  aria-hidden="true"
-                >
-                  {typeInfo.symbol}
-                </span>
-                <span className="tag type-tag type-label-tag">
-                  {typeInfo.label}
-                </span>
-              </div>
-              {nonOrientationTags.length > 0 && (
-                <div className="tag-row">
-                  {nonOrientationTags.map((tag) => (
-                    <span key={`${snd.id}-${tag}`} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
           <audio
             controls
             src={snd.dataUrl}
@@ -3417,25 +3303,6 @@ export default function Library({ onBack }) {
             )}
             <ul className="word-list">
               {words.map((w) => {
-                const orientation = getOrientationTag(w.tags);
-                const normalizedTags = normalizeImageTags(w.tags);
-                const baseTags = Array.isArray(normalizedTags)
-                  ? normalizedTags.filter(
-                      (tag) =>
-                        typeof tag === 'string' &&
-                        tag.toLowerCase() !== UP_TAG.toLowerCase()
-                    )
-                  : [];
-                const orientationTags = extractOrientationTags(baseTags);
-                const otherTags = excludeOrientationTags(baseTags);
-                const sortedOtherTags = [...otherTags];
-                if (orientation === DOWN_TAG) {
-                  sortedOtherTags.sort((a, b) => {
-                    if (a === DOWN_TAG) return -1;
-                    if (b === DOWN_TAG) return 1;
-                    return 0;
-                  });
-                }
                 const typeInfo = ITEM_TYPE_INFO.word;
                 return (
                   <li key={w.id} className="word-item">
@@ -3447,45 +3314,6 @@ export default function Library({ onBack }) {
                       onClick={() => openWordInspector(w)}
                     >
                       <span className="word-card-text">{w.text || 'Untitled'}</span>
-                      <div className="word-card-tags card-tags">
-                        {orientationTags.length > 0 && (
-                          <div className="orientation-tag-list">
-                            {orientationTags.map((tag) => (
-                              <span
-                                key={`${w.id}-orientation-${tag}`}
-                                className="tag orientation-tag"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="tag-column">
-                          <div className="tag-row type-tag-row">
-                            <span
-                              className="tag type-tag type-symbol-tag"
-                              aria-hidden="true"
-                            >
-                              {typeInfo.symbol}
-                            </span>
-                            <span className="tag type-tag type-label-tag">
-                              {typeInfo.label}
-                            </span>
-                          </div>
-                          {sortedOtherTags.length > 0 && (
-                            <div className="tag-row">
-                              {sortedOtherTags.map((tag) => (
-                                <span
-                                  key={`${w.id}-${tag}`}
-                                  className="tag"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </button>
                   </li>
                 );
@@ -3576,28 +3404,6 @@ export default function Library({ onBack }) {
               </div>
               <div className="sound-tag-section">
                 <span className="sound-tag-heading">Tags</span>
-                <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">Orientation</span>
-                  <div className="sound-tag-row">
-                    {SOUND_ORIENTATION_TAGS.map((tag) => {
-                      const selected = soundOrientation === tag;
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={`sound-tag-button${
-                            selected ? ' selected' : ''
-                          }`}
-                          onClick={() =>
-                            setSoundOrientation(selected ? '' : tag)
-                          }
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
                 <div className="sound-tag-group">
                   <span className="sound-tag-subheading">{CATEGORY_LABEL}</span>
                   <div className="sound-tag-row">
