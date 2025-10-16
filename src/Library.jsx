@@ -36,12 +36,19 @@ const ITEM_TYPE_INFO = {
   sound: { label: 'Sound', symbol: '🔊' },
 };
 
-const SOUND_PRESET_TAGS = [
-  ...CATEGORY_TAGS,
-  ...GENDER_TAGS,
-  ...QUALITY_TAGS,
+const ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
+const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
+const SOUND_PRESET_TAGS = [...CATEGORY_TAGS, ...GENDER_TAGS, ...QUALITY_TAGS];
+const LEGACY_SOUND_POSITION_TAGS = [
+  '1st',
+  '2nd',
+  '3rd',
+  'Up',
+  'Down',
+  'Top',
+  'Mid',
+  'Base',
 ];
-const LEGACY_SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
 const LEGACY_SOUND_POSITION_SET = new Set(
   LEGACY_SOUND_POSITION_TAGS.map((tag) => tag.toLowerCase())
 );
@@ -206,7 +213,7 @@ const parseSoundTags = (sound) => {
     }
   }
 
-  const normalizedTags = canonicalizeTags(tags);
+  const normalizedTags = stripLegacyOrientationTags(tags);
   return normalizedTags.filter((tag) => {
     const lower = tag.toLowerCase();
     const matchingPresets = SOUND_PRESET_TAGS.filter((preset) =>
@@ -331,11 +338,19 @@ const hexToName = (hex) => {
 
 const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
 
+const LEGACY_SHADOW_TAG = 'shadow';
+
 const sanitizeTag = (tag) => {
   if (typeof tag !== 'string') return null;
   const trimmed = tag.trim();
   return trimmed ? trimmed : null;
 };
+
+const LEGACY_ORIENTATION_TAGS = new Set(
+  ['up', 'down', 'top', 'mid', 'base', LEGACY_SHADOW_TAG].map((tag) =>
+    tag.toLowerCase()
+  )
+);
 
 const isLegacyOrientationTag = (value) => {
   const tag = sanitizeTag(value);
@@ -343,18 +358,15 @@ const isLegacyOrientationTag = (value) => {
   return LEGACY_ORIENTATION_TAGS.has(tag.toLowerCase());
 };
 
-const canonicalizeTags = (tags) => {
+const stripLegacyOrientationTags = (tags) => {
   if (!Array.isArray(tags)) return [];
   const seen = new Set();
-  const output = [];
+  const cleaned = [];
   tags.forEach((raw) => {
     const tag = sanitizeTag(raw);
     if (!tag) return;
-    if (isLegacyOrientationTag(tag)) return;
-    const lower = tag.toLowerCase();
-    if (!seen.has(lower)) {
-      output.push(tag);
-      seen.add(lower);
+    if (isLegacyOrientationTag(tag)) {
+      return;
     }
   });
   return output;
@@ -386,7 +398,7 @@ const buildImageTags = ({
     customTags.forEach(pushTag);
   }
 
-  return canonicalizeTags(tags);
+  return tags;
 };
 
 const extractCustomTags = (tags) => {
@@ -413,7 +425,7 @@ const extractCustomTags = (tags) => {
 };
 
 const normalizeImageTags = (tags) => {
-  const cleaned = canonicalizeTags(tags);
+  const cleaned = stripLegacyOrientationTags(tags);
   const category = findTriPresetTag(cleaned);
   const gender = findPresetTag(cleaned, GENDER_TAGS);
   const quality = findPresetTag(cleaned, QUALITY_TAGS);
@@ -424,6 +436,28 @@ const normalizeImageTags = (tags) => {
     quality,
     customTags: custom,
   });
+};
+
+const DEFAULT_HIDDEN_QUALITY = 'Bad';
+
+const parseHiddenQualityPreference = (value) => {
+  if (typeof value !== 'string') {
+    return DEFAULT_HIDDEN_QUALITY;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return DEFAULT_HIDDEN_QUALITY;
+  }
+  if (normalized === 'up') {
+    return 'Good';
+  }
+  if (normalized === 'down') {
+    return 'Bad';
+  }
+  const match = QUALITY_TAGS.find(
+    (tag) => tag.toLowerCase() === normalized
+  );
+  return match || DEFAULT_HIDDEN_QUALITY;
 };
 
 const tagsAreEqual = (a, b) => {
@@ -587,7 +621,38 @@ export default function Library({ onBack }) {
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
-  const filteredImages = images;
+  const [hideQualityImages, setHideQualityImages] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('hideQualityImages');
+      if (stored !== null) {
+        return stored === 'true';
+      }
+      const legacy = localStorage.getItem('hideShadowImages');
+      if (legacy !== null) {
+        return legacy === 'true';
+      }
+    }
+    return false;
+  });
+  const [hiddenQuality, setHiddenQuality] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('hideQualitySelection');
+      if (stored) {
+        return parseHiddenQualityPreference(stored);
+      }
+      const legacy = localStorage.getItem('hideShadowOrientation');
+      if (legacy) {
+        return parseHiddenQualityPreference(legacy);
+      }
+    }
+    return DEFAULT_HIDDEN_QUALITY;
+  });
+
+  const filteredImages = hideQualityImages
+    ? images.filter(
+        (img) => findPresetTag(img.tags, QUALITY_TAGS) !== hiddenQuality
+      )
+    : images;
 
   const ratingSummary = useMemo(() => {
     if (!images.length) {
@@ -1351,6 +1416,25 @@ export default function Library({ onBack }) {
   }, [filteredImages, lightbox, setLightbox]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(
+        'hideQualityImages',
+        hideQualityImages ? 'true' : 'false'
+      );
+      localStorage.setItem('hideQualitySelection', hiddenQuality);
+      localStorage.removeItem('hideShadowImages');
+      localStorage.removeItem('hideShadowOrientation');
+    }
+    if (
+      hideQualityImages &&
+      lightbox &&
+      findPresetTag(lightbox.tags, QUALITY_TAGS) === hiddenQuality
+    ) {
+      setLightbox(null);
+    }
+  }, [hideQualityImages, hiddenQuality, lightbox]);
+
+  useEffect(() => {
     loadPalette().then(setPalette);
     const handler = () => {
       loadPalette().then(setPalette);
@@ -1822,9 +1906,6 @@ export default function Library({ onBack }) {
     const ratingInfo = ratingSummary.get(img.id);
     const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
     const typeInfo = ITEM_TYPE_INFO.image;
-    const displayTags = normalizeImageTags(img.tags).filter(
-      (tag) => typeof tag === 'string'
-    );
     return (
       <div
         key={img.id}
@@ -1944,30 +2025,6 @@ export default function Library({ onBack }) {
           ) : (
             <p className="image-meta image-meta-unranked">Unranked</p>
           )}
-          <div className="image-tags card-tags">
-            <div className="tag-column">
-              <div className="tag-row type-tag-row">
-                <span
-                  className="tag type-tag type-symbol-tag"
-                  aria-hidden="true"
-                >
-                  {typeInfo.symbol}
-                </span>
-                <span className="tag type-tag type-label-tag">
-                  {typeInfo.label}
-                </span>
-              </div>
-              {displayTags.length > 0 && (
-                <div className="tag-row">
-                  {displayTags.map((tag) => (
-                    <span key={`${img.id}-${tag}`} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -1975,10 +2032,6 @@ export default function Library({ onBack }) {
 
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
-    const rawTags = parseSoundTags(snd);
-    const tags = Array.isArray(rawTags)
-      ? rawTags.filter((tag) => typeof tag === 'string')
-      : [];
     const typeInfo = ITEM_TYPE_INFO.sound;
     return (
       <div
@@ -2017,30 +2070,6 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          <div className="sound-tags card-tags">
-            <div className="tag-column">
-              <div className="tag-row type-tag-row">
-                <span
-                  className="tag type-tag type-symbol-tag"
-                  aria-hidden="true"
-                >
-                  {typeInfo.symbol}
-                </span>
-                <span className="tag type-tag type-label-tag">
-                  {typeInfo.label}
-                </span>
-              </div>
-              {tags.length > 0 && (
-                <div className="tag-row">
-                  {tags.map((tag) => (
-                    <span key={`${snd.id}-${tag}`} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
           <audio
             controls
             src={snd.dataUrl}
@@ -2335,9 +2364,8 @@ export default function Library({ onBack }) {
   const updateDualPlacement = (imageId, targetGender, targetQuality) => {
     const image = images.find((img) => img.id === imageId);
     if (!image) return;
-    const normalized = normalizeImageTags(image.tags);
-    const category = findPresetTag(normalized, CATEGORY_TAGS);
-    const custom = extractCustomTags(normalized);
+    const category = findPresetTag(image.tags, CATEGORY_TAGS);
+    const custom = extractCustomTags(image.tags);
     const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
     const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
     const nextTags = buildImageTags({
@@ -2965,6 +2993,49 @@ export default function Library({ onBack }) {
                       </span>
                     )}
                   </button>
+                  <div
+                    className={`library-settings-hide-row${
+                      hideQualityImages ? ' active' : ''
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className={`library-settings-quality-toggle${
+                        hiddenQuality === 'Bad' ? '' : ' flipped'
+                      }`}
+                      onClick={() =>
+                        setHiddenQuality((prev) =>
+                          prev === 'Bad' ? 'Good' : 'Bad'
+                        )
+                      }
+                      aria-pressed={hiddenQuality === 'Good'}
+                      aria-label={`Switch to hiding ${
+                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
+                      } images`}
+                      title={`Switch to hiding ${
+                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
+                      } images`}
+                    >
+                      ⇄
+                    </button>
+                    <button
+                      type="button"
+                      className={`library-settings-hide-toggle${
+                        hideQualityImages ? ' active' : ''
+                      }`}
+                      onClick={() => setHideQualityImages((prev) => !prev)}
+                    >
+                      <span>{`Hide ${hiddenQuality}`}</span>
+                      {hideQualityImages && (
+                        <span
+                          className="library-settings-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -3227,10 +3298,6 @@ export default function Library({ onBack }) {
             )}
             <ul className="word-list">
               {words.map((w) => {
-                const normalizedTags = normalizeImageTags(w.tags);
-                const baseTags = Array.isArray(normalizedTags)
-                  ? normalizedTags.filter((tag) => typeof tag === 'string')
-                  : [];
                 const typeInfo = ITEM_TYPE_INFO.word;
                 return (
                   <li key={w.id} className="word-item">
@@ -3242,30 +3309,6 @@ export default function Library({ onBack }) {
                       onClick={() => openWordInspector(w)}
                     >
                       <span className="word-card-text">{w.text || 'Untitled'}</span>
-                      <div className="word-card-tags card-tags">
-                        <div className="tag-column">
-                          <div className="tag-row type-tag-row">
-                            <span
-                              className="tag type-tag type-symbol-tag"
-                              aria-hidden="true"
-                            >
-                              {typeInfo.symbol}
-                            </span>
-                            <span className="tag type-tag type-label-tag">
-                              {typeInfo.label}
-                            </span>
-                          </div>
-                          {baseTags.length > 0 && (
-                            <div className="tag-row">
-                              {baseTags.map((tag) => (
-                                <span key={`${w.id}-${tag}`} className="tag">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </button>
                   </li>
                 );
