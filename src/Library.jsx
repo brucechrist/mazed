@@ -377,28 +377,6 @@ const canonicalizeOrientationTags = (tags) => {
   return output;
 };
 
-const extractOrientationTags = (tags) => {
-  if (!Array.isArray(tags)) return [];
-  const present = new Set();
-  tags.forEach((raw) => {
-    const preset = matchOrientationPreset(raw);
-    if (preset) {
-      present.add(preset.toLowerCase());
-    }
-  });
-  return ORIENTATION_TAGS.filter((preset) =>
-    present.has(preset.toLowerCase())
-  );
-};
-
-const excludeOrientationTags = (tags) => {
-  if (!Array.isArray(tags)) return [];
-  return tags.filter((raw) => {
-    const preset = matchOrientationPreset(raw);
-    return !preset;
-  });
-};
-
 const buildImageTags = ({
   orientation = UP_TAG,
   category = '',
@@ -1927,16 +1905,6 @@ export default function Library({ onBack }) {
     const ratingInfo = ratingSummary.get(img.id);
     const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
     const typeInfo = ITEM_TYPE_INFO.image;
-    const normalizedTags = normalizeImageTags(img.tags);
-    const displayTags = Array.isArray(normalizedTags)
-      ? normalizedTags.filter(
-          (tag) =>
-            typeof tag === 'string' &&
-            tag.toLowerCase() !== UP_TAG.toLowerCase()
-        )
-      : [];
-    const orientationTags = extractOrientationTags(displayTags);
-    const nonOrientationTags = excludeOrientationTags(displayTags);
     return (
       <div
         key={img.id}
@@ -2056,42 +2024,6 @@ export default function Library({ onBack }) {
           ) : (
             <p className="image-meta image-meta-unranked">Unranked</p>
           )}
-          <div className="image-tags card-tags">
-            {orientationTags.length > 0 && (
-              <div className="orientation-tag-list">
-                {orientationTags.map((tag) => (
-                  <span
-                    key={`${img.id}-orientation-${tag}`}
-                    className="tag orientation-tag"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="tag-column">
-              <div className="tag-row type-tag-row">
-                <span
-                  className="tag type-tag type-symbol-tag"
-                  aria-hidden="true"
-                >
-                  {typeInfo.symbol}
-                </span>
-                <span className="tag type-tag type-label-tag">
-                  {typeInfo.label}
-                </span>
-              </div>
-              {nonOrientationTags.length > 0 && (
-                <div className="tag-row">
-                  {nonOrientationTags.map((tag) => (
-                    <span key={`${img.id}-${tag}`} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -2099,12 +2031,6 @@ export default function Library({ onBack }) {
 
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
-    const rawTags = parseSoundTags(snd);
-    const tags = Array.isArray(rawTags)
-      ? rawTags.filter((tag) => typeof tag === 'string')
-      : [];
-    const orientationTags = extractOrientationTags(tags);
-    const nonOrientationTags = excludeOrientationTags(tags);
     const typeInfo = ITEM_TYPE_INFO.sound;
     return (
       <div
@@ -2143,42 +2069,6 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          <div className="sound-tags card-tags">
-            {orientationTags.length > 0 && (
-              <div className="orientation-tag-list">
-                {orientationTags.map((tag) => (
-                  <span
-                    key={`${snd.id}-orientation-${tag}`}
-                    className="tag orientation-tag"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="tag-column">
-              <div className="tag-row type-tag-row">
-                <span
-                  className="tag type-tag type-symbol-tag"
-                  aria-hidden="true"
-                >
-                  {typeInfo.symbol}
-                </span>
-                <span className="tag type-tag type-label-tag">
-                  {typeInfo.label}
-                </span>
-              </div>
-              {nonOrientationTags.length > 0 && (
-                <div className="tag-row">
-                  {nonOrientationTags.map((tag) => (
-                    <span key={`${snd.id}-${tag}`} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
           <audio
             controls
             src={snd.dataUrl}
@@ -3417,25 +3307,6 @@ export default function Library({ onBack }) {
             )}
             <ul className="word-list">
               {words.map((w) => {
-                const orientation = getOrientationTag(w.tags);
-                const normalizedTags = normalizeImageTags(w.tags);
-                const baseTags = Array.isArray(normalizedTags)
-                  ? normalizedTags.filter(
-                      (tag) =>
-                        typeof tag === 'string' &&
-                        tag.toLowerCase() !== UP_TAG.toLowerCase()
-                    )
-                  : [];
-                const orientationTags = extractOrientationTags(baseTags);
-                const otherTags = excludeOrientationTags(baseTags);
-                const sortedOtherTags = [...otherTags];
-                if (orientation === DOWN_TAG) {
-                  sortedOtherTags.sort((a, b) => {
-                    if (a === DOWN_TAG) return -1;
-                    if (b === DOWN_TAG) return 1;
-                    return 0;
-                  });
-                }
                 const typeInfo = ITEM_TYPE_INFO.word;
                 return (
                   <li key={w.id} className="word-item">
@@ -3447,45 +3318,6 @@ export default function Library({ onBack }) {
                       onClick={() => openWordInspector(w)}
                     >
                       <span className="word-card-text">{w.text || 'Untitled'}</span>
-                      <div className="word-card-tags card-tags">
-                        {orientationTags.length > 0 && (
-                          <div className="orientation-tag-list">
-                            {orientationTags.map((tag) => (
-                              <span
-                                key={`${w.id}-orientation-${tag}`}
-                                className="tag orientation-tag"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="tag-column">
-                          <div className="tag-row type-tag-row">
-                            <span
-                              className="tag type-tag type-symbol-tag"
-                              aria-hidden="true"
-                            >
-                              {typeInfo.symbol}
-                            </span>
-                            <span className="tag type-tag type-label-tag">
-                              {typeInfo.label}
-                            </span>
-                          </div>
-                          {sortedOtherTags.length > 0 && (
-                            <div className="tag-row">
-                              {sortedOtherTags.map((tag) => (
-                                <span
-                                  key={`${w.id}-${tag}`}
-                                  className="tag"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </button>
                   </li>
                 );
