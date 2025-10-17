@@ -684,6 +684,11 @@ export default function Library({ onBack }) {
     [sortMode, sounds]
   );
 
+  const imageCount = filteredImages.length;
+  const wordCount = displayedWords.length;
+  const soundCount = displayedSounds.length;
+  const totalCount = imageCount + wordCount + soundCount;
+
   const ratingSummary = useMemo(() => {
     if (!images.length) {
       return new Map();
@@ -3188,25 +3193,25 @@ export default function Library({ onBack }) {
             className={activeTab === 'all' ? 'active' : ''}
             onClick={() => setActiveTab('all')}
           >
-            All
+            All ({totalCount})
           </button>
           <button
             className={activeTab === 'images' ? 'active' : ''}
             onClick={() => setActiveTab('images')}
           >
-            Images
+            Images ({imageCount})
           </button>
           <button
             className={activeTab === 'words' ? 'active' : ''}
             onClick={() => setActiveTab('words')}
           >
-            Words
+            Words ({wordCount})
           </button>
           <button
             className={activeTab === 'sounds' ? 'active' : ''}
             onClick={() => setActiveTab('sounds')}
           >
-            Sounds
+            Sounds ({soundCount})
           </button>
         </div>
         {(activeTab === 'all' || activeTab === 'images') &&
