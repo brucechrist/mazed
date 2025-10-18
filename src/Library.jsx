@@ -25,18 +25,24 @@ const readFileAsDataURL = (file) =>
     reader.readAsDataURL(file);
   });
 
-const CATEGORY_TAGS = ['P', 'M', 'F'];
+const CATEGORY_TAGS = ['P', 'M', 'F', 'X'];
+const CATEGORY_LABEL = CATEGORY_TAGS.join(' / ');
 const GENDER_TAGS = ['♀', '♂'];
 const QUALITY_TAGS = ['Good', 'Neutral', 'Bad'];
+const POSITION_TAGS = ['TOP', 'MID', 'BASE'];
+const POSITION_LABEL = POSITION_TAGS.join(' / ');
 
-const SOUND_ORIENTATION_TAGS = ['Top', 'Mid', 'Base'];
-const SOUND_POSITION_TAGS = ['1st', '2nd', '3rd'];
+const ITEM_TYPE_INFO = {
+  image: { label: 'Image', symbol: '🖼️' },
+  word: { label: 'Word', symbol: '🔤' },
+  sound: { label: 'Sound', symbol: '🔊' },
+};
+
 const SOUND_PRESET_TAGS = [
-  ...SOUND_ORIENTATION_TAGS,
-  ...SOUND_POSITION_TAGS,
   ...CATEGORY_TAGS,
   ...GENDER_TAGS,
   ...QUALITY_TAGS,
+  ...POSITION_TAGS,
 ];
 
 const TRI_VIEW_CATEGORIES = [
@@ -60,6 +66,36 @@ const TRI_TAG_TO_CATEGORY = Object.entries(TRI_CATEGORY_TO_TAG).reduce(
   },
   {}
 );
+
+const TRI_PRESET_LOOKUP = (() => {
+  const map = {};
+  CATEGORY_TAGS.forEach((tag) => {
+    map[tag.toLowerCase()] = tag;
+  });
+  Object.entries(TRI_CATEGORY_TO_TAG).forEach(([category, tag]) => {
+    const normalized = category.toLowerCase();
+    map[normalized] = tag;
+    const collapsed = normalized.replace(/[\s_-]+/g, '');
+    if (!map[collapsed]) {
+      map[collapsed] = tag;
+    }
+  });
+  return map;
+})();
+
+const resolveTriPresetTag = (value) => {
+  if (typeof value !== 'string') return '';
+  const normalized = value.trim().toLowerCase();
+  if (!normalized.length) return '';
+  const collapsed = normalized.replace(/[\s_-]+/g, '');
+  const dashed = normalized.replace(/[\s_]+/g, '-');
+  return (
+    TRI_PRESET_LOOKUP[normalized] ||
+    TRI_PRESET_LOOKUP[collapsed] ||
+    TRI_PRESET_LOOKUP[dashed] ||
+    ''
+  );
+};
 
 const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
 const DUAL_COLUMNS = ['♀', '♂'];
@@ -138,10 +174,12 @@ const parseSoundTags = (sound) => {
   const addTag = (value) => {
     const tag = sanitizeTag(value);
     if (!tag) return;
-    const lower = tag.toLowerCase();
+    const triPreset = resolveTriPresetTag(tag);
+    const normalized = triPreset || tag;
+    const lower = normalized.toLowerCase();
     if (seen.has(lower)) return;
     seen.add(lower);
-    tags.push(tag);
+    tags.push(normalized);
   };
 
   if (Array.isArray(sound?.tags)) {
@@ -190,6 +228,17 @@ const findPresetTag = (tags, presets) => {
   return '';
 };
 
+const findTriPresetTag = (tags) => {
+  if (!Array.isArray(tags)) return '';
+  for (const raw of tags) {
+    const preset = resolveTriPresetTag(raw);
+    if (preset) {
+      return preset;
+    }
+  }
+  return '';
+};
+
 const extractCustomSoundTags = (tags) => {
   if (!Array.isArray(tags)) return [];
   const custom = [];
@@ -197,9 +246,13 @@ const extractCustomSoundTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
+    const triPreset = resolveTriPresetTag(tag);
     if (
       SOUND_PRESET_TAGS.some((preset) => preset.toLowerCase() === lower)
     ) {
+      continue;
+    }
+    if (triPreset) {
       continue;
     }
     if (!custom.some((existing) => existing.toLowerCase() === lower)) {
@@ -210,11 +263,10 @@ const extractCustomSoundTags = (tags) => {
 };
 
 const buildSoundTagsPayload = ({
-  orientation = '',
-  position = '',
   category = '',
   gender = '',
   quality = '',
+  position = '',
   customInput = '',
 } = {}) => {
   const tags = [];
@@ -228,17 +280,16 @@ const buildSoundTagsPayload = ({
     tags.push(tag);
   };
 
-  pushTag(orientation);
-  pushTag(position);
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
+  pushTag(position);
 
   if (typeof customInput === 'string') {
     customInput.split(',').forEach(pushTag);
   }
 
-  return tags;
+  return canonicalizeTags(tags);
 };
 
 const getSoundMetadata = (sound) => {
@@ -265,21 +316,84 @@ const hexToName = (hex) => {
 
 const QUADRANT_ORDER = ['IE', 'EE', 'II', 'EI'];
 
-const UP_TAG = 'UP';
-const DOWN_TAG = 'DOWN';
-const LEGACY_SHADOW_TAG = 'shadow';
-
 const sanitizeTag = (tag) => {
   if (typeof tag !== 'string') return null;
   const trimmed = tag.trim();
   return trimmed ? trimmed : null;
 };
 
+const canonicalizeTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set();
+  const cleaned = [];
+  tags.forEach((raw) => {
+    const tag = sanitizeTag(raw);
+    if (!tag) return;
+    const lower = tag.toLowerCase();
+    if (seen.has(lower)) return;
+    seen.add(lower);
+    cleaned.push(tag);
+  });
+  return cleaned;
+};
+
+const TMB_PRIORITY = POSITION_TAGS.map((tag) => tag.toLowerCase());
+
+const getTmbPriority = (tags) => {
+  if (!Array.isArray(tags)) {
+    return TMB_PRIORITY.length;
+  }
+
+  let best = TMB_PRIORITY.length;
+  for (const raw of tags) {
+    const tag = sanitizeTag(raw);
+    if (!tag) continue;
+    const normalized = tag.toLowerCase();
+    const index = TMB_PRIORITY.indexOf(normalized);
+    if (index !== -1 && index < best) {
+      best = index;
+    }
+  }
+
+  return best;
+};
+
+const sortItemsByTmb = (items, getTags, getTitle = () => '') => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  const originalOrder = new Map();
+  items.forEach((item, index) => {
+    originalOrder.set(item, index);
+  });
+
+  return items
+    .slice()
+    .sort((a, b) => {
+      const priorityA = getTmbPriority(getTags(a));
+      const priorityB = getTmbPriority(getTags(b));
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      const indexA = originalOrder.get(a) ?? 0;
+      const indexB = originalOrder.get(b) ?? 0;
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+
+      const titleA = getTitle(a) || '';
+      const titleB = getTitle(b) || '';
+      return titleA.localeCompare(titleB);
+    });
+};
+
 const buildImageTags = ({
-  orientation = UP_TAG,
   category = '',
   gender = '',
   quality = '',
+  position = '',
   customTags = [],
 } = {}) => {
   const tags = [];
@@ -293,41 +407,16 @@ const buildImageTags = ({
     tags.push(tag);
   };
 
-  pushTag(sanitizeTag(orientation) || UP_TAG);
   pushTag(category);
   pushTag(gender);
   pushTag(quality);
+  pushTag(position);
 
   if (Array.isArray(customTags)) {
     customTags.forEach(pushTag);
   }
 
   return tags;
-};
-
-const parseOrientationPreference = (value) => {
-  if (typeof value !== 'string') {
-    return DOWN_TAG;
-  }
-  const normalized = value.trim().toUpperCase();
-  return normalized === UP_TAG ? UP_TAG : DOWN_TAG;
-};
-
-const getOrientationTag = (tags) => {
-  if (!Array.isArray(tags)) return UP_TAG;
-  let orientation = UP_TAG;
-  for (const raw of tags) {
-    const tag = sanitizeTag(raw);
-    if (!tag) continue;
-    const lower = tag.toLowerCase();
-    if (lower === DOWN_TAG.toLowerCase() || lower === LEGACY_SHADOW_TAG) {
-      return DOWN_TAG;
-    }
-    if (lower === UP_TAG.toLowerCase()) {
-      orientation = UP_TAG;
-    }
-  }
-  return orientation;
 };
 
 const extractCustomTags = (tags) => {
@@ -337,13 +426,12 @@ const extractCustomTags = (tags) => {
     const tag = sanitizeTag(raw);
     if (!tag) continue;
     const lower = tag.toLowerCase();
+    const triPreset = resolveTriPresetTag(tag);
     if (
-      lower === UP_TAG.toLowerCase() ||
-      lower === DOWN_TAG.toLowerCase() ||
-      lower === LEGACY_SHADOW_TAG ||
-      CATEGORY_TAGS.some((preset) => preset.toLowerCase() === lower) ||
+      Boolean(triPreset) ||
       GENDER_TAGS.some((preset) => preset.toLowerCase() === lower) ||
-      QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower)
+      QUALITY_TAGS.some((preset) => preset.toLowerCase() === lower) ||
+      POSITION_TAGS.some((preset) => preset.toLowerCase() === lower)
     ) {
       continue;
     }
@@ -353,33 +441,69 @@ const extractCustomTags = (tags) => {
 };
 
 const normalizeImageTags = (tags) => {
-  const orientation = getOrientationTag(tags);
-  const category = findPresetTag(tags, CATEGORY_TAGS);
-  const gender = findPresetTag(tags, GENDER_TAGS);
-  const quality = findPresetTag(tags, QUALITY_TAGS);
-  const custom = extractCustomTags(tags);
+  const cleaned = canonicalizeTags(tags);
+  const category = findTriPresetTag(cleaned);
+  const gender = findPresetTag(cleaned, GENDER_TAGS);
+  const quality = findPresetTag(cleaned, QUALITY_TAGS);
+  const position = findPresetTag(cleaned, POSITION_TAGS);
+  const custom = extractCustomTags(cleaned);
   return buildImageTags({
-    orientation,
     category,
     gender,
     quality,
+    position,
     customTags: custom,
   });
 };
 
+const DEFAULT_HIDDEN_QUALITY = 'Bad';
+
+const parseHiddenQualityPreference = (value) => {
+  if (typeof value !== 'string') {
+    return DEFAULT_HIDDEN_QUALITY;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return DEFAULT_HIDDEN_QUALITY;
+  }
+  const match = QUALITY_TAGS.find(
+    (tag) => tag.toLowerCase() === normalized
+  );
+  return match || DEFAULT_HIDDEN_QUALITY;
+};
+
+const tagsAreEqual = (a, b) => {
+  if (!Array.isArray(a) && !Array.isArray(b)) {
+    return true;
+  }
+  if (!Array.isArray(a) || !Array.isArray(b)) {
+    return false;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const deriveTriCategoryFromTags = (tags) => {
-  const preset = findPresetTag(tags, CATEGORY_TAGS);
+  const preset = findTriPresetTag(tags);
   return preset ? TRI_TAG_TO_CATEGORY[preset] ?? null : null;
 };
 
 const mergeTriCategoryIntoTags = (tags, triCategory) => {
   const categoryTag = triCategory ? TRI_CATEGORY_TO_TAG[triCategory] ?? '' : '';
+  const cleaned = canonicalizeTags(tags);
   return buildImageTags({
-    orientation: getOrientationTag(tags),
     category: categoryTag,
-    gender: findPresetTag(tags, GENDER_TAGS),
-    quality: findPresetTag(tags, QUALITY_TAGS),
-    customTags: extractCustomTags(tags),
+    gender: findPresetTag(cleaned, GENDER_TAGS),
+    quality: findPresetTag(cleaned, QUALITY_TAGS),
+    position: findPresetTag(cleaned, POSITION_TAGS),
+    customTags: extractCustomTags(cleaned),
   });
 };
 
@@ -451,7 +575,7 @@ export default function Library({ onBack }) {
   const [descInput, setDescInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [palette, setPalette] = useState(DEFAULT_COLORS);
-  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'random'
+  const [sortMode, setSortMode] = useState('none'); // 'none', 'color', 'title', 'date', 'rating', 'tmb', 'random'
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
@@ -493,41 +617,77 @@ export default function Library({ onBack }) {
   );
 
   const [words, setWords] = useState([]);
+  const [wordInspector, setWordInspector] = useState(null);
+  const [wordTextDraft, setWordTextDraft] = useState('');
+  const [wordTagInput, setWordTagInput] = useState('');
   const [wordInput, setWordInput] = useState('');
   const [sounds, setSounds] = useState([]);
   const [soundModal, setSoundModal] = useState(null);
   const [soundTitle, setSoundTitle] = useState('');
   const [soundThumb, setSoundThumb] = useState(null);
   const [soundColor, setSoundColor] = useState('');
-  const [soundOrientation, setSoundOrientation] = useState('');
-  const [soundPosition, setSoundPosition] = useState('');
   const [soundCategory, setSoundCategory] = useState('');
   const [soundGender, setSoundGender] = useState('');
   const [soundQuality, setSoundQuality] = useState('');
+  const [soundPosition, setSoundPosition] = useState('');
   const [soundCustomTags, setSoundCustomTags] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
-  const [hideShadowImages, setHideShadowImages] = useState(() => {
+  const [hideQualityImages, setHideQualityImages] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('hideShadowImages') === 'true';
+      const stored = localStorage.getItem('hideQualityImages');
+      if (stored !== null) {
+        return stored === 'true';
+      }
     }
     return false;
   });
-  const [hiddenOrientation, setHiddenOrientation] = useState(() => {
+  const [hiddenQuality, setHiddenQuality] = useState(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('hideShadowOrientation');
-      return parseOrientationPreference(stored);
+      const stored = localStorage.getItem('hideQualitySelection');
+      if (stored) {
+        return parseHiddenQualityPreference(stored);
+      }
     }
-    return DOWN_TAG;
+    return DEFAULT_HIDDEN_QUALITY;
   });
 
-  const filteredImages = hideShadowImages
+  const filteredImages = hideQualityImages
     ? images.filter(
-        (img) => getOrientationTag(img.tags) !== hiddenOrientation
+        (img) => findPresetTag(img.tags, QUALITY_TAGS) !== hiddenQuality
       )
     : images;
+
+  const displayedWords = useMemo(
+    () =>
+      sortMode === 'tmb'
+        ? sortItemsByTmb(
+            words,
+            (word) => word?.tags,
+            (word) => (typeof word?.text === 'string' ? word.text : '')
+          )
+        : words,
+    [sortMode, words]
+  );
+
+  const displayedSounds = useMemo(
+    () =>
+      sortMode === 'tmb'
+        ? sortItemsByTmb(
+            sounds,
+            (sound) => sound?.tags,
+            (sound) => (typeof sound?.title === 'string' ? sound.title : '')
+          )
+        : sounds,
+    [sortMode, sounds]
+  );
+
+  const imageCount = filteredImages.length;
+  const wordCount = displayedWords.length;
+  const soundCount = displayedSounds.length;
+  const totalCount = imageCount + wordCount + soundCount;
 
   const ratingSummary = useMemo(() => {
     if (!images.length) {
@@ -822,7 +982,55 @@ export default function Library({ onBack }) {
     const savedWords = localStorage.getItem('mazedWords');
     if (savedWords) {
       try {
-        setWords(JSON.parse(savedWords));
+        const parsed = JSON.parse(savedWords);
+        if (Array.isArray(parsed)) {
+          let changed = false;
+          const validEntries = parsed.filter(
+            (entry) => entry && typeof entry.id !== 'undefined',
+          );
+          if (validEntries.length !== parsed.length) {
+            changed = true;
+          }
+          const normalized = validEntries.map((entry) => {
+            const text =
+              typeof entry.text === 'string' ? entry.text : '';
+            if (text !== entry.text) {
+              changed = true;
+            }
+            const tags = normalizeImageTags(entry.tags);
+            if (!tagsAreEqual(tags, entry.tags)) {
+              changed = true;
+            }
+            const createdAt =
+              typeof entry.createdAt === 'number'
+                ? entry.createdAt
+                : typeof entry.id === 'number'
+                ? entry.id
+                : Date.now();
+            if (createdAt !== entry.createdAt) {
+              changed = true;
+            }
+            return {
+              ...entry,
+              text,
+              tags,
+              createdAt,
+            };
+          });
+          setWords(normalized);
+          if (changed) {
+            try {
+              localStorage.setItem(
+                'mazedWords',
+                JSON.stringify(normalized),
+              );
+            } catch (err) {
+              console.error('Failed to persist normalized words', err);
+            }
+          }
+        } else {
+          setWords([]);
+        }
       } catch (e) {
         console.error('Failed to parse saved words', e);
       }
@@ -1046,6 +1254,73 @@ export default function Library({ onBack }) {
     return results;
   };
 
+  const updateWord = (id, updates) => {
+    if (!updates || typeof updates !== 'object') {
+      return;
+    }
+    let hasUpdate = false;
+    let nextWord = null;
+    const nextWords = words.map((word) => {
+      if (word.id !== id) {
+        return word;
+      }
+      const payload = { ...updates };
+      if ('text' in payload) {
+        const nextText =
+          typeof payload.text === 'string' ? payload.text.trim() : '';
+        payload.text = nextText || word.text || '';
+      }
+      if ('tags' in payload) {
+        payload.tags = normalizeImageTags(payload.tags);
+      }
+      if ('createdAt' in payload) {
+        payload.createdAt =
+          typeof payload.createdAt === 'number'
+            ? payload.createdAt
+            : word.createdAt;
+      }
+      nextWord = { ...word, ...payload };
+      if (!hasUpdate) {
+        hasUpdate = JSON.stringify(nextWord) !== JSON.stringify(word);
+      }
+      return nextWord;
+    });
+    if (!nextWord) {
+      return;
+    }
+    if (hasUpdate) {
+      saveWords(nextWords);
+    }
+    setWordInspector((current) =>
+      current && current.id === id ? nextWord : current
+    );
+  };
+
+  const deleteWord = (id) => {
+    const updated = words.filter((word) => word.id !== id);
+    if (updated.length === words.length) {
+      return;
+    }
+    saveWords(updated);
+    setWordInspector((current) =>
+      current && current.id === id ? null : current
+    );
+  };
+
+  const openWordInspector = (word) => {
+    if (!word) {
+      return;
+    }
+    const target =
+      typeof word === 'object'
+        ? word
+        : words.find((entry) => entry.id === word) || null;
+    if (!target) {
+      return;
+    }
+    setWordInspector(target);
+  };
+
   const handleThemeChange = (nextTheme) => {
     setLibraryTheme(nextTheme);
     setSettingsOpen(false);
@@ -1094,6 +1369,31 @@ export default function Library({ onBack }) {
       setEditingTitle(false);
     }
   }, [lightbox?.id]);
+
+  useEffect(() => {
+    if (wordInspector) {
+      setWordTextDraft(wordInspector.text || '');
+      setWordTagInput('');
+    } else {
+      setWordTextDraft('');
+      setWordTagInput('');
+    }
+  }, [wordInspector?.id]);
+
+  useEffect(() => {
+    if (!wordInspector) {
+      return undefined;
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setWordInspector(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [wordInspector]);
 
   useEffect(() => {
     if (!lightbox) {
@@ -1152,17 +1452,22 @@ export default function Library({ onBack }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hideShadowImages', hideShadowImages ? 'true' : 'false');
-      localStorage.setItem('hideShadowOrientation', hiddenOrientation);
+      localStorage.setItem(
+        'hideQualityImages',
+        hideQualityImages ? 'true' : 'false'
+      );
+      localStorage.setItem('hideQualitySelection', hiddenQuality);
+      localStorage.removeItem('hideShadowImages');
+      localStorage.removeItem('hideShadowOrientation');
     }
     if (
-      hideShadowImages &&
+      hideQualityImages &&
       lightbox &&
-      getOrientationTag(lightbox.tags) === hiddenOrientation
+      findPresetTag(lightbox.tags, QUALITY_TAGS) === hiddenQuality
     ) {
       setLightbox(null);
     }
-  }, [hideShadowImages, hiddenOrientation, lightbox]);
+  }, [hideQualityImages, hiddenQuality, lightbox]);
 
   useEffect(() => {
     loadPalette().then(setPalette);
@@ -1388,6 +1693,15 @@ export default function Library({ onBack }) {
     sortImages(sorted, 'rating');
   };
 
+  const sortByTmb = () => {
+    const sorted = sortItemsByTmb(
+      images,
+      (img) => img?.tags,
+      (img) => (typeof img?.title === 'string' ? img.title : '')
+    );
+    sortImages(sorted, 'tmb');
+  };
+
   const shuffleImages = () => {
     const shuffled = [...images];
     for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -1523,11 +1837,10 @@ export default function Library({ onBack }) {
         setSoundThumb(null);
         setSoundThumbPreview(null);
         setSoundColor('');
-        setSoundOrientation('');
-        setSoundPosition('');
         setSoundCategory('');
         setSoundGender('');
         setSoundQuality('');
+        setSoundPosition('');
         setSoundCustomTags('');
         setEditingSoundId(null);
       };
@@ -1538,7 +1851,13 @@ export default function Library({ onBack }) {
   const handleAddWord = (e) => {
     e.preventDefault();
     if (!wordInput.trim()) return;
-    const newWord = { id: Date.now(), text: wordInput.trim() };
+    const timestamp = Date.now();
+    const newWord = {
+      id: timestamp,
+      text: wordInput.trim(),
+      tags: buildImageTags({}),
+      createdAt: timestamp,
+    };
     const updated = [...words, newWord];
     saveWords(updated);
     setWordInput('');
@@ -1552,11 +1871,10 @@ export default function Library({ onBack }) {
         : soundThumbPreview;
 
       const tags = buildSoundTagsPayload({
-        orientation: soundOrientation,
-        position: soundPosition,
         category: soundCategory,
         gender: soundGender,
         quality: soundQuality,
+        position: soundPosition,
         customInput: soundCustomTags,
       });
       const tagString = tags.join(', ');
@@ -1590,11 +1908,10 @@ export default function Library({ onBack }) {
     setSoundThumb(null);
     setSoundThumbPreview(snd.thumbnail || null);
     setSoundColor(snd.color || '');
-    setSoundOrientation(findPresetTag(tags, SOUND_ORIENTATION_TAGS));
-    setSoundPosition(findPresetTag(tags, SOUND_POSITION_TAGS));
     setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
     setSoundGender(findPresetTag(tags, GENDER_TAGS));
     setSoundQuality(findPresetTag(tags, QUALITY_TAGS));
+    setSoundPosition(findPresetTag(tags, POSITION_TAGS));
     setSoundCustomTags(extractCustomSoundTags(tags).join(', '));
     setEditingSoundId(snd.id);
   };
@@ -1605,11 +1922,10 @@ export default function Library({ onBack }) {
     setSoundThumb(null);
     setSoundThumbPreview(null);
     setSoundColor('');
-    setSoundOrientation('');
-    setSoundPosition('');
     setSoundCategory('');
     setSoundGender('');
     setSoundQuality('');
+    setSoundPosition('');
     setSoundCustomTags('');
     setEditingSoundId(null);
   };
@@ -1626,8 +1942,17 @@ export default function Library({ onBack }) {
     const { disableReorderDrop = false, forceDraggable = false } = options;
     const canDrag =
       forceDraggable ||
-      (sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating');
-    const allowInternalReorder = canDrag && !disableReorderDrop;
+      (sortMode !== 'title' &&
+        sortMode !== 'date' &&
+        sortMode !== 'rating' &&
+        sortMode !== 'tmb');
+    const allowInternalReorder =
+      canDrag &&
+      !disableReorderDrop &&
+      sortMode !== 'title' &&
+      sortMode !== 'date' &&
+      sortMode !== 'rating' &&
+      sortMode !== 'tmb';
     const scaledHeight =
       img.width && img.height
         ? (img.height / img.width) * colWidth
@@ -1637,11 +1962,14 @@ export default function Library({ onBack }) {
     const placeholderHeight = Math.max(scaledHeight, colWidth * 0.75);
     const ratingInfo = ratingSummary.get(img.id);
     const hasRating = ratingInfo && typeof ratingInfo.rating === 'number';
+    const typeInfo = ITEM_TYPE_INFO.image;
     return (
       <div
         key={img.id}
         className={`image-card${isLoaded ? '' : ' loading'}`}
         style={{ gridRowEnd: `span ${span}` }}
+        data-item-type="image"
+        data-pretty-symbol={typeInfo.symbol}
         draggable={canDrag}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -1649,7 +1977,10 @@ export default function Library({ onBack }) {
         }}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+          sortMode !== 'title' &&
+          sortMode !== 'date' &&
+          sortMode !== 'rating' &&
+          sortMode !== 'tmb'
             ? (event) => {
                 setDraggedId(img.id);
                 if (event.dataTransfer) {
@@ -1691,7 +2022,10 @@ export default function Library({ onBack }) {
             : undefined
         }
         onDragEnd={
-          sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+          sortMode !== 'title' &&
+          sortMode !== 'date' &&
+          sortMode !== 'rating' &&
+          sortMode !== 'tmb'
             ? () => {
                 setDraggedId(null);
                 setDualActiveCell(null);
@@ -1761,12 +2095,14 @@ export default function Library({ onBack }) {
 
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
-    const tags = parseSoundTags(snd);
+    const typeInfo = ITEM_TYPE_INFO.sound;
     return (
       <div
         key={snd.id}
         className="image-card sound-card"
         style={{ gridRowEnd: `span ${span}` }}
+        data-item-type="sound"
+        data-pretty-symbol={typeInfo.symbol}
         onContextMenu={(e) => {
           e.preventDefault();
           setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
@@ -1797,15 +2133,6 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          {tags.length > 0 && (
-            <div className="sound-tags">
-              {tags.map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
           <audio
             controls
             src={snd.dataUrl}
@@ -2100,16 +2427,16 @@ export default function Library({ onBack }) {
   const updateDualPlacement = (imageId, targetGender, targetQuality) => {
     const image = images.find((img) => img.id === imageId);
     if (!image) return;
-    const orientation = getOrientationTag(image.tags);
     const category = findPresetTag(image.tags, CATEGORY_TAGS);
     const custom = extractCustomTags(image.tags);
     const gender = GENDER_TAGS.includes(targetGender) ? targetGender : '';
     const quality = QUALITY_TAGS.includes(targetQuality) ? targetQuality : '';
+    const position = findPresetTag(image.tags, POSITION_TAGS);
     const nextTags = buildImageTags({
-      orientation,
       category,
       gender,
       quality,
+      position,
       customTags: custom,
     });
     updateImage(imageId, { tags: nextTags });
@@ -2507,27 +2834,49 @@ export default function Library({ onBack }) {
     );
   };
 
-  const lightboxOrientation = getOrientationTag(lightbox?.tags);
   const lightboxCategory = findPresetTag(lightbox?.tags, CATEGORY_TAGS);
   const lightboxGender = findPresetTag(lightbox?.tags, GENDER_TAGS);
   const lightboxQuality = findPresetTag(lightbox?.tags, QUALITY_TAGS);
+  const lightboxPosition = findPresetTag(lightbox?.tags, POSITION_TAGS);
   const lightboxCustomTags = extractCustomTags(lightbox?.tags);
-  const lightboxIsDown = lightboxOrientation === DOWN_TAG;
 
   const composeImageTags = ({
-    orientation = lightboxOrientation,
     category = lightboxCategory,
     gender = lightboxGender,
     quality = lightboxQuality,
+    position = lightboxPosition,
     customTags = lightboxCustomTags,
   } = {}) =>
     buildImageTags({
-      orientation,
       category,
       gender,
       quality,
+      position,
       customTags,
     });
+
+  const wordCategory = findPresetTag(wordInspector?.tags, CATEGORY_TAGS);
+  const wordGender = findPresetTag(wordInspector?.tags, GENDER_TAGS);
+  const wordQuality = findPresetTag(wordInspector?.tags, QUALITY_TAGS);
+  const wordPosition = findPresetTag(wordInspector?.tags, POSITION_TAGS);
+  const wordCustomTags = extractCustomTags(wordInspector?.tags);
+
+  const composeWordTags = ({
+    category = wordCategory,
+    gender = wordGender,
+    quality = wordQuality,
+    position = wordPosition,
+    customTags = wordCustomTags,
+  } = {}) =>
+    buildImageTags({
+      category,
+      gender,
+      quality,
+      position,
+      customTags,
+    });
+
+  const wordActiveTags = normalizeImageTags(wordInspector?.tags);
 
   return (
     <div
@@ -2717,25 +3066,25 @@ export default function Library({ onBack }) {
                   </button>
                   <div
                     className={`library-settings-hide-row${
-                      hideShadowImages ? ' active' : ''
+                      hideQualityImages ? ' active' : ''
                     }`}
                   >
                     <button
                       type="button"
-                      className={`library-settings-orientation-toggle${
-                        hiddenOrientation === DOWN_TAG ? '' : ' flipped'
+                      className={`library-settings-quality-toggle${
+                        hiddenQuality === 'Bad' ? '' : ' flipped'
                       }`}
                       onClick={() =>
-                        setHiddenOrientation((prev) =>
-                          prev === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        setHiddenQuality((prev) =>
+                          prev === 'Bad' ? 'Good' : 'Bad'
                         )
                       }
-                      aria-pressed={hiddenOrientation === UP_TAG}
+                      aria-pressed={hiddenQuality === 'Good'}
                       aria-label={`Switch to hiding ${
-                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
                       } images`}
                       title={`Switch to hiding ${
-                        hiddenOrientation === DOWN_TAG ? UP_TAG : DOWN_TAG
+                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
                       } images`}
                     >
                       ⇄
@@ -2743,12 +3092,12 @@ export default function Library({ onBack }) {
                     <button
                       type="button"
                       className={`library-settings-hide-toggle${
-                        hideShadowImages ? ' active' : ''
+                        hideQualityImages ? ' active' : ''
                       }`}
-                      onClick={() => setHideShadowImages((prev) => !prev)}
+                      onClick={() => setHideQualityImages((prev) => !prev)}
                     >
-                      <span>{`Hide ${hiddenOrientation}`}</span>
-                      {hideShadowImages && (
+                      <span>{`Hide ${hiddenQuality}`}</span>
+                      {hideQualityImages && (
                         <span
                           className="library-settings-check"
                           aria-hidden="true"
@@ -2820,6 +3169,14 @@ export default function Library({ onBack }) {
                   </button>
                   <button
                     onClick={() => {
+                      sortByTmb();
+                      setSortMenuOpen(false);
+                    }}
+                  >
+                    TMB (Top → Mid → Base)
+                  </button>
+                  <button
+                    onClick={() => {
                       shuffleImages();
                       setSortMenuOpen(false);
                     }}
@@ -2836,25 +3193,25 @@ export default function Library({ onBack }) {
             className={activeTab === 'all' ? 'active' : ''}
             onClick={() => setActiveTab('all')}
           >
-            All
+            All ({totalCount})
           </button>
           <button
             className={activeTab === 'images' ? 'active' : ''}
             onClick={() => setActiveTab('images')}
           >
-            Images
+            Images ({imageCount})
           </button>
           <button
             className={activeTab === 'words' ? 'active' : ''}
             onClick={() => setActiveTab('words')}
           >
-            Words
+            Words ({wordCount})
           </button>
           <button
             className={activeTab === 'sounds' ? 'active' : ''}
             onClick={() => setActiveTab('sounds')}
           >
-            Sounds
+            Sounds ({soundCount})
           </button>
         </div>
         {(activeTab === 'all' || activeTab === 'images') &&
@@ -2869,7 +3226,7 @@ export default function Library({ onBack }) {
               <div className="color-groups">
                 {palette.map((c) => {
                   const groupImgs = filteredImages.filter((img) => img.color === c);
-                  const groupSounds = sounds.filter((s) => s.color === c);
+                  const groupSounds = displayedSounds.filter((s) => s.color === c);
                   if (!groupImgs.length && !groupSounds.length) return null;
                   return (
                     <div key={c} className="color-group">
@@ -2918,7 +3275,7 @@ export default function Library({ onBack }) {
                     </div>
                   );
                 })}
-                {activeTab === 'all' && sounds.length > 0 && (
+                {activeTab === 'all' && displayedSounds.length > 0 && (
                   <div className="color-group">
                     <h3 className="color-title" style={{ color: '#fff' }}>
                       Sounds
@@ -2932,7 +3289,7 @@ export default function Library({ onBack }) {
                               gap: `${gridGap}px`,
                             }}
                           >
-                          {sounds.map((s) => renderSoundCard(s))}
+                          {displayedSounds.map((s) => renderSoundCard(s))}
                         </div>
                       </div>
                   </div>
@@ -2947,7 +3304,10 @@ export default function Library({ onBack }) {
                   gap: `${gridGap}px`,
                 }}
                 onDragOver={
-                  sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+                  sortMode !== 'title' &&
+                  sortMode !== 'date' &&
+                  sortMode !== 'rating' &&
+                  sortMode !== 'tmb'
                     ? (e) => {
                         if (e.dataTransfer.files?.length) {
                           handleDragOver(e);
@@ -2958,7 +3318,10 @@ export default function Library({ onBack }) {
                     : undefined
                 }
                   onDrop={
-                    sortMode !== 'title' && sortMode !== 'date' && sortMode !== 'rating'
+                    sortMode !== 'title' &&
+                    sortMode !== 'date' &&
+                    sortMode !== 'rating' &&
+                    sortMode !== 'tmb'
                       ? (e) => {
                           if (e.dataTransfer.files?.length) {
                             handleDrop(e);
@@ -2988,13 +3351,30 @@ export default function Library({ onBack }) {
                               type: 'image',
                               item: img,
                             })),
-                            ...sounds.map((s) => ({ type: 'sound', item: s })),
+                            ...displayedSounds.map((s) => ({
+                              type: 'sound',
+                              item: s,
+                            })),
                           ];
                           const ordered =
                             sortMode === 'date'
                               ? combined
                                   .slice()
                                   .sort((a, b) => a.item.id - b.item.id)
+                              : sortMode === 'tmb'
+                              ? sortItemsByTmb(
+                                  combined,
+                                  ({ item }) => item?.tags,
+                                  ({ item }) => {
+                                    if (typeof item?.title === 'string') {
+                                      return item.title;
+                                    }
+                                    if (typeof item?.text === 'string') {
+                                      return item.text;
+                                    }
+                                    return '';
+                                  }
+                                )
                               : combined;
                           return ordered.map(({ type, item }) =>
                             type === 'image'
@@ -3019,17 +3399,26 @@ export default function Library({ onBack }) {
               </form>
             )}
             <ul className="word-list">
-              {words.map((w) => (
-                <li key={w.id} className="word-item">
-                  <div className="word-card">
-                    <span className="word-card-text">{w.text}</span>
-                  </div>
-                </li>
-              ))}
+              {displayedWords.map((w) => {
+                const typeInfo = ITEM_TYPE_INFO.word;
+                return (
+                  <li key={w.id} className="word-item">
+                    <button
+                      type="button"
+                      className="word-card"
+                      data-item-type="word"
+                      data-pretty-symbol={typeInfo.symbol}
+                      onClick={() => openWordInspector(w)}
+                    >
+                      <span className="word-card-text">{w.text || 'Untitled'}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
-        {libraryView === 'tri' && activeTab === 'all' && sounds.length > 0 && (
+        {libraryView === 'tri' && activeTab === 'all' && displayedSounds.length > 0 && (
           <div className="sound-section tri-sound-section">
             <div style={{ width: '100%', overflow: 'hidden' }}>
               <div
@@ -3040,7 +3429,7 @@ export default function Library({ onBack }) {
                   gap: `${gridGap}px`,
                 }}
               >
-                {sounds.map((s) => renderSoundCard(s))}
+                {displayedSounds.map((s) => renderSoundCard(s))}
               </div>
             </div>
           </div>
@@ -3056,7 +3445,7 @@ export default function Library({ onBack }) {
                   gap: `${gridGap}px`,
                 }}
               >
-                {sounds.map((s) => renderSoundCard(s))}
+                {displayedSounds.map((s) => renderSoundCard(s))}
               </div>
             </div>
           </div>
@@ -3113,51 +3502,7 @@ export default function Library({ onBack }) {
               <div className="sound-tag-section">
                 <span className="sound-tag-heading">Tags</span>
                 <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">Orientation</span>
-                  <div className="sound-tag-row">
-                    {SOUND_ORIENTATION_TAGS.map((tag) => {
-                      const selected = soundOrientation === tag;
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={`sound-tag-button${
-                            selected ? ' selected' : ''
-                          }`}
-                          onClick={() =>
-                            setSoundOrientation(selected ? '' : tag)
-                          }
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">Position</span>
-                  <div className="sound-tag-row">
-                    {SOUND_POSITION_TAGS.map((tag) => {
-                      const selected = soundPosition === tag;
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={`sound-tag-button${
-                            selected ? ' selected' : ''
-                          }`}
-                          onClick={() =>
-                            setSoundPosition(selected ? '' : tag)
-                          }
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="sound-tag-group">
-                  <span className="sound-tag-subheading">P / M / F</span>
+                  <span className="sound-tag-subheading">{CATEGORY_LABEL}</span>
                   <div className="sound-tag-row">
                     {CATEGORY_TAGS.map((tag) => {
                       const selected = soundCategory === tag;
@@ -3224,6 +3569,28 @@ export default function Library({ onBack }) {
                     })}
                   </div>
                 </div>
+                <div className="sound-tag-group">
+                  <span className="sound-tag-subheading">{POSITION_LABEL}</span>
+                  <div className="sound-tag-row vertical">
+                    {POSITION_TAGS.map((tag) => {
+                      const selected = soundPosition === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`sound-tag-button${
+                            selected ? ' selected' : ''
+                          }`}
+                          onClick={() =>
+                            setSoundPosition(selected ? '' : tag)
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <input
                   type="text"
                   value={soundCustomTags}
@@ -3267,6 +3634,244 @@ export default function Library({ onBack }) {
             >
               Delete
             </button>
+          </div>
+        )}
+        {wordInspector && (
+          <div
+            className="word-inspector-backdrop"
+            onClick={() => setWordInspector(null)}
+          >
+            <div
+              className="word-inspector-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="word-inspector-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="word-inspector-header">
+                <div className="word-inspector-heading">
+                  <h1 id="word-inspector-title">
+                    {wordInspector.text || 'Untitled'}
+                  </h1>
+                  <p className="word-inspector-meta">
+                    Added{' '}
+                    {wordInspector.createdAt
+                      ? new Date(wordInspector.createdAt).toLocaleString()
+                      : 'recently'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="word-inspector-close"
+                  onClick={() => setWordInspector(null)}
+                  aria-label="Close word details"
+                >
+                  ×
+                </button>
+              </div>
+              <label className="word-inspector-field">
+                <span>Word or phrase</span>
+                <input
+                  type="text"
+                  value={wordTextDraft}
+                  onChange={(e) => setWordTextDraft(e.target.value)}
+                  onBlur={() =>
+                    updateWord(wordInspector.id, { text: wordTextDraft })
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      updateWord(wordInspector.id, { text: wordTextDraft });
+                    }
+                  }}
+                />
+              </label>
+              <section className="word-inspector-section">
+                <h2>Tags</h2>
+                <div className="tag-controls">
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">{CATEGORY_LABEL}</span>
+                    <div className="tag-control-options">
+                      {CATEGORY_TAGS.map((tag) => {
+                        const selected = wordCategory === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`tag-toggle-button${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextCategory = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                category: nextCategory,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={`Set tag ${tag}`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">Gender</span>
+                    <div className="tag-control-options">
+                      {GENDER_TAGS.map((tag) => {
+                        const selected = wordGender === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`tag-toggle-button${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextGender = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                gender: nextGender,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={`Set tag ${tag}`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">Quality</span>
+                    <div className="quality-toggle">
+                      {QUALITY_TAGS.map((tag) => {
+                        const selected = wordQuality === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`quality-level${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextQuality = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                quality: nextQuality,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={tag}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="tag-control-group">
+                    <span className="tag-control-label">{POSITION_LABEL}</span>
+                    <div className="tag-control-options vertical">
+                      {POSITION_TAGS.map((tag) => {
+                        const selected = wordPosition === tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={`tag-toggle-button${
+                              selected ? ' selected' : ''
+                            }`}
+                            onClick={() => {
+                              const nextPosition = selected ? '' : tag;
+                              const nextTags = composeWordTags({
+                                position: nextPosition,
+                              });
+                              updateWord(wordInspector.id, { tags: nextTags });
+                            }}
+                            aria-pressed={selected}
+                            title={`Set tag ${tag}`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="word-inspector-active-tags">
+                  {wordActiveTags.map((tag) => (
+                    <span
+                      key={`${wordInspector.id}-${tag}`}
+                      className="tag"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {!wordActiveTags.length && (
+                    <span className="word-inspector-meta">No tags yet.</span>
+                  )}
+                </div>
+                <div className="tag-list">
+                  {wordCustomTags.map((tag, idx) => (
+                    <span
+                      key={`${tag}-${idx}`}
+                      className="tag"
+                      onClick={() => {
+                        const nextCustom = wordCustomTags.filter(
+                          (_, i) => i !== idx
+                        );
+                        const nextTags = composeWordTags({
+                          customTags: nextCustom,
+                        });
+                        updateWord(wordInspector.id, { tags: nextTags });
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={wordTagInput}
+                    placeholder="Add custom tag"
+                    onChange={(e) => setWordTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && wordTagInput.trim()) {
+                        const nextCustom = [
+                          ...wordCustomTags,
+                          wordTagInput.trim(),
+                        ];
+                        const nextTags = composeWordTags({
+                          customTags: nextCustom,
+                        });
+                        updateWord(wordInspector.id, { tags: nextTags });
+                        setWordTagInput('');
+                      }
+                    }}
+                  />
+                </div>
+              </section>
+              <div className="word-inspector-actions">
+                <button
+                  type="button"
+                  className="word-inspector-delete"
+                  onClick={() => {
+                    const confirmDelete =
+                      typeof window === 'undefined'
+                        ? true
+                        : window.confirm('Delete this word?');
+                    if (confirmDelete) {
+                      deleteWord(wordInspector.id);
+                    }
+                  }}
+                >
+                  Delete word
+                </button>
+              </div>
+            </div>
           </div>
         )}
         {menu && (
@@ -3385,38 +3990,7 @@ export default function Library({ onBack }) {
                   </div>
                   <div className="tag-controls">
                     <div className="tag-control-group">
-                      <span className="tag-control-label">Orientation</span>
-                      <button
-                        type="button"
-                        className={`shadow-tag-button${
-                          lightboxIsDown ? ' active' : ''
-                        }`}
-                        aria-label={
-                          lightboxIsDown
-                            ? 'Mark image as UP'
-                            : 'Mark image as DOWN'
-                        }
-                        title={
-                          lightboxIsDown
-                            ? 'Mark image as UP'
-                            : 'Mark image as DOWN'
-                        }
-                        aria-pressed={lightboxIsDown}
-                        onClick={() => {
-                          const nextOrientation = lightboxIsDown
-                            ? UP_TAG
-                            : DOWN_TAG;
-                          const nextTags = composeImageTags({
-                            orientation: nextOrientation,
-                          });
-                          updateImage(lightbox.id, { tags: nextTags });
-                        }}
-                      >
-                        {lightboxIsDown ? 'DOWN' : 'UP'}
-                      </button>
-                    </div>
-                    <div className="tag-control-group">
-                      <span className="tag-control-label">P / M / F</span>
+                      <span className="tag-control-label">{CATEGORY_LABEL}</span>
                       <div className="tag-control-options">
                         {CATEGORY_TAGS.map((tag) => {
                           const selected = lightboxCategory === tag;
@@ -3492,6 +4066,34 @@ export default function Library({ onBack }) {
                               }}
                               aria-pressed={selected}
                               title={tag}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="tag-control-group">
+                      <span className="tag-control-label">{POSITION_LABEL}</span>
+                      <div className="tag-control-options vertical">
+                        {POSITION_TAGS.map((tag) => {
+                          const selected = lightboxPosition === tag;
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`tag-toggle-button${
+                                selected ? ' selected' : ''
+                              }`}
+                              onClick={() => {
+                                const nextPosition = selected ? '' : tag;
+                                const nextTags = composeImageTags({
+                                  position: nextPosition,
+                                });
+                                updateImage(lightbox.id, { tags: nextTags });
+                              }}
+                              aria-pressed={selected}
+                              title={`Set tag ${tag}`}
                             >
                               {tag}
                             </button>

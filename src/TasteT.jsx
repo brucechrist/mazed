@@ -69,6 +69,20 @@ const TIER_LOOKUP = TIER_RULES.reduce((acc, tier, index) => {
 }, {});
 
 const MINI_SIZE_OPTIONS = [4, 6, 8, 10, 12, 16];
+const TASTET_TABS = [
+  { key: "ranking", label: "Ranking suite" },
+  { key: "tagging", label: "Tag forge" },
+];
+const TAGGING_MODES = [
+  { key: "dual", label: "Dual" },
+  { key: "tri", label: "Tri" },
+  { key: "quadrant", label: "Quadrants" },
+];
+const DEFAULT_TAGGING_MODE = TAGGING_MODES[0].key;
+const DUAL_GENDER_TAGS = ["feminine", "masculine"];
+const DUAL_FLOW_TAGS = ["up", "neutral", "down"];
+const TRI_TAGS = ["form", "semi-formless", "formless", "X"];
+const QUADRANT_TAGS = ["II", "IE", "EI", "EE"];
 
 export function shouldFinalizeSwissStatus(status) {
   return status === "awaiting-finish" || status === "completed";
@@ -142,9 +156,125 @@ function sanitizeText(value, fallback = "") {
 
 function normalizeLibraryTags(tags) {
   if (!Array.isArray(tags)) return [];
-  return tags
-    .map((tag) => sanitizeText(typeof tag === "string" ? tag : ""))
-    .filter((tag) => tag.length > 0);
+  const seen = new Set();
+  const normalized = [];
+  tags.forEach((tag) => {
+    const base = sanitizeText(typeof tag === "string" ? tag : "");
+    if (!base) return;
+    const canonical = resolveTriTag(base) || base;
+    const key = canonical.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    normalized.push(canonical);
+  });
+  return normalized;
+}
+
+function sanitizeTabKey(value) {
+  return value === "tagging" ? "tagging" : "ranking";
+}
+
+function sanitizeTaggingMode(value) {
+  return TAGGING_MODES.some((mode) => mode.key === value) ? value : DEFAULT_TAGGING_MODE;
+}
+
+function hasAnyTag(list, tags) {
+  if (!Array.isArray(list) || !list.length) return false;
+  return tags.some((tag) => list.includes(tag));
+}
+
+function formatTagLabel(tag) {
+  if (typeof tag !== "string" || !tag.length) {
+    return "";
+  }
+  if (/^[A-Z]{2,}$/.test(tag)) {
+    return tag;
+  }
+  return tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+
+const TRI_TAG_OPTIONS = [
+  { key: "form", tags: ["form"], label: "Form" },
+  { key: "semi-formless", tags: ["semi-formless"], label: "Semi-formless" },
+  { key: "formless", tags: ["formless"], label: "Formless" },
+  { key: "1+2", tags: ["form", "semi-formless"], label: "1+2" },
+  { key: "1+3", tags: ["form", "formless"], label: "1+3" },
+  { key: "2+3", tags: ["semi-formless", "formless"], label: "2+3" },
+  { key: "333", tags: ["form", "semi-formless", "formless"], label: "333" },
+];
+
+const TRI_TAG_OPTION_LOOKUP = TRI_TAG_OPTIONS.reduce((acc, option) => {
+  acc[option.key] = option;
+  return acc;
+}, {});
+
+const TRI_TAG_SIGNATURE_LOOKUP = TRI_TAG_OPTIONS.reduce((acc, option) => {
+  const signature = option.tags.slice().sort().join("|");
+  acc[signature] = option.key;
+  return acc;
+}, {});
+
+function getTriAssignmentKeyFromTags(tags) {
+  if (!Array.isArray(tags) || !tags.length) {
+    return null;
+  }
+  const triTags = normalizeLibraryTags(tags).filter((tag) => TRI_TAGS.includes(tag));
+  if (!triTags.length) {
+    return null;
+  }
+  const uniqueSorted = Array.from(new Set(triTags)).sort();
+  const signature = uniqueSorted.join("|");
+  return TRI_TAG_SIGNATURE_LOOKUP[signature] || uniqueSorted[0] || null;
+}
+
+function getTriLabelForKey(key) {
+  if (!key) return "";
+  const option = TRI_TAG_OPTION_LOOKUP[key];
+  if (option && option.label) {
+    return option.label;
+  }
+  return formatTagLabel(key);
+}
+
+function getDualStatusFromTags(tags) {
+  const gender = DUAL_GENDER_TAGS.find((tag) => tags?.includes(tag)) || null;
+  const flow = DUAL_FLOW_TAGS.find((tag) => tags?.includes(tag)) || null;
+  return { gender, flow };
+}
+
+function imageNeedsDualTags(image) {
+  if (!image) return false;
+  const tags = Array.isArray(image.tags) ? image.tags : [];
+  const { gender, flow } = getDualStatusFromTags(tags);
+  return !gender || !flow;
+}
+
+function imageNeedsTriTag(image) {
+  if (!image) return false;
+  const tags = Array.isArray(image.tags) ? image.tags : [];
+  return !tags.some((tag) => resolveTriTag(tag));
+}
+
+function imageNeedsQuadrantTag(image) {
+  if (!image) return false;
+  const tags = Array.isArray(image.tags) ? image.tags : [];
+  return !hasAnyTag(tags, QUADRANT_TAGS);
+}
+
+function buildTaggingCandidates(images, mode) {
+  if (!Array.isArray(images) || !images.length) {
+    return [];
+  }
+  switch (mode) {
+    case "dual":
+      return images.filter(imageNeedsDualTags);
+    case "tri":
+      return images.filter(imageNeedsTriTag);
+    case "quadrant":
+      return images.filter(imageNeedsQuadrantTag);
+    default:
+      return images.filter(imageNeedsDualTags);
+  }
 }
 
 function sanitizeLedgerEntry(raw) {
@@ -1160,6 +1290,8 @@ function loadInitialState() {
     selectedTag: "",
     miniSize: 8,
     libraryEntries,
+    activeTab: "ranking",
+    taggingMode: DEFAULT_TAGGING_MODE,
   };
 
   if (typeof window === "undefined") {
@@ -1253,8 +1385,10 @@ function loadInitialState() {
       activeSwiss,
       placementQueue,
       placementQueueRestored,
-      selectedTag: parsed.selectedTag || base.selectedTag,
-      miniSize: parsed.miniSize || base.miniSize,
+      selectedTag: typeof parsed.selectedTag === "string" ? parsed.selectedTag : base.selectedTag,
+      miniSize: MINI_SIZE_OPTIONS.includes(parsed.miniSize) ? parsed.miniSize : base.miniSize,
+      activeTab: sanitizeTabKey(parsed.activeTab),
+      taggingMode: sanitizeTaggingMode(parsed.taggingMode),
       libraryEntries,
     };
   } catch (error) {
@@ -2381,6 +2515,160 @@ function PlacementPanel({ queue, imagesById, onResolve, onCancel, onViewImage })
   );
 }
 
+function TaggingPanel({
+  image,
+  previewSrc,
+  mode,
+  onModeChange,
+  onAssignTag,
+  onSkip,
+  onViewImage,
+  onRefreshLibrary,
+  remaining,
+  assignments,
+}) {
+  const triLabel = assignments.tri ? getTriLabelForKey(assignments.tri) : null;
+  const renderModeToggle = () => (
+    <div className="tagging-mode-toggle" role="tablist" aria-label="Tagging modes">
+      {TAGGING_MODES.map(({ key, label }) => (
+        <button
+          key={key}
+          type="button"
+          className={`tagging-mode-button${mode === key ? " is-active" : ""}`}
+          onClick={() => onModeChange(key)}
+          aria-pressed={mode === key}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderOptionButtons = (options, activeValue, group) => (
+    <div className="tagging-buttons">
+      {options.map((option) => {
+        const value = typeof option === "string" ? option : option.key;
+        const label =
+          typeof option === "string"
+            ? formatTagLabel(option)
+            : option.label || formatTagLabel(option.key);
+        const optionTags = typeof option === "string" ? null : option.tags;
+        const isActive = activeValue === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            className={`tagging-option${isActive ? " is-active" : ""}`}
+            onClick={() => onAssignTag(value, group, optionTags)}
+            disabled={isActive}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const renderControls = () => {
+    switch (mode) {
+      case "tri":
+        return (
+          <div className="tagging-option-group">
+            <h3>Form</h3>
+            {renderOptionButtons(TRI_TAG_OPTIONS, assignments.tri, "tri")}
+          </div>
+        );
+      case "quadrant":
+        return (
+          <div className="tagging-option-group">
+            <h3>Quadrant</h3>
+            {renderOptionButtons(QUADRANT_TAGS, assignments.quadrant, "quadrant")}
+          </div>
+        );
+      case "dual":
+      default:
+        return (
+          <>
+            <div className="tagging-option-group">
+              <h3>Gender</h3>
+              {renderOptionButtons(DUAL_GENDER_TAGS, assignments.gender, "gender")}
+            </div>
+            <div className="tagging-option-group">
+              <h3>Flow</h3>
+              {renderOptionButtons(DUAL_FLOW_TAGS, assignments.flow, "flow")}
+            </div>
+          </>
+        );
+    }
+  };
+
+  return (
+    <section className="taste-t-panel tagging-panel">
+      <header className="panel-header">
+        <div>
+          <h2>Tag forge</h2>
+          <p className="panel-subtitle">Quickly classify untagged library images.</p>
+        </div>
+        {renderModeToggle()}
+      </header>
+      {image ? (
+        <div className="tagging-content">
+          <div className="tagging-preview">
+            {previewSrc ? (
+              <img src={previewSrc} alt={image.name || "Library entry"} />
+            ) : (
+              <div className="tagging-preview-fallback">No preview available</div>
+            )}
+            <div className="tagging-preview-meta">
+              <strong>{image.name || "Untitled"}</strong>
+              <ul>
+                <li>Gender · {assignments.gender || "—"}</li>
+                <li>Flow · {assignments.flow || "—"}</li>
+                <li>Tri · {triLabel || "—"}</li>
+                <li>Quadrant · {assignments.quadrant || "—"}</li>
+              </ul>
+              <div className="tagging-preview-actions">
+                {onViewImage ? (
+                  <button type="button" className="taste-t-secondary" onClick={() => onViewImage(image)}>
+                    View full size
+                  </button>
+                ) : null}
+                <button type="button" className="ghost" onClick={onSkip}>
+                  Skip image
+                </button>
+              </div>
+              <p className="tagging-remaining">
+                {remaining > 1
+                  ? `${remaining} images still need a tag in this mode.`
+                  : "This is the last image waiting for this tag."}
+              </p>
+            </div>
+          </div>
+          <div className="tagging-options">{renderControls()}</div>
+        </div>
+      ) : (
+        <div className="tagging-empty">
+          <h3>All caught up</h3>
+          <p>
+            Every image already has the necessary tags for the selected mode. Choose another mode or refresh the
+            library to keep tagging.
+          </p>
+          <div className="tagging-empty-actions">
+            <button type="button" className="taste-t-secondary" onClick={() => onModeChange("dual")}>
+              Switch to Dual mode
+            </button>
+            {onRefreshLibrary ? (
+              <button type="button" className="ghost" onClick={onRefreshLibrary}>
+                Refresh library
+              </button>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 
 function TasteT() {
   const initialState = useMemo(() => loadInitialState(), []);
@@ -2392,6 +2680,8 @@ function TasteT() {
   const [selectedTag, setSelectedTag] = useState(initialState.selectedTag);
   const [miniSize, setMiniSize] = useState(initialState.miniSize || 8);
   const [libraryEntries, setLibraryEntries] = useState(initialState.libraryEntries);
+  const [activeTab, setActiveTab] = useState(sanitizeTabKey(initialState.activeTab));
+  const [taggingMode, setTaggingMode] = useState(sanitizeTaggingMode(initialState.taggingMode));
   const [mode, setMode] = useState(() => {
     if (initialState.activeSwiss) {
       return initialState.activeSwiss.status === "awaiting-finish" ? "lobby" : "swiss";
@@ -2402,6 +2692,7 @@ function TasteT() {
   const pendingPreviewRef = useRef(new Set());
   const [expandedImage, setExpandedImage] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
+  const [taggingImageId, setTaggingImageId] = useState(null);
 
   const imagesById = useMemo(() => {
     const map = {};
@@ -2423,14 +2714,16 @@ function TasteT() {
   const rankingData = useMemo(() => buildRankingData(images, selectedTag), [images, selectedTag]);
   const availableTags = rankingData.tags;
   const hasImages = images.length > 0;
+  const isRankingTab = activeTab === "ranking";
+  const isTaggingTab = activeTab === "tagging";
   const canStartSwiss = hasImages && images.length >= 2;
   const placementImage = placementQueue ? imagesById[placementQueue.imageId] : null;
   const pendingPlacementRounds = placementQueue
     ? Math.max(placementQueue.opponents.length - placementQueue.currentIndex, 0)
     : 0;
   const showPlacementCallout =
-    mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
-  const isPlaying = mode === "swiss" || mode === "placement";
+    isRankingTab && mode === "lobby" && placementQueue && placementImage && pendingPlacementRounds > 0;
+  const isPlaying = isRankingTab && (mode === "swiss" || mode === "placement");
   const canUndo = undoStack.length > 0;
   const swissHistoryPreview = useMemo(() => swissHistory.slice(0, 3), [swissHistory]);
 
@@ -2448,6 +2741,35 @@ function TasteT() {
     [imagesById, libraryById],
   );
 
+  const taggingCandidates = useMemo(
+    () => buildTaggingCandidates(images, taggingMode),
+    [images, taggingMode],
+  );
+
+  useEffect(() => {
+    if (!taggingCandidates.length) {
+      setTaggingImageId(null);
+      return;
+    }
+    setTaggingImageId((current) => {
+      if (current && taggingCandidates.some((candidate) => candidate.id === current)) {
+        return current;
+      }
+      const next = taggingCandidates[Math.floor(Math.random() * taggingCandidates.length)];
+      return next ? next.id : null;
+    });
+  }, [taggingCandidates]);
+
+  const taggingImage = taggingImageId ? imagesById[taggingImageId] : null;
+  const taggingPreview = taggingImage ? getPreviewFor(taggingImage.id) : null;
+  const taggingAssignments = useMemo(() => {
+    const tags = Array.isArray(taggingImage?.tags) ? taggingImage.tags : [];
+    const { gender, flow } = getDualStatusFromTags(tags);
+    const tri = getTriAssignmentKeyFromTags(tags);
+    const quadrant = QUADRANT_TAGS.find((tag) => tags.includes(tag)) || null;
+    return { gender, flow, tri, quadrant };
+  }, [taggingImage]);
+
   const createUndoState = useCallback(() => ({
     images: deepClone(images),
     duelLog: deepClone(duelLog),
@@ -2460,6 +2782,116 @@ function TasteT() {
     if (!snapshot) return;
     setUndoStack((current) => [snapshot, ...current].slice(0, UNDO_STACK_LIMIT));
   }, []);
+
+  const persistLibraryTags = useCallback(
+    (imageId, tags) => {
+      if (typeof window === "undefined") return;
+      const targetId = coerceLibraryId(imageId);
+      if (!targetId) return;
+      try {
+        const entries = loadLibraryCatalog();
+        let changed = false;
+        const nextEntries = entries.map((entry) => {
+          if (!entry) return entry;
+          const entryId = coerceLibraryId(entry.id);
+          if (!entryId || entryId !== targetId) {
+            return entry;
+          }
+          const existingTags = normalizeLibraryTags(entry.tags);
+          if (arraysEqual(existingTags, tags)) {
+            return entry;
+          }
+          changed = true;
+          return { ...entry, tags };
+        });
+        if (changed) {
+          localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(nextEntries));
+          setLibraryEntries(nextEntries);
+        }
+      } catch (error) {
+        console.warn("TierT: unable to persist library tags", error);
+      }
+    },
+    [setLibraryEntries],
+  );
+
+  const handleSelectTab = useCallback(
+    (tab) => {
+      const next = sanitizeTabKey(tab);
+      if (next === "tagging" && isPlaying) {
+        return;
+      }
+      setActiveTab((current) => (current === next ? current : next));
+    },
+    [isPlaying, setActiveTab],
+  );
+
+  const handleTaggingModeChange = useCallback(
+    (nextMode) => {
+      const sanitized = sanitizeTaggingMode(nextMode);
+      setTaggingMode((current) => (current === sanitized ? current : sanitized));
+      setTaggingImageId(null);
+    },
+    [setTaggingMode, setTaggingImageId],
+  );
+
+  const handleTaggingAssign = useCallback(
+    (tag, group, comboTags = null) => {
+      const targetId = taggingImageId;
+      if (!targetId) return;
+      const image = imagesById[targetId];
+      if (!image) return;
+      const baseTags = Array.isArray(image.tags) ? image.tags : [];
+      let nextTags = baseTags.slice();
+      let tagsToAdd = [tag];
+      if (group === "gender") {
+        nextTags = nextTags.filter((entry) => !DUAL_GENDER_TAGS.includes(entry));
+      } else if (group === "flow") {
+        nextTags = nextTags.filter((entry) => !DUAL_FLOW_TAGS.includes(entry));
+      } else if (group === "tri") {
+        nextTags = nextTags.filter((entry) => !TRI_TAGS.includes(entry));
+        const triSet = Array.isArray(comboTags) && comboTags.length ? comboTags : TRI_TAG_OPTION_LOOKUP[tag]?.tags;
+        tagsToAdd = Array.isArray(triSet) && triSet.length ? triSet : [];
+      } else if (group === "quadrant") {
+        nextTags = nextTags.filter((entry) => !QUADRANT_TAGS.includes(entry));
+      }
+      tagsToAdd.forEach((entry) => {
+        if (entry && !nextTags.includes(entry)) {
+          nextTags.push(entry);
+        }
+      });
+      const sanitizedTags = normalizeLibraryTags(nextTags);
+      const currentTags = normalizeLibraryTags(baseTags);
+      if (arraysEqual(currentTags, sanitizedTags)) {
+        return;
+      }
+      const now = Date.now();
+      setImages((current) => {
+        const index = current.findIndex((img) => img.id === targetId);
+        if (index === -1) return current;
+        const existing = normalizeLibraryTags(current[index].tags);
+        if (arraysEqual(existing, sanitizedTags)) {
+          return current;
+        }
+        const next = current.slice();
+        next[index] = { ...current[index], tags: sanitizedTags, updatedAt: now };
+        return next;
+      });
+      persistLibraryTags(targetId, sanitizedTags);
+    },
+    [imagesById, taggingImageId, persistLibraryTags, setImages],
+  );
+
+  const handleSkipTagging = useCallback(() => {
+    if (!taggingCandidates.length) {
+      setTaggingImageId(null);
+      return;
+    }
+    const alternatives = taggingCandidates.filter((candidate) => candidate.id !== taggingImageId);
+    const pool = alternatives.length ? alternatives : taggingCandidates;
+    const next = pool[Math.floor(Math.random() * pool.length)];
+    setTaggingImageId(next ? next.id : null);
+  }, [taggingCandidates, taggingImageId]);
 
   const handleViewImage = useCallback((image) => {
     if (!image) return;
@@ -2674,12 +3106,14 @@ function TasteT() {
         placementQueue,
         selectedTag,
         miniSize,
+        activeTab,
+        taggingMode,
       });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (error) {
       console.warn("TierT: unable to persist state", error);
     }
-  }, [images, duelLog, swissHistory, activeSwiss, placementQueue, selectedTag, miniSize]);
+  }, [images, duelLog, swissHistory, activeSwiss, placementQueue, selectedTag, miniSize, activeTab, taggingMode]);
 
   const applyResolution = useCallback(
     (resolution) => {
@@ -3102,8 +3536,10 @@ function TasteT() {
     [placementQueue, imagesById, applyResolution, createUndoState, pushUndoState],
   );
 
-  const hasActiveSwiss = mode === "swiss" && activeSwiss;
-  const hasPlacement = mode === "placement" && placementQueue;
+  const hasActiveSwiss = isRankingTab && mode === "swiss" && activeSwiss;
+  const hasPlacement = isRankingTab && mode === "placement" && placementQueue;
+  const showRankingDashboard = isRankingTab && !hasActiveSwiss && !hasPlacement;
+  const taggingRemaining = taggingCandidates.length;
 
   const topRankings = rankingData.filtered.slice(0, 6);
   const topTierSnapshots = rankingData.perTier.slice(0, 3);
@@ -3114,7 +3550,21 @@ function TasteT() {
   return (
     <div className={`taste-t-app${isPlaying ? " is-playing" : ""}`}>
       <div className="taste-t-frame">
-        {canUndo ? (
+        <div className="taste-t-tablist" role="tablist" aria-label="TasteT modes">
+          {TASTET_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`taste-t-tab${activeTab === tab.key ? " is-active" : ""}`}
+              onClick={() => handleSelectTab(tab.key)}
+              aria-pressed={activeTab === tab.key}
+              disabled={tab.key === "tagging" && isPlaying}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {isRankingTab && canUndo ? (
           <div className="taste-t-toolbar">
             <button type="button" className="ghost" onClick={handleUndo} disabled={!canUndo}>
               Undo last result
@@ -3144,7 +3594,7 @@ function TasteT() {
               onViewImage={handleViewImage}
             />
           </div>
-        ) : (
+        ) : showRankingDashboard ? (
           <div className="taste-t-dashboard">
             <section className="taste-t-overview-panel">
               <div className="taste-t-overview-header">
@@ -3361,7 +3811,23 @@ function TasteT() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
+        {isTaggingTab ? (
+          <div className="taste-t-game taste-t-game--tagging">
+            <TaggingPanel
+              image={taggingImage}
+              previewSrc={taggingPreview}
+              mode={taggingMode}
+              onModeChange={handleTaggingModeChange}
+              onAssignTag={handleTaggingAssign}
+              onSkip={handleSkipTagging}
+              onViewImage={handleViewImage}
+              onRefreshLibrary={refreshLibrary}
+              remaining={taggingRemaining}
+              assignments={taggingAssignments}
+            />
+          </div>
+        ) : null}
       </div>
       {expandedImageSrc ? (
         <div className="taste-t-lightbox" role="dialog" aria-modal="true">
