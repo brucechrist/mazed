@@ -308,6 +308,55 @@ const recordSessionInBlog = (session) => {
   });
 };
 
+const recordSessionInCalendar = (session) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const name = sanitizeActivityName(session?.name);
+  if (!name) {
+    return;
+  }
+
+  const segments = Array.isArray(session?.segments) && session.segments.length > 0
+    ? session.segments
+    : [
+        {
+          start: session?.startedAt,
+          end: session?.endedAt,
+        },
+      ];
+
+  segments.forEach((segment) => {
+    const startDate = segment?.start ? new Date(segment.start) : null;
+    const endDate = segment?.end ? new Date(segment.end) : null;
+
+    if (
+      !startDate ||
+      !endDate ||
+      Number.isNaN(startDate.getTime()) ||
+      Number.isNaN(endDate.getTime()) ||
+      endDate.getTime() <= startDate.getTime()
+    ) {
+      return;
+    }
+
+    const detail = {
+      title: name,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      kind: 'done',
+      color: '#34a853',
+    };
+
+    try {
+      window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
+    } catch (error) {
+      console.error('Failed to record activity session in calendar', error);
+    }
+  });
+};
+
 export default function ActivityLog({ onBack }) {
   const buildOptionsFromStorage = useCallback(() => {
     let storedNames = [];
@@ -508,6 +557,7 @@ export default function ActivityLog({ onBack }) {
       if (finished) {
         persistEntries([...entries, finished]);
         recordSessionInBlog(finished);
+        recordSessionInCalendar(finished);
       }
     }
 
@@ -560,6 +610,7 @@ export default function ActivityLog({ onBack }) {
     if (finished) {
       persistEntries([...entries, finished]);
       recordSessionInBlog(finished);
+      recordSessionInCalendar(finished);
     }
     persistCurrent(null);
   };
