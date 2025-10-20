@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('./src/ToolsBlog.jsx', () => {
@@ -76,5 +76,44 @@ describe('ActivityLog', () => {
         'Yoga',
       ]);
     });
+  });
+
+  it('records completed sessions in the calendar', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2024-01-01T10:00:00.000Z'));
+
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+
+    try {
+      render(<ActivityLog onBack={() => {}} />);
+
+      const select = await screen.findByRole('combobox');
+      fireEvent.change(select, { target: { value: 'Mazed' } });
+
+      const startButton = screen.getByRole('button', { name: /start activity/i });
+      fireEvent.click(startButton);
+
+      await act(async () => {
+        jest.advanceTimersByTime(30 * 60 * 1000);
+      });
+
+      const stopButton = screen.getByRole('button', { name: /stop & save/i });
+      fireEvent.click(stopButton);
+
+      const calendarEvents = dispatchSpy.mock.calls
+        .map(([event]) => event)
+        .filter((event) => event?.type === 'calendar-add-event');
+
+      expect(calendarEvents).toHaveLength(1);
+      const detail = calendarEvents[0].detail;
+      expect(detail).toMatchObject({
+        title: 'Mazed',
+        kind: 'done',
+      });
+      expect(detail.start).toBe('2024-01-01T10:00:00.000Z');
+      expect(detail.end).toBe('2024-01-01T10:30:00.000Z');
+    } finally {
+      dispatchSpy.mockRestore();
+      jest.useRealTimers();
+    }
   });
 });
