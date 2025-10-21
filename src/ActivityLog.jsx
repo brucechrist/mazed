@@ -12,6 +12,7 @@ import './activity-log.css';
 
 const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
+const CALENDAR_EVENTS_KEY = 'calendarEvents';
 
 const DEFAULT_ACTIVITIES = [
   'Mazed',
@@ -308,6 +309,64 @@ const recordSessionInBlog = (session) => {
   });
 };
 
+const loadStoredCalendarEvents = () => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CALENDAR_EVENTS_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (event) =>
+        event &&
+        typeof event === 'object' &&
+        typeof event.title === 'string' &&
+        typeof event.start === 'string' &&
+        typeof event.end === 'string'
+    );
+  } catch (error) {
+    console.error('Failed to read calendar events from storage', error);
+    return [];
+  }
+};
+
+const persistCalendarEvents = (events) => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(CALENDAR_EVENTS_KEY, JSON.stringify(events));
+    window.dispatchEvent(new Event('calendar-updated'));
+  } catch (error) {
+    console.error('Failed to persist calendar events to storage', error);
+  }
+};
+
+const eventsMatch = (a, b) => {
+  if (!a || !b) {
+    return false;
+  }
+
+  const kindA = a.kind || 'planned';
+  const kindB = b.kind || 'planned';
+
+  return (
+    a.title === b.title &&
+    a.start === b.start &&
+    a.end === b.end &&
+    kindA === kindB
+  );
+};
+
 const recordSessionInCalendar = (session) => {
   if (typeof window === 'undefined') {
     return;
@@ -317,6 +376,9 @@ const recordSessionInCalendar = (session) => {
   if (!name) {
     return;
   }
+
+  let storedEvents = loadStoredCalendarEvents();
+  let hasChanges = false;
 
   const segments = Array.isArray(session?.segments) && session.segments.length > 0
     ? session.segments
@@ -349,12 +411,21 @@ const recordSessionInCalendar = (session) => {
       color: '#34a853',
     };
 
+    if (!storedEvents.some((event) => eventsMatch(event, detail))) {
+      storedEvents = [...storedEvents, detail];
+      hasChanges = true;
+    }
+
     try {
       window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
     } catch (error) {
       console.error('Failed to record activity session in calendar', error);
     }
   });
+
+  if (hasChanges) {
+    persistCalendarEvents(storedEvents);
+  }
 };
 
 export default function ActivityLog({ onBack }) {
