@@ -471,12 +471,20 @@ const recordSessionInCalendar = (session) => {
 
   const segments = Array.isArray(session?.segments) && session.segments.length > 0
     ? session.segments
-    : [
-        {
-          start: session?.startedAt,
-          end: session?.endedAt,
-        },
-      ];
+    : [];
+
+  const upsert = (detail) => {
+    const { events, changed } = upsertStoredEvent(mutableEvents, detail);
+    if (changed) {
+      mutableEvents = events;
+      eventsChanged = true;
+      try {
+        window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
+      } catch (error) {
+        console.error('Failed to broadcast calendar event update', error);
+      }
+    }
+  };
 
   const sessionId = buildSessionId(session);
   let storedEvents = [...loadStoredCalendarEvents()];
