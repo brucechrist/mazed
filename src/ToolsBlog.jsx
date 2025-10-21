@@ -9,7 +9,7 @@ import {
   createBlock,
   getModuleSizes,
   sanitizeBlocks,
-} from './semiFormlessLibrary.js';
+} from './semiFormlessLibrary.jsx';
 
 const THEMES = [
   'Training sync',
