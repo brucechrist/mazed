@@ -111,6 +111,15 @@ describe('ActivityLog', () => {
       });
       expect(detail.start).toBe('2024-01-01T10:00:00.000Z');
       expect(detail.end).toBe('2024-01-01T10:30:00.000Z');
+
+      const storedEvents = JSON.parse(localStorage.getItem('calendarEvents'));
+      expect(storedEvents).toHaveLength(1);
+      expect(storedEvents[0]).toMatchObject({
+        title: 'Mazed',
+        kind: 'done',
+        start: '2024-01-01T10:00:00.000Z',
+        end: '2024-01-01T10:30:00.000Z',
+      });
     } finally {
       dispatchSpy.mockRestore();
       jest.useRealTimers();
