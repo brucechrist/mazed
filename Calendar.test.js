@@ -86,6 +86,34 @@ describe('Calendar', () => {
     expect(RbcCalendar.latestProps.events[0].kind).toBe('done');
   });
 
+  test('expands active events to the current time when rendered', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2024-01-01T12:00:00.000Z'));
+
+    localStorage.setItem(
+      'calendarEvents',
+      JSON.stringify([
+        {
+          title: 'Deep Work',
+          start: '2024-01-01T09:00:00.000Z',
+          end: '2024-01-01T10:00:00.000Z',
+          kind: 'active',
+          id: 'session-1:0',
+        },
+      ])
+    );
+
+    render(<Calendar onBack={() => {}} />);
+
+    expect(RbcCalendar.latestProps.events).toHaveLength(1);
+    const event = RbcCalendar.latestProps.events[0];
+    expect(event.kind).toBe('active');
+    expect(event.end.getTime()).toBe(
+      new Date('2024-01-01T12:00:00.000Z').getTime()
+    );
+
+    jest.useRealTimers();
+  });
+
   test('removes original event when marking done with new object instance', async () => {
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 60000);

@@ -101,16 +101,67 @@ describe('ActivityLog', () => {
 
       const calendarEvents = dispatchSpy.mock.calls
         .map(([event]) => event)
-        .filter((event) => event?.type === 'calendar-add-event');
+        .filter((event) => event?.type === 'calendar-add-event')
+        .map((event) => event.detail);
 
-      expect(calendarEvents).toHaveLength(1);
-      const detail = calendarEvents[0].detail;
-      expect(detail).toMatchObject({
+      const doneEvents = calendarEvents.filter((detail) => detail.kind === 'done');
+      expect(doneEvents).toHaveLength(1);
+      expect(doneEvents[0]).toMatchObject({
         title: 'Mazed',
         kind: 'done',
       });
-      expect(detail.start).toBe('2024-01-01T10:00:00.000Z');
-      expect(detail.end).toBe('2024-01-01T10:30:00.000Z');
+      expect(doneEvents[0].start).toBe('2024-01-01T10:00:00.000Z');
+      expect(doneEvents[0].end).toBe('2024-01-01T10:30:00.000Z');
+
+      const storedEvents = JSON.parse(localStorage.getItem('calendarEvents'));
+      expect(storedEvents).toHaveLength(1);
+      expect(storedEvents[0]).toMatchObject({
+        title: 'Mazed',
+        kind: 'done',
+        start: '2024-01-01T10:00:00.000Z',
+        end: '2024-01-01T10:30:00.000Z',
+        activitySessionId: expect.any(String),
+        segmentIndex: 0,
+      });
+    } finally {
+      dispatchSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
+
+  it('persists active sessions to the calendar while they are running', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2024-01-01T10:00:00.000Z'));
+
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
+
+    try {
+      render(<ActivityLog onBack={() => {}} />);
+
+      const select = await screen.findByRole('combobox');
+      fireEvent.change(select, { target: { value: 'Mazed' } });
+
+      const startButton = screen.getByRole('button', { name: /start activity/i });
+      fireEvent.click(startButton);
+
+      await act(async () => {
+        jest.advanceTimersByTime(90 * 60 * 1000);
+      });
+
+      const storedEvents = JSON.parse(localStorage.getItem('calendarEvents'));
+      const activeEvent = storedEvents.find((event) => event.kind === 'active');
+      expect(activeEvent).toBeTruthy();
+      expect(activeEvent.title).toBe('Mazed');
+      expect(activeEvent.start).toBe('2024-01-01T10:00:00.000Z');
+      expect(activeEvent.end).toBe('2024-01-01T11:30:00.000Z');
+      expect(activeEvent.activitySessionId).toBeDefined();
+      expect(activeEvent.segmentIndex).toBe(0);
+
+      const activeEvents = dispatchSpy.mock.calls
+        .map(([event]) => event)
+        .filter((event) => event?.type === 'calendar-add-event')
+        .map((event) => event.detail)
+        .filter((detail) => detail.kind === 'active');
+      expect(activeEvents.length).toBeGreaterThan(0);
     } finally {
       dispatchSpy.mockRestore();
       jest.useRealTimers();
