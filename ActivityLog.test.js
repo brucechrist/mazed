@@ -106,7 +106,8 @@ describe('ActivityLog', () => {
 
       const doneEvents = calendarEvents.filter((detail) => detail.kind === 'done');
       expect(doneEvents).toHaveLength(1);
-      expect(doneEvents[0]).toMatchObject({
+      const detail = doneEvents[0];
+      expect(detail).toMatchObject({
         title: 'Mazed',
         kind: 'done',
       });

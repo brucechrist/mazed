@@ -14,6 +14,10 @@ const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
 const CALENDAR_EVENTS_KEY = 'calendarEvents';
 
+const ACTIVE_EVENT_KIND = 'active';
+const DONE_EVENT_KIND = 'done';
+const ACTIVITY_EVENT_COLOR = '#34a853';
+
 const DEFAULT_ACTIVITIES = [
   'Mazed',
   'Meditation - Vipassana',
@@ -119,6 +123,7 @@ const buildSessionId = (session) => {
 };
 
 const buildSegmentEventId = (sessionId, index) => `${sessionId}:${index}`;
+const buildActiveEventId = (sessionId) => `${sessionId}:active`;
 
 const eventEquals = (a, b) => {
   if (!a || !b) {
@@ -440,24 +445,24 @@ const persistCalendarEvents = (events) => {
   }
 };
 
-const eventsMatch = (a, b) => {
-  if (!a || !b) {
+const isActiveEventForSession = (event, sessionId) => {
+  if (!event || !sessionId) {
     return false;
   }
-
-  const kindA = a.kind || 'planned';
-  const kindB = b.kind || 'planned';
-
-  return (
-    a.title === b.title &&
-    a.start === b.start &&
-    a.end === b.end &&
-    kindA === kindB
-  );
+  if ((event.kind || 'planned') !== ACTIVE_EVENT_KIND) {
+    return false;
+  }
+  if (event.activitySessionId != null) {
+    return String(event.activitySessionId) === sessionId;
+  }
+  if (event.id != null) {
+    return String(event.id) === buildActiveEventId(sessionId);
+  }
+  return false;
 };
 
-const recordSessionInCalendar = (session) => {
-  if (typeof window === 'undefined') {
+const recordSessionInCalendar = (session, options = {}) => {
+  if (typeof window === 'undefined' || !session) {
     return;
   }
 
@@ -466,50 +471,48 @@ const recordSessionInCalendar = (session) => {
     return;
   }
 
-  let storedEvents = loadStoredCalendarEvents();
-  let hasChanges = false;
-
-  const segments = Array.isArray(session?.segments) && session.segments.length > 0
-    ? session.segments
-    : [];
-
-  const upsert = (detail) => {
-    const { events, changed } = upsertStoredEvent(mutableEvents, detail);
-    if (changed) {
-      mutableEvents = events;
-      eventsChanged = true;
-      try {
-        window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
-      } catch (error) {
-        console.error('Failed to broadcast calendar event update', error);
-      }
-    }
-  };
-
   const sessionId = buildSessionId(session);
+  if (!sessionId) {
+    return;
+  }
+
+  const now = parseDateValue(options?.now) || new Date();
+  const nowTime = Number.isNaN(now.getTime()) ? null : now.getTime();
+
   let storedEvents = [...loadStoredCalendarEvents()];
   let hasChanges = false;
 
-  const segments = Array.isArray(session?.segments) ? session.segments : [];
+  const emitCalendarEvent = (detail) => {
+    try {
+      window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
+    } catch (error) {
+      console.error('Failed to broadcast calendar event update', error);
+    }
+  };
 
   const upsert = (detail) => {
     const { events, changed } = upsertStoredEvent(storedEvents, detail);
     if (changed) {
       storedEvents = events;
       hasChanges = true;
-      try {
-        window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
-      } catch (error) {
-        console.error('Failed to broadcast calendar event update', error);
-      }
+      emitCalendarEvent(detail);
     }
   };
+
+  const segments = Array.isArray(session?.segments) ? session.segments : [];
 
   segments.forEach((segment, index) => {
     const startDate = parseDateValue(segment?.start);
     const endDate = parseDateValue(segment?.end);
 
-    if (!startDate || !endDate || endDate.getTime() <= startDate.getTime()) {
+    if (!startDate || !endDate) {
+      return;
+    }
+
+    const startTime = startDate.getTime();
+    const endTime = endDate.getTime();
+
+    if (Number.isNaN(startTime) || Number.isNaN(endTime) || endTime <= startTime) {
       return;
     }
 
@@ -524,27 +527,82 @@ const recordSessionInCalendar = (session) => {
       segmentIndex: index,
     };
 
-    if (!storedEvents.some((event) => eventsMatch(event, detail))) {
-      storedEvents = [...storedEvents, detail];
+    upsert(detail);
+  });
+
+  const activeStart = parseDateValue(session?.activeSegmentStart);
+
+  if (activeStart && nowTime != null) {
+    const startTime = activeStart.getTime();
+    if (!Number.isNaN(startTime) && nowTime > startTime) {
+      const detail = {
+        id: buildActiveEventId(sessionId),
+        title: name,
+        start: activeStart.toISOString(),
+        end: new Date(nowTime).toISOString(),
+        kind: ACTIVE_EVENT_KIND,
+        color: ACTIVITY_EVENT_COLOR,
+        activitySessionId: sessionId,
+      };
+
+      upsert(detail);
+    }
+  } else {
+    const filtered = storedEvents.filter(
+      (event) => !isActiveEventForSession(event, sessionId)
+    );
+    if (filtered.length !== storedEvents.length) {
+      storedEvents = filtered;
       hasChanges = true;
     }
-
-    try {
-      window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
-    } catch (error) {
-      console.error('Failed to record activity session in calendar', error);
-    }
-    if (!event.activitySessionId) {
-      return false;
-    }
-    if (targetId == null) {
-      return false;
-    }
-    return String(event.activitySessionId) === targetId;
-  });
+  }
 
   if (hasChanges) {
     persistCalendarEvents(storedEvents);
+  }
+};
+
+const clearActiveCalendarEventsForSession = (session) => {
+  if (typeof window === 'undefined' || !session) {
+    return;
+  }
+
+  const sessionId = buildSessionId(session);
+  if (!sessionId) {
+    return;
+  }
+
+  const storedEvents = loadStoredCalendarEvents();
+  const filtered = storedEvents.filter(
+    (event) => !isActiveEventForSession(event, sessionId)
+  );
+
+  if (filtered.length !== storedEvents.length) {
+    persistCalendarEvents(filtered);
+  }
+};
+
+const pruneOrphanedActiveEvents = (targetSessionId) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const storedEvents = loadStoredCalendarEvents();
+
+  const filtered = storedEvents.filter((event) => {
+    if ((event?.kind || 'planned') !== ACTIVE_EVENT_KIND) {
+      return true;
+    }
+
+    if (!targetSessionId) {
+      return false;
+    }
+
+    return isActiveEventForSession(event, targetSessionId);
+  });
+
+  if (filtered.length !== storedEvents.length) {
+    persistCalendarEvents(filtered);
   }
 };
 
