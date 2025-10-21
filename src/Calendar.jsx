@@ -10,6 +10,7 @@ import BlockModal from "./BlockModal.jsx";
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(RBCalendar);
+const ACTIVE_EVENT_KIND = "active";
 
 function CalendarEvent({ event, onDelete, onMarkDone }) {
   return (
@@ -64,7 +65,74 @@ export default function Calendar({
     return d;
   };
 
-  const [events, setEvents] = useState(() => {
+  const hydrateEvent = (event) => {
+    if (!event || !event.start || !event.end) {
+      return null;
+    }
+
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return null;
+    }
+
+    const kind = event.kind || "planned";
+    let adjustedEnd = end;
+    if (kind === ACTIVE_EVENT_KIND) {
+      const now = new Date();
+      if (!Number.isNaN(now.getTime()) && now.getTime() > start.getTime()) {
+        if (now.getTime() > adjustedEnd.getTime()) {
+          adjustedEnd = now;
+        }
+      }
+    }
+
+    return {
+      ...event,
+      start,
+      end: adjustedEnd,
+      kind,
+    };
+  };
+
+  const serializeEvents = (list) =>
+    [...list]
+      .map((event) => ({
+        id: event.id ?? null,
+        title: event.title,
+        start:
+          event.start instanceof Date
+            ? event.start.getTime()
+            : new Date(event.start).getTime(),
+        end:
+          event.end instanceof Date
+            ? event.end.getTime()
+            : new Date(event.end).getTime(),
+        kind: event.kind || "planned",
+        color: event.color || "",
+      }))
+      .sort((a, b) => {
+        if (a.id != null && b.id != null && a.id !== b.id) {
+          return String(a.id).localeCompare(String(b.id));
+        }
+        if (a.start !== b.start) return a.start - b.start;
+        if (a.end !== b.end) return a.end - b.end;
+        if (a.title !== b.title) return a.title.localeCompare(b.title);
+        if (a.kind !== b.kind) return a.kind.localeCompare(b.kind);
+        return a.color.localeCompare(b.color);
+      });
+
+  const eventsAreEqual = (prev, next) => {
+    if (prev.length !== next.length) {
+      return false;
+    }
+    return (
+      JSON.stringify(serializeEvents(prev)) ===
+      JSON.stringify(serializeEvents(next))
+    );
+  };
+
+  const parseStoredEvents = () => {
     const stored = localStorage.getItem("calendarEvents");
     if (!stored) return [];
     try {
@@ -77,16 +145,14 @@ export default function Calendar({
             typeof e.title === "string" &&
             e.title.trim() !== ""
         )
-        .map((e) => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end),
-          kind: e.kind || "planned",
-        }));
+        .map(hydrateEvent)
+        .filter(Boolean);
     } catch {
       return [];
     }
-  });
+  };
+
+  const [events, setEvents] = useState(() => parseStoredEvents());
   const [blocks, setBlocks] = useState(() => {
     const stored = localStorage.getItem('calendarBlocks');
     if (!stored) return [];
@@ -116,19 +182,78 @@ export default function Calendar({
 
   useEffect(() => {
     const handleAdd = (e) => {
-      const ev = e.detail;
-      setEvents((prev) => [
-        ...prev,
-        {
-          ...ev,
-          start: new Date(ev.start),
-          end: new Date(ev.end),
-          kind: ev.kind || "planned",
-        },
-      ]);
+      const incoming = hydrateEvent(e.detail);
+      if (!incoming) {
+        return;
+      }
+
+      setEvents((prev) => {
+        const byIdIndex =
+          incoming.id != null
+            ? prev.findIndex((event) => event.id === incoming.id)
+            : -1;
+        if (byIdIndex !== -1) {
+          const updated = [...prev];
+          updated[byIdIndex] = { ...prev[byIdIndex], ...incoming };
+          return updated;
+        }
+
+        const fallbackIndex = prev.findIndex(
+          (event) =>
+            event.title === incoming.title &&
+            event.start.getTime() === incoming.start.getTime() &&
+            event.end.getTime() === incoming.end.getTime() &&
+            (event.kind || "planned") === incoming.kind
+        );
+
+        if (fallbackIndex !== -1) {
+          const updated = [...prev];
+          updated[fallbackIndex] = { ...prev[fallbackIndex], ...incoming };
+          return updated;
+        }
+
+        return [...prev, incoming];
+      });
     };
     window.addEventListener("calendar-add-event", handleAdd);
     return () => window.removeEventListener("calendar-add-event", handleAdd);
+  }, []);
+
+  useEffect(() => {
+    const handleUpdated = () => {
+      setEvents((prev) => {
+        const parsed = parseStoredEvents();
+        if (eventsAreEqual(prev, parsed)) {
+          return prev;
+        }
+        return parsed;
+      });
+    };
+    window.addEventListener('calendar-updated', handleUpdated);
+    return () => window.removeEventListener('calendar-updated', handleUpdated);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEvents((prev) =>
+        prev.map((event) => {
+          if ((event.kind || 'planned') !== ACTIVE_EVENT_KIND) {
+            return event;
+          }
+          const now = new Date();
+          if (
+            Number.isNaN(now.getTime()) ||
+            now.getTime() <= event.start.getTime() ||
+            now.getTime() - event.end.getTime() < 30000
+          ) {
+            return event;
+          }
+          return { ...event, end: now };
+        })
+      );
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -250,6 +375,12 @@ export default function Calendar({
     if (event.kind === "done") {
       return {
         className: "done-event",
+        style: { ...base, left: "50%", width: "50%" },
+      };
+    }
+    if (event.kind === ACTIVE_EVENT_KIND) {
+      return {
+        className: "done-event active-event",
         style: { ...base, left: "50%", width: "50%" },
       };
     }

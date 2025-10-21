@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   loadActivityBlogIndex,
   loadBlogPostsFromStorage,
@@ -12,6 +12,10 @@ import './activity-log.css';
 
 const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
+const CALENDAR_EVENTS_KEY = 'calendarEvents';
+const ACTIVE_EVENT_KIND = 'active';
+const DONE_EVENT_KIND = 'done';
+const ACTIVITY_EVENT_COLOR = '#34a853';
 
 const DEFAULT_ACTIVITIES = [
   'Mazed',
@@ -89,6 +93,95 @@ const sanitizeActivityName = (name) => {
   }
 
   return name.trim();
+};
+
+const parseDateValue = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const buildSessionId = (session) => {
+  if (!session) {
+    return null;
+  }
+
+  if (session.id != null) {
+    return String(session.id);
+  }
+
+  const started = parseDateValue(session.startedAt);
+  if (started) {
+    return String(started.getTime());
+  }
+
+  return String(Date.now());
+};
+
+const buildSegmentEventId = (sessionId, index) => `${sessionId}:${index}`;
+
+const eventEquals = (a, b) => {
+  if (!a || !b) {
+    return false;
+  }
+
+  const kindA = a.kind || 'planned';
+  const kindB = b.kind || 'planned';
+
+  return (
+    a.title === b.title &&
+    a.start === b.start &&
+    a.end === b.end &&
+    kindA === kindB &&
+    (a.color || '') === (b.color || '') &&
+    (a.id || null) === (b.id || null)
+  );
+};
+
+const upsertStoredEvent = (events, detail) => {
+  const normalizedDetail = {
+    ...detail,
+    kind: detail.kind || 'planned',
+  };
+
+  if (!Array.isArray(events) || events.length === 0) {
+    return { events: [normalizedDetail], changed: true };
+  }
+
+  if (normalizedDetail.id != null) {
+    const index = events.findIndex((event) => event.id === normalizedDetail.id);
+    if (index !== -1) {
+      if (eventEquals(events[index], normalizedDetail)) {
+        return { events, changed: false };
+      }
+      const next = [...events];
+      next[index] = { ...events[index], ...normalizedDetail };
+      return { events: next, changed: true };
+    }
+  }
+
+  const fallbackIndex = events.findIndex(
+    (event) =>
+      event &&
+      event.title === normalizedDetail.title &&
+      event.start === normalizedDetail.start &&
+      event.end === normalizedDetail.end &&
+      (event.kind || 'planned') === normalizedDetail.kind
+  );
+
+  if (fallbackIndex !== -1) {
+    if (eventEquals(events[fallbackIndex], normalizedDetail)) {
+      return { events, changed: false };
+    }
+    const next = [...events];
+    next[fallbackIndex] = { ...events[fallbackIndex], ...normalizedDetail };
+    return { events: next, changed: true };
+  }
+
+  return { events: [...events, normalizedDetail], changed: true };
 };
 
 const loadSanitizedBlogPosts = () => {
@@ -308,7 +401,49 @@ const recordSessionInBlog = (session) => {
   });
 };
 
-const recordSessionInCalendar = (session) => {
+const loadStoredCalendarEvents = () => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CALENDAR_EVENTS_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (event) =>
+        event &&
+        typeof event === 'object' &&
+        typeof event.title === 'string' &&
+        typeof event.start === 'string' &&
+        typeof event.end === 'string'
+    );
+  } catch (error) {
+    console.error('Failed to read calendar events from storage', error);
+    return [];
+  }
+};
+
+const persistCalendarEvents = (events) => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(CALENDAR_EVENTS_KEY, JSON.stringify(events));
+    window.dispatchEvent(new Event('calendar-updated'));
+  } catch (error) {
+    console.error('Failed to persist calendar events to storage', error);
+  }
+};
+
+const recordSessionInCalendar = (session, { now } = {}) => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -318,43 +453,128 @@ const recordSessionInCalendar = (session) => {
     return;
   }
 
-  const segments = Array.isArray(session?.segments) && session.segments.length > 0
-    ? session.segments
-    : [
-        {
-          start: session?.startedAt,
-          end: session?.endedAt,
-        },
-      ];
+  const nowDate =
+    now instanceof Date ? now : now ? new Date(now) : new Date();
+  if (Number.isNaN(nowDate.getTime())) {
+    return;
+  }
 
-  segments.forEach((segment) => {
-    const startDate = segment?.start ? new Date(segment.start) : null;
-    const endDate = segment?.end ? new Date(segment.end) : null;
+  const sessionId = buildSessionId(session);
+  let storedEvents = [...loadStoredCalendarEvents()];
+  let hasChanges = false;
 
-    if (
-      !startDate ||
-      !endDate ||
-      Number.isNaN(startDate.getTime()) ||
-      Number.isNaN(endDate.getTime()) ||
-      endDate.getTime() <= startDate.getTime()
-    ) {
+  const segments = Array.isArray(session?.segments) ? session.segments : [];
+
+  const upsert = (detail) => {
+    const { events, changed } = upsertStoredEvent(storedEvents, detail);
+    if (changed) {
+      storedEvents = events;
+      hasChanges = true;
+      try {
+        window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
+      } catch (error) {
+        console.error('Failed to broadcast calendar event update', error);
+      }
+    }
+  };
+
+  segments.forEach((segment, index) => {
+    const startDate = parseDateValue(segment?.start);
+    const endDate = parseDateValue(segment?.end);
+
+    if (!startDate || !endDate || endDate.getTime() <= startDate.getTime()) {
       return;
     }
 
     const detail = {
+      id: buildSegmentEventId(sessionId, index),
       title: name,
       start: startDate.toISOString(),
       end: endDate.toISOString(),
-      kind: 'done',
-      color: '#34a853',
+      kind: DONE_EVENT_KIND,
+      color: ACTIVITY_EVENT_COLOR,
+      activitySessionId: sessionId,
+      segmentIndex: index,
     };
 
-    try {
-      window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
-    } catch (error) {
-      console.error('Failed to record activity session in calendar', error);
-    }
+    upsert(detail);
   });
+
+  const activeStart = parseDateValue(session?.activeSegmentStart);
+  if (activeStart && nowDate.getTime() > activeStart.getTime()) {
+    const activeIndex = segments.length;
+    const detail = {
+      id: buildSegmentEventId(sessionId, activeIndex),
+      title: name,
+      start: activeStart.toISOString(),
+      end: nowDate.toISOString(),
+      kind: ACTIVE_EVENT_KIND,
+      color: ACTIVITY_EVENT_COLOR,
+      activitySessionId: sessionId,
+      segmentIndex: activeIndex,
+      updatedAt: nowDate.toISOString(),
+    };
+
+    upsert(detail);
+  }
+
+  if (hasChanges) {
+    persistCalendarEvents(storedEvents);
+  }
+};
+
+const clearActiveCalendarEventsForSession = (session) => {
+  if (typeof window === 'undefined' || !session) {
+    return;
+  }
+
+  const sessionId = buildSessionId(session);
+  if (!sessionId) {
+    return;
+  }
+
+  const storedEvents = loadStoredCalendarEvents();
+  const nextEvents = storedEvents.filter(
+    (event) =>
+      !(
+        event &&
+        event.activitySessionId === sessionId &&
+        (event.kind || 'planned') === ACTIVE_EVENT_KIND
+      )
+  );
+
+  if (nextEvents.length !== storedEvents.length) {
+    persistCalendarEvents(nextEvents);
+  }
+};
+
+const pruneOrphanedActiveEvents = (activeSessionId) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const targetId = activeSessionId != null ? String(activeSessionId) : null;
+  const storedEvents = loadStoredCalendarEvents();
+  const nextEvents = storedEvents.filter((event) => {
+    if (!event || typeof event !== 'object') {
+      return true;
+    }
+    const kind = event.kind || 'planned';
+    if (kind !== ACTIVE_EVENT_KIND) {
+      return true;
+    }
+    if (!event.activitySessionId) {
+      return false;
+    }
+    if (targetId == null) {
+      return false;
+    }
+    return String(event.activitySessionId) === targetId;
+  });
+
+  if (nextEvents.length !== storedEvents.length) {
+    persistCalendarEvents(nextEvents);
+  }
 };
 
 export default function ActivityLog({ onBack }) {
@@ -391,6 +611,7 @@ export default function ActivityLog({ onBack }) {
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
+  const lastCalendarSyncRef = useRef(null);
 
   const refreshActivityOptions = useCallback(() => {
     setActivityOptions(buildOptionsFromStorage());
@@ -400,6 +621,30 @@ export default function ActivityLog({ onBack }) {
     const id = setInterval(() => setTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!current?.activeSegmentStart) {
+      if (!current) {
+        lastCalendarSyncRef.current = null;
+      }
+      return;
+    }
+
+    const nowMs = typeof tick === 'number' ? tick : Date.now();
+    if (!Number.isFinite(nowMs)) {
+      return;
+    }
+
+    if (
+      lastCalendarSyncRef.current &&
+      nowMs - lastCalendarSyncRef.current < 30000
+    ) {
+      return;
+    }
+
+    lastCalendarSyncRef.current = nowMs;
+    recordSessionInCalendar(current, { now: new Date(nowMs) });
+  }, [current, tick]);
 
   useEffect(() => {
     try {
@@ -419,6 +664,19 @@ export default function ActivityLog({ onBack }) {
     } catch (error) {
       console.error('Failed to persist current activity session', error);
     }
+  }, [current]);
+
+  useEffect(() => {
+    if (!current) {
+      lastCalendarSyncRef.current = null;
+      pruneOrphanedActiveEvents(null);
+      return;
+    }
+
+    lastCalendarSyncRef.current = null;
+    const sessionId = buildSessionId(current);
+    pruneOrphanedActiveEvents(sessionId);
+    recordSessionInCalendar(current);
   }, [current]);
 
   useEffect(() => {
@@ -568,6 +826,8 @@ export default function ActivityLog({ onBack }) {
         activeSegmentStart: now.toISOString(),
       };
       persistCurrent(resumed);
+      recordSessionInCalendar(resumed, { now });
+      lastCalendarSyncRef.current = now.getTime();
     } else {
       const nextSession = {
         id: now.getTime(),
@@ -578,6 +838,8 @@ export default function ActivityLog({ onBack }) {
         activeSegmentStart: now.toISOString(),
       };
       persistCurrent(nextSession);
+      recordSessionInCalendar(nextSession, { now });
+      lastCalendarSyncRef.current = now.getTime();
       setActivityName(sanitizedSelectedName);
     }
   };
@@ -602,6 +864,8 @@ export default function ActivityLog({ onBack }) {
       activeSegmentStart: null,
     };
     persistCurrent(next);
+    recordSessionInCalendar(next);
+    lastCalendarSyncRef.current = null;
   };
 
   const handleStop = () => {
@@ -613,14 +877,19 @@ export default function ActivityLog({ onBack }) {
       recordSessionInCalendar(finished);
     }
     persistCurrent(null);
+    lastCalendarSyncRef.current = null;
   };
 
   const handleClear = () => {
     if (!entries.length && !current) return;
     if (window.confirm('Clear all logged activities? This cannot be undone.')) {
       persistEntries([]);
+      if (current) {
+        clearActiveCalendarEventsForSession(current);
+      }
       persistCurrent(null);
       setActivityName('');
+      lastCalendarSyncRef.current = null;
     }
   };
 

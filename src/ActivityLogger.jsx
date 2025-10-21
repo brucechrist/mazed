@@ -19,14 +19,25 @@ export default function ActivityLogger({ enabled }) {
         if (!enabledRef.current) return;
         // Only create aggregated blocks rather than individual done events
         // Remove old event log storage to keep the interface clean
-        localStorage.setItem(
-          'calendarEvents',
-          JSON.stringify(
-            (JSON.parse(localStorage.getItem('calendarEvents') || '[]') || []).filter(
-              (e) => e && (e.kind === 'planned')
-            )
-          )
-        );
+        const sanitizedEvents = (() => {
+          try {
+            const parsed = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+            if (!Array.isArray(parsed)) return [];
+            return parsed.filter(
+              (event) =>
+                event &&
+                event.start &&
+                event.end &&
+                typeof event.title === 'string' &&
+                event.title.trim() !== ''
+            );
+          } catch (error) {
+            console.error('Failed to sanitize stored calendar events', error);
+            return [];
+          }
+        })();
+
+        localStorage.setItem('calendarEvents', JSON.stringify(sanitizedEvents));
 
         const blockStart = roundSlot(data.start);
         const blockEnd = new Date(blockStart.getTime() + 30 * 60000);
