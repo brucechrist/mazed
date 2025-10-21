@@ -13,9 +13,6 @@ import './activity-log.css';
 const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
 const CALENDAR_EVENTS_KEY = 'calendarEvents';
-const ACTIVE_EVENT_KIND = 'active';
-const DONE_EVENT_KIND = 'done';
-const ACTIVITY_EVENT_COLOR = '#34a853';
 
 const DEFAULT_ACTIVITIES = [
   'Mazed',
@@ -443,7 +440,23 @@ const persistCalendarEvents = (events) => {
   }
 };
 
-const recordSessionInCalendar = (session, { now } = {}) => {
+const eventsMatch = (a, b) => {
+  if (!a || !b) {
+    return false;
+  }
+
+  const kindA = a.kind || 'planned';
+  const kindB = b.kind || 'planned';
+
+  return (
+    a.title === b.title &&
+    a.start === b.start &&
+    a.end === b.end &&
+    kindA === kindB
+  );
+};
+
+const recordSessionInCalendar = (session) => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -453,11 +466,17 @@ const recordSessionInCalendar = (session, { now } = {}) => {
     return;
   }
 
-  const nowDate =
-    now instanceof Date ? now : now ? new Date(now) : new Date();
-  if (Number.isNaN(nowDate.getTime())) {
-    return;
-  }
+  let storedEvents = loadStoredCalendarEvents();
+  let hasChanges = false;
+
+  const segments = Array.isArray(session?.segments) && session.segments.length > 0
+    ? session.segments
+    : [
+        {
+          start: session?.startedAt,
+          end: session?.endedAt,
+        },
+      ];
 
   const sessionId = buildSessionId(session);
   let storedEvents = [...loadStoredCalendarEvents()];
@@ -497,71 +516,15 @@ const recordSessionInCalendar = (session, { now } = {}) => {
       segmentIndex: index,
     };
 
-    upsert(detail);
-  });
-
-  const activeStart = parseDateValue(session?.activeSegmentStart);
-  if (activeStart && nowDate.getTime() > activeStart.getTime()) {
-    const activeIndex = segments.length;
-    const detail = {
-      id: buildSegmentEventId(sessionId, activeIndex),
-      title: name,
-      start: activeStart.toISOString(),
-      end: nowDate.toISOString(),
-      kind: ACTIVE_EVENT_KIND,
-      color: ACTIVITY_EVENT_COLOR,
-      activitySessionId: sessionId,
-      segmentIndex: activeIndex,
-      updatedAt: nowDate.toISOString(),
-    };
-
-    upsert(detail);
-  }
-
-  if (hasChanges) {
-    persistCalendarEvents(storedEvents);
-  }
-};
-
-const clearActiveCalendarEventsForSession = (session) => {
-  if (typeof window === 'undefined' || !session) {
-    return;
-  }
-
-  const sessionId = buildSessionId(session);
-  if (!sessionId) {
-    return;
-  }
-
-  const storedEvents = loadStoredCalendarEvents();
-  const nextEvents = storedEvents.filter(
-    (event) =>
-      !(
-        event &&
-        event.activitySessionId === sessionId &&
-        (event.kind || 'planned') === ACTIVE_EVENT_KIND
-      )
-  );
-
-  if (nextEvents.length !== storedEvents.length) {
-    persistCalendarEvents(nextEvents);
-  }
-};
-
-const pruneOrphanedActiveEvents = (activeSessionId) => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const targetId = activeSessionId != null ? String(activeSessionId) : null;
-  const storedEvents = loadStoredCalendarEvents();
-  const nextEvents = storedEvents.filter((event) => {
-    if (!event || typeof event !== 'object') {
-      return true;
+    if (!storedEvents.some((event) => eventsMatch(event, detail))) {
+      storedEvents = [...storedEvents, detail];
+      hasChanges = true;
     }
-    const kind = event.kind || 'planned';
-    if (kind !== ACTIVE_EVENT_KIND) {
-      return true;
+
+    try {
+      window.dispatchEvent(new CustomEvent('calendar-add-event', { detail }));
+    } catch (error) {
+      console.error('Failed to record activity session in calendar', error);
     }
     if (!event.activitySessionId) {
       return false;
@@ -572,8 +535,8 @@ const pruneOrphanedActiveEvents = (activeSessionId) => {
     return String(event.activitySessionId) === targetId;
   });
 
-  if (nextEvents.length !== storedEvents.length) {
-    persistCalendarEvents(nextEvents);
+  if (hasChanges) {
+    persistCalendarEvents(storedEvents);
   }
 };
 
