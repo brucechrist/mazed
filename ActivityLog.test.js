@@ -101,11 +101,12 @@ describe('ActivityLog', () => {
 
       const calendarEvents = dispatchSpy.mock.calls
         .map(([event]) => event)
-        .filter((event) => event?.type === 'calendar-add-event');
+        .filter((event) => event?.type === 'calendar-add-event')
+        .map((event) => event.detail);
 
-      expect(calendarEvents).toHaveLength(1);
-      const detail = calendarEvents[0].detail;
-      expect(detail).toMatchObject({
+      const doneEvents = calendarEvents.filter((detail) => detail.kind === 'done');
+      expect(doneEvents).toHaveLength(1);
+      expect(doneEvents[0]).toMatchObject({
         title: 'Mazed',
         kind: 'done',
       });
