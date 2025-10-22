@@ -1,0 +1,358 @@
+.tips-app {
+  width: min(960px, 100%);
+  align-items: stretch;
+}
+
+.tips-header {
+  width: 100%;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.tips-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tips-title-group h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.tips-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.tips-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+.tips-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.tips-field input,
+.tips-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tips-field input:focus,
+.tips-field textarea:focus {
+  outline: none;
+  border-color: rgba(98, 182, 255, 0.8);
+  box-shadow: 0 0 0 2px rgba(98, 182, 255, 0.2);
+}
+
+.tips-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.tips-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.tips-inline .tips-field {
+  flex: 1 1 260px;
+}
+
+.tips-link-input {
+  display: flex;
+  gap: 10px;
+}
+
+.tips-link-input input {
+  flex: 1;
+}
+
+.tips-link-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tips-link-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tips-link-list a {
+  color: #9fd8ff;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.tips-link-list a:hover {
+  text-decoration: underline;
+}
+
+.tips-image-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tips-image-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tips-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tips-icon-button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tips-icon-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.tips-icon-button:focus-visible {
+  outline: 2px solid rgba(98, 182, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.tips-primary-button,
+.tips-secondary-button {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tips-primary-button {
+  background: linear-gradient(135deg, #5b8eff, #8f7bff);
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(91, 142, 255, 0.3);
+}
+
+.tips-primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.tips-primary-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(91, 142, 255, 0.4);
+}
+
+.tips-secondary-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tips-secondary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tips-secondary-button:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.tips-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.tips-error {
+  color: #ff8c8c;
+  font-size: 0.9rem;
+}
+
+.tips-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+.tip-card {
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.tip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tip-card-header h3 {
+  margin: 0;
+}
+
+.tip-card-person {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tip-card-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.tip-card-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tip-card-links li {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.tip-card-links a {
+  color: #9fd8ff;
+  text-decoration: none;
+}
+
+.tip-card-links a:hover {
+  text-decoration: underline;
+}
+
+.tip-card-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.tip-card-images img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tip-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tips-empty {
+  margin: 0;
+  text-align: center;
+  padding: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+body.light-theme .tips-subtitle {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+body.light-theme .tips-form,
+body.light-theme .tip-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #1f1f1f;
+}
+
+body.light-theme .tips-field input,
+body.light-theme .tips-field textarea {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: inherit;
+}
+
+body.light-theme .tips-link-list li,
+body.light-theme .tip-card-links li {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .tips-link-list a,
+body.light-theme .tip-card-links a {
+  color: #2155cd;
+}
+
+body.light-theme .tips-empty {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 640px) {
+  .tips-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tips-actions {
+    flex-direction: column;
+  }
+
+  .tips-primary-button,
+  .tips-secondary-button {
+    width: 100%;
+  }
+}
