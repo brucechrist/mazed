@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
@@ -568,6 +574,8 @@ export default function Library({ onBack }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
+  const menuRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -633,6 +641,8 @@ export default function Library({ onBack }) {
   const [soundCustomTags, setSoundCustomTags] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [soundMenu, setSoundMenu] = useState(null);
+  const soundMenuRef = useRef(null);
+  const [soundMenuPosition, setSoundMenuPosition] = useState({ x: 0, y: 0 });
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
   const [hideQualityImages, setHideQualityImages] = useState(() => {
@@ -1469,6 +1479,52 @@ export default function Library({ onBack }) {
     }
   }, [hideQualityImages, hiddenQuality, lightbox]);
 
+  useLayoutEffect(() => {
+    if (!menu || !menuRef.current || typeof window === 'undefined') {
+      return;
+    }
+    const rect = menuRef.current.getBoundingClientRect();
+    const { innerWidth, innerHeight } = window;
+    const padding = 8;
+    let nextX = menu.x;
+    let nextY = menu.y;
+    if (nextX + rect.width + padding > innerWidth) {
+      nextX = Math.max(padding, innerWidth - rect.width - padding);
+    }
+    if (nextY + rect.height + padding > innerHeight) {
+      nextY = Math.max(padding, innerHeight - rect.height - padding);
+    }
+    if (nextX < padding) nextX = padding;
+    if (nextY < padding) nextY = padding;
+    setMenuPosition((prev) =>
+      prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY }
+    );
+  }, [menu]);
+
+  useLayoutEffect(() => {
+    if (!soundMenu || !soundMenuRef.current || typeof window === 'undefined') {
+      return;
+    }
+    const rect = soundMenuRef.current.getBoundingClientRect();
+    const { innerWidth, innerHeight } = window;
+    const padding = 8;
+    let nextX = soundMenu.x;
+    let nextY = soundMenu.y;
+    if (nextX + rect.width + padding > innerWidth) {
+      nextX = Math.max(padding, innerWidth - rect.width - padding);
+    }
+    if (nextY + rect.height + padding > innerHeight) {
+      nextY = Math.max(padding, innerHeight - rect.height - padding);
+    }
+    if (nextX < padding) nextX = padding;
+    if (nextY < padding) nextY = padding;
+    setSoundMenuPosition((prev) =>
+      prev.x === nextX && prev.y === nextY
+        ? prev
+        : { x: nextX, y: nextY }
+    );
+  }, [soundMenu]);
+
   useEffect(() => {
     loadPalette().then(setPalette);
     const handler = () => {
@@ -1511,6 +1567,20 @@ export default function Library({ onBack }) {
       return;
     }
     await deleteSoundData(id);
+  };
+
+  const openImageContextMenu = (event, imageId) => {
+    event.preventDefault();
+    const { clientX, clientY } = event;
+    setMenu({ id: imageId, x: clientX, y: clientY });
+    setMenuPosition({ x: clientX, y: clientY });
+  };
+
+  const openSoundContextMenu = (event, soundId) => {
+    event.preventDefault();
+    const { clientX, clientY } = event;
+    setSoundMenu({ id: soundId, x: clientX, y: clientY });
+    setSoundMenuPosition({ x: clientX, y: clientY });
   };
 
   const moveImage = (fromId, toId) => {
@@ -1971,10 +2041,7 @@ export default function Library({ onBack }) {
         data-item-type="image"
         data-pretty-symbol={typeInfo.symbol}
         draggable={canDrag}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-        }}
+        onContextMenu={(e) => openImageContextMenu(e, img.id)}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         onDragStart={
           sortMode !== 'title' &&
@@ -2051,10 +2118,7 @@ export default function Library({ onBack }) {
                 }
               }
             }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-            }}
+            onContextMenu={(e) => openImageContextMenu(e, img.id)}
             onClick={() => setLightbox(img)}
           />
         ) : (
@@ -2103,10 +2167,7 @@ export default function Library({ onBack }) {
         style={{ gridRowEnd: `span ${span}` }}
         data-item-type="sound"
         data-pretty-symbol={typeInfo.symbol}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setSoundMenu({ id: snd.id, x: e.clientX, y: e.clientY });
-        }}
+        onContextMenu={(e) => openSoundContextMenu(e, snd.id)}
         role="button"
         tabIndex={0}
         aria-label={`Edit sound ${snd.title || 'clip'}`}
@@ -2508,10 +2569,7 @@ export default function Library({ onBack }) {
         onDragOver={(e) => {
           handleTriDragOverZone(e, zoneId);
         }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ id: img.id, x: e.clientX, y: e.clientY });
-        }}
+        onContextMenu={(e) => openImageContextMenu(e, img.id)}
         onClick={isLoaded ? () => setLightbox(img) : undefined}
         role="button"
         tabIndex={0}
@@ -3609,8 +3667,9 @@ export default function Library({ onBack }) {
         )}
         {soundMenu && (
           <div
+            ref={soundMenuRef}
             className="context-menu"
-            style={{ left: soundMenu.x, top: soundMenu.y }}
+            style={{ left: soundMenuPosition.x, top: soundMenuPosition.y }}
           >
             <button
               onClick={() => {
@@ -3875,7 +3934,11 @@ export default function Library({ onBack }) {
           </div>
         )}
         {menu && (
-          <div className="context-menu" style={{ left: menu.x, top: menu.y }}>
+          <div
+            ref={menuRef}
+            className="context-menu"
+            style={{ left: menuPosition.x, top: menuPosition.y }}
+          >
             <button
               onClick={() => {
                 deleteImage(menu.id);
