@@ -46,6 +46,43 @@
   text-shadow: 0 0 12px rgba(118, 255, 176, 0.4);
 }
 
+.current-activity-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.overlay-toggle-button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.overlay-toggle-button:hover {
+  border-color: rgba(118, 255, 176, 0.6);
+  color: #d7ffe8;
+  background: rgba(118, 255, 176, 0.18);
+}
+
+.overlay-toggle-button.active {
+  background: rgba(118, 255, 176, 0.28);
+  border-color: rgba(118, 255, 176, 0.65);
+  color: #d7ffe8;
+  box-shadow: 0 0 12px rgba(118, 255, 176, 0.25);
+}
+
+.overlay-toggle-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(118, 255, 176, 0.35);
+}
+
 .pill {
   display: inline-flex;
   padding: 4px 10px;
