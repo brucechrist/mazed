@@ -13,6 +13,7 @@ import './activity-log.css';
 const ENTRIES_KEY = 'activityLogEntries';
 const CURRENT_KEY = 'activityLogCurrent';
 const CALENDAR_EVENTS_KEY = 'calendarEvents';
+const OVERLAY_ENABLED_KEY = 'activityOverlayEnabled';
 
 const ACTIVE_EVENT_KIND = 'active';
 const DONE_EVENT_KIND = 'done';
@@ -237,6 +238,31 @@ const sanitizeSessionForBlog = (session) => {
   }
 
   return sanitizedSession;
+};
+
+const sanitizeSessionForOverlay = (session) => {
+  if (!session || typeof session !== 'object') {
+    return null;
+  }
+
+  const name = sanitizeActivityName(session.name);
+  if (!name) {
+    return null;
+  }
+
+  const elapsedValue = Number(session.elapsed);
+  const elapsed = Number.isFinite(elapsedValue) && elapsedValue > 0 ? elapsedValue : 0;
+
+  return {
+    id: buildSessionId(session),
+    name,
+    startedAt: typeof session.startedAt === 'string' ? session.startedAt : null,
+    activeSegmentStart:
+      typeof session.activeSegmentStart === 'string'
+        ? session.activeSegmentStart
+        : null,
+    elapsed,
+  };
 };
 
 const safeSanitizeBlogPostRecord = (post) => {
@@ -640,11 +666,39 @@ export default function ActivityLog({ onBack }) {
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
   const [tick, setTick] = useState(() => Date.now());
+  const [overlayEnabled, setOverlayEnabled] = useState(() => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return false;
+    }
+    try {
+      return window.localStorage.getItem(OVERLAY_ENABLED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const overlaySupported =
+    typeof window !== 'undefined' &&
+    Boolean(window?.electronAPI?.setActivityOverlayEnabled);
   const lastCalendarSyncRef = useRef(null);
 
   const refreshActivityOptions = useCallback(() => {
     setActivityOptions(buildOptionsFromStorage());
   }, [buildOptionsFromStorage]);
+
+  const notifyOverlay = useCallback(
+    (session) => {
+      if (!window?.electronAPI?.updateActivityOverlay) {
+        return;
+      }
+      try {
+        const payload = sanitizeSessionForOverlay(session);
+        window.electronAPI.updateActivityOverlay(payload);
+      } catch (error) {
+        console.error('Failed to notify desktop overlay', error);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1000);
@@ -694,6 +748,10 @@ export default function ActivityLog({ onBack }) {
       console.error('Failed to persist current activity session', error);
     }
   }, [current]);
+
+  useEffect(() => {
+    notifyOverlay(current);
+  }, [current, notifyOverlay]);
 
   useEffect(() => {
     if (!current) {
@@ -759,6 +817,44 @@ export default function ActivityLog({ onBack }) {
       window.removeEventListener('storage', handleStorage);
     };
   }, [buildOptionsFromStorage]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(
+          OVERLAY_ENABLED_KEY,
+          overlayEnabled ? 'true' : 'false'
+        );
+      } catch (error) {
+        console.error('Failed to persist overlay preference', error);
+      }
+    }
+
+    if (overlaySupported && window.electronAPI?.setActivityOverlayEnabled) {
+      try {
+        window.electronAPI.setActivityOverlayEnabled(overlayEnabled);
+      } catch (error) {
+        console.error('Failed to toggle desktop overlay', error);
+      }
+    }
+  }, [overlayEnabled, overlaySupported]);
+
+  useEffect(() => {
+    if (!overlaySupported || !window.electronAPI?.onActivityOverlayEnabled) {
+      return undefined;
+    }
+    const unsubscribe = window.electronAPI.onActivityOverlayEnabled((enabled) => {
+      setOverlayEnabled((prev) => {
+        const next = Boolean(enabled);
+        return prev === next ? prev : next;
+      });
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [overlaySupported]);
 
   useEffect(() => {
     const sanitizedCurrent = sanitizeActivityName(activityName);
@@ -961,6 +1057,10 @@ export default function ActivityLog({ onBack }) {
     setNewActivityName('');
   };
 
+  const handleToggleOverlay = () => {
+    setOverlayEnabled((prev) => !prev);
+  };
+
   return (
     <div className="placeholder-app activity-log">
       <button className="back-button" onClick={onBack}>
@@ -981,8 +1081,20 @@ export default function ActivityLog({ onBack }) {
             )}
           </p>
         </div>
-        <div className="current-activity-time">
-          {formatDuration(currentElapsed)}
+        <div className="current-activity-actions">
+          <div className="current-activity-time">
+            {formatDuration(currentElapsed)}
+          </div>
+          {overlaySupported ? (
+            <button
+              type="button"
+              className={`overlay-toggle-button ${overlayEnabled ? 'active' : ''}`}
+              onClick={handleToggleOverlay}
+              aria-pressed={overlayEnabled}
+            >
+              {overlayEnabled ? 'Hide desktop overlay' : 'Show desktop overlay'}
+            </button>
+          ) : null}
         </div>
       </div>
 
