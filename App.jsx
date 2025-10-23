@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
@@ -27,6 +27,7 @@ import ActivityLogger from './ActivityLogger.jsx';
 import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
+import TimelineBar from './TimelineBar.jsx';
 
 const WindowControls = () => (
   <div className="custom-titlebar">
@@ -88,6 +89,8 @@ const [sidebarIndex, setSidebarIndex] = useState(() =>
   tabs.findIndex((t) => t.label === (initialTab || tabs[0].label))
 );
 
+const toolsTabIndex = tabs.findIndex((t) => t.label === 'Tools');
+
 const anyAppOpen =
   showJournal ||
   showNofap ||
@@ -109,6 +112,54 @@ const anyAppOpen =
   showAkashicRecords ||
   showProfile ||
   showSettings;
+
+const focusLabel = useMemo(() => {
+  const focusEntries = [
+    { condition: showJournal, label: 'Quest Journal' },
+    { condition: showNofap, label: 'NoFap Calendar' },
+    { condition: showRatings, label: 'Version Ratings' },
+    { condition: showWhoAmI, label: 'Who Am I?' },
+    { condition: showMusic, label: 'Music Search' },
+    { condition: showSinging, label: 'Singing Studio' },
+    { condition: showShadowWork, label: 'Shadow Work' },
+    { condition: showCalendarApp, label: 'Calendar' },
+    { condition: showTimeline, label: 'Timeline' },
+    { condition: showTypomancy, label: 'Typomancy' },
+    { condition: showMoodtracker, label: 'Moodtracker' },
+    { condition: showAnima, label: 'Anima' },
+    { condition: showMoodQuadrantGame, label: 'Mood Quadrant' },
+    { condition: showMomentoMori, label: 'Momento Mori' },
+    { condition: showWatchdog, label: 'Watchdog' },
+    { condition: showToolsBlog, label: 'Tools Blog' },
+    { condition: showSemiFormlessWorkbench, label: 'Semi-Formless Canvas' },
+    { condition: showProfile, label: 'Profile' },
+    { condition: showSettings, label: 'Settings' },
+  ];
+
+  const match = focusEntries.find(({ condition }) => condition);
+  return match ? match.label : activeTab;
+}, [
+  activeTab,
+  showAnima,
+  showCalendarApp,
+  showJournal,
+  showMoodQuadrantGame,
+  showMoodtracker,
+  showMomentoMori,
+  showMusic,
+  showNofap,
+  showProfile,
+  showRatings,
+  showSemiFormlessWorkbench,
+  showSettings,
+  showShadowWork,
+  showSinging,
+  showTimeline,
+  showToolsBlog,
+  showTypomancy,
+  showWatchdog,
+  showWhoAmI,
+]);
 
 const closeOpenApp = () => {
   setShowJournal(false);
@@ -132,6 +183,76 @@ const closeOpenApp = () => {
   setShowProfile(false);
   setShowSettings(false);
 };
+
+const toggleAutoLog = (nextValue) => {
+  if (typeof nextValue === 'boolean') {
+    setAutoLog(nextValue);
+  } else {
+    setAutoLog((prev) => !prev);
+  }
+};
+
+const toggleTheme = () => {
+  setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+};
+
+const focusToolsTab = () => {
+  if (activeTab !== 'Tools') {
+    setActiveTab('Tools');
+  }
+  if (toolsTabIndex !== -1) {
+    setSidebarIndex(toolsTabIndex);
+  }
+};
+
+const launchTool = (setter) => {
+  focusToolsTab();
+  closeOpenApp();
+  setSelectedAppIndex(-1);
+  setter(true);
+};
+
+const openQuestJournal = () => launchTool(setShowJournal);
+const openTimeline = () => launchTool(setShowTimeline);
+const openMoodtracker = () => launchTool(setShowMoodtracker);
+
+const openSettings = () => {
+  closeOpenApp();
+  setShowSettings(true);
+  setSidebarIndex(tabs.length);
+};
+
+const openProfile = () => {
+  closeOpenApp();
+  setShowProfile(true);
+  setSidebarIndex(tabs.length + 1);
+};
+
+const openAkashicRecords = () => {
+  closeOpenApp();
+  setShowAkashicRecords(true);
+};
+
+const timelineQuickActions = [
+  {
+    label: 'Quest Journal',
+    icon: '📓',
+    onClick: openQuestJournal,
+    active: showJournal,
+  },
+  {
+    label: 'Timeline',
+    icon: '🕒',
+    onClick: openTimeline,
+    active: showTimeline,
+  },
+  {
+    label: 'Moodtracker',
+    icon: '😊',
+    onClick: openMoodtracker,
+    active: showMoodtracker,
+  },
+];
 
   useEffect(() => {
     localStorage.setItem('autoLog', autoLog ? 'true' : 'false');
@@ -482,14 +603,24 @@ useEffect(() => {
         <SettingsModal
           onClose={() => setShowSettings(false)}
           autoLog={autoLog}
-          onToggleAutoLog={setAutoLog}
+          onToggleAutoLog={toggleAutoLog}
           theme={theme}
-          onToggleTheme={() =>
-            setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-          }
-          onOpenAkashicRecords={() => setShowAkashicRecords(true)}
+          onToggleTheme={toggleTheme}
+          onOpenAkashicRecords={openAkashicRecords}
         />
       )}
+      <TimelineBar
+        focusLabel={focusLabel}
+        quickActions={timelineQuickActions}
+        autoLog={autoLog}
+        onToggleAutoLog={toggleAutoLog}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenSettings={openSettings}
+        onOpenProfile={openProfile}
+        onOpenAkashicRecords={openAkashicRecords}
+        isAnyAppOpen={anyAppOpen}
+      />
       <VersionLabel />
       </div>
     </QuestProvider>

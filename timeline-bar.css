@@ -1,0 +1,217 @@
+.timeline-bar {
+  position: fixed;
+  left: 110px;
+  right: 32px;
+  bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 16px 24px;
+  border-radius: 22px;
+  background: rgba(17, 18, 22, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  color: #e6e7eb;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 950;
+  flex-wrap: wrap;
+}
+
+.timeline-bar__section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.timeline-bar__section--focus {
+  min-width: 220px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.timeline-bar__section--actions {
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.timeline-bar__section--toggles {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timeline-bar__section--secondary {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timeline-bar__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(230, 231, 235, 0.7);
+}
+
+.timeline-bar__focus {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.timeline-bar__status {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.timeline-bar__status--active {
+  background: rgba(46, 204, 113, 0.28);
+  color: #2ecc71;
+}
+
+.timeline-bar__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.timeline-bar__action:hover,
+.timeline-bar__action:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  outline: none;
+}
+
+.timeline-bar__action.is-active {
+  background: rgba(0, 180, 255, 0.25);
+  box-shadow: 0 0 0 1px rgba(0, 180, 255, 0.5);
+}
+
+.timeline-bar__action-icon {
+  font-size: 1.1rem;
+}
+
+.timeline-bar__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.timeline-bar__pill:hover,
+.timeline-bar__pill:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.timeline-bar__pill-value {
+  font-weight: 600;
+}
+
+.timeline-bar__ghost {
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.timeline-bar__ghost:hover,
+.timeline-bar__ghost:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+@media (max-width: 1200px) {
+  .timeline-bar {
+    left: 90px;
+    right: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .timeline-bar {
+    left: 80px;
+    right: 20px;
+    bottom: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .timeline-bar {
+    position: static;
+    margin: 20px;
+  }
+}
+
+body.light-theme .timeline-bar {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(17, 18, 22, 0.1);
+  color: #111;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .timeline-bar__label {
+  color: rgba(17, 18, 22, 0.7);
+}
+
+body.light-theme .timeline-bar__status,
+body.light-theme .timeline-bar__pill {
+  background: rgba(17, 18, 22, 0.08);
+}
+
+body.light-theme .timeline-bar__status--active {
+  background: rgba(35, 145, 80, 0.22);
+  color: #239150;
+}
+
+body.light-theme .timeline-bar__action {
+  background: rgba(17, 18, 22, 0.08);
+}
+
+body.light-theme .timeline-bar__action:hover,
+body.light-theme .timeline-bar__action:focus-visible {
+  background: rgba(17, 18, 22, 0.16);
+}
+
+body.light-theme .timeline-bar__action.is-active {
+  background: rgba(76, 161, 255, 0.25);
+  box-shadow: 0 0 0 1px rgba(76, 161, 255, 0.5);
+}
+
+body.light-theme .timeline-bar__ghost {
+  border-color: rgba(17, 18, 22, 0.2);
+}
+
+body.light-theme .timeline-bar__ghost:hover,
+body.light-theme .timeline-bar__ghost:focus-visible {
+  background: rgba(17, 18, 22, 0.08);
+  border-color: rgba(17, 18, 22, 0.35);
+}
