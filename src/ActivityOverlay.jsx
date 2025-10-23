@@ -195,16 +195,24 @@ export default function ActivityOverlay() {
         </button>
       </div>
       {session ? (
-        <>
-          <div className="overlay-activity">{session.name}</div>
-          <div className="overlay-timer">{formattedElapsed}</div>
+        <div className="overlay-session">
+          <div className="overlay-section">
+            <span className="overlay-label">Activity</span>
+            <div className="overlay-activity" title={session.name}>
+              {session.name}
+            </div>
+          </div>
+          <div className="overlay-section">
+            <span className="overlay-label">Time Elapsed</span>
+            <div className="overlay-timer">{formattedElapsed}</div>
+          </div>
           <div className="overlay-meta">
             <span className={`overlay-status ${status === 'Tracking now' ? 'running' : 'paused'}`}>
               {status}
             </span>
             {startedAt ? <span className="overlay-start">Started {startedAt}</span> : null}
           </div>
-        </>
+        </div>
       ) : (
         <div className="overlay-empty">No activity running</div>
       )}
