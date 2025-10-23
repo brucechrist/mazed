@@ -7,11 +7,14 @@ body {
   background: transparent;
   color: #f7f9ff;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #root {
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
 .activity-overlay-body {
@@ -33,6 +36,7 @@ body {
   backdrop-filter: blur(14px);
   min-width: 220px;
   min-height: 120px;
+  overflow: hidden;
 }
 
 .activity-overlay.empty {
@@ -75,10 +79,32 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
+.overlay-session {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  justify-content: center;
+}
+
+.overlay-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overlay-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
 .overlay-activity {
   font-size: 1.05rem;
   font-weight: 600;
   line-height: 1.3;
+  word-break: break-word;
 }
 
 .overlay-timer {
