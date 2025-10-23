@@ -588,8 +588,9 @@
 .notes-detail__header {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .notes-detail__title {
@@ -597,6 +598,49 @@
   font-size: 1.35rem;
   font-weight: 700;
   color: #f8fafc;
+}
+
+.notes-detail__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.notes-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.notes-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.notes-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.notes-edit-form__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notes-edit-form__error {
+  margin: 0;
+  color: #f87171;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .notes-modal .note-view-content {
