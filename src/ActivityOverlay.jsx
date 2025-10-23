@@ -92,9 +92,51 @@ export default function ActivityOverlay() {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    document.body.classList.add('activity-overlay-body');
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const html = document.documentElement;
+    const body = document.body;
+    if (!html || !body) {
+      return undefined;
+    }
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlBackground = html.style.background;
+    const prevHtmlHeight = html.style.height;
+    const prevHtmlWidth = html.style.width;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyBackground = body.style.background;
+    const prevBodyHeight = body.style.height;
+    const prevBodyWidth = body.style.width;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+
+    html.classList.add('activity-overlay-root');
+    body.classList.add('activity-overlay-body');
+
+    html.style.overflow = 'hidden';
+    html.style.background = 'transparent';
+    html.style.height = '100%';
+    html.style.width = '100%';
+    body.style.overflow = 'hidden';
+    body.style.background = 'transparent';
+    body.style.height = '100%';
+    body.style.width = '100%';
+    body.style.overscrollBehavior = 'none';
+
     return () => {
-      document.body.classList.remove('activity-overlay-body');
+      html.classList.remove('activity-overlay-root');
+      body.classList.remove('activity-overlay-body');
+      html.style.overflow = prevHtmlOverflow;
+      html.style.background = prevHtmlBackground;
+      html.style.height = prevHtmlHeight;
+      html.style.width = prevHtmlWidth;
+      body.style.overflow = prevBodyOverflow;
+      body.style.background = prevBodyBackground;
+      body.style.height = prevBodyHeight;
+      body.style.width = prevBodyWidth;
+      body.style.overscrollBehavior = prevBodyOverscroll;
     };
   }, []);
 
