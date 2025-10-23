@@ -238,6 +238,11 @@
   gap: 12px;
 }
 
+.tip-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .tip-card-header h3 {
   margin: 0;
 }
