@@ -27,7 +27,7 @@ import ActivityLogger from './ActivityLogger.jsx';
 import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
-import TimelineBar from './TimelineBar.jsx';
+import BottomBar from './BottomBar.jsx';
 
 const WindowControls = () => (
   <div className="custom-titlebar">
@@ -233,7 +233,7 @@ const openAkashicRecords = () => {
   setShowAkashicRecords(true);
 };
 
-const timelineQuickActions = [
+const bottomBarQuickActions = [
   {
     label: 'Quest Journal',
     icon: '📓',
@@ -609,9 +609,9 @@ useEffect(() => {
           onOpenAkashicRecords={openAkashicRecords}
         />
       )}
-      <TimelineBar
+      <BottomBar
         focusLabel={focusLabel}
-        quickActions={timelineQuickActions}
+        quickActions={bottomBarQuickActions}
         autoLog={autoLog}
         onToggleAutoLog={toggleAutoLog}
         theme={theme}
