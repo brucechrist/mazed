@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './activity-overlay.css';
 
+const OVERLAY_ENABLED_KEY = 'activityOverlayEnabled';
 const CURRENT_SESSION_KEY = 'activityLogCurrent';
 
 const sanitizeOverlaySession = (session) => {
@@ -73,6 +74,17 @@ const formatDuration = (ms) => {
   parts.push(`${hours > 0 ? String(minutes).padStart(2, '0') : minutes}m`);
   parts.push(String(seconds).padStart(2, '0') + 's');
   return parts.join(' ');
+};
+
+const formatStartTime = (value) => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 export default function ActivityOverlay() {
@@ -151,17 +163,51 @@ export default function ActivityOverlay() {
 
   const elapsed = useMemo(() => computeElapsed(session, now), [session, now]);
   const formattedElapsed = formatDuration(elapsed);
-  const activityLabel = session ? session.name : 'No activity';
-  const timerLabel = session ? formattedElapsed : '0m 00s';
+  const status = session
+    ? session.activeSegmentStart
+      ? 'Tracking now'
+      : 'Paused'
+    : 'Idle';
+  const startedAt = session ? formatStartTime(session.startedAt) : null;
+
+  const handleClose = () => {
+    try {
+      if (window.localStorage) {
+        window.localStorage.setItem(OVERLAY_ENABLED_KEY, 'false');
+      }
+    } catch {}
+    if (window.electronAPI?.setActivityOverlayEnabled) {
+      window.electronAPI.setActivityOverlayEnabled(false);
+    }
+  };
 
   return (
-    <div className={`activity-overlay ${session ? 'active' : 'inactive'}`}>
-      <div className="overlay-activity" aria-live="polite">
-        {activityLabel}
+    <div className={`activity-overlay ${session ? '' : 'empty'}`}>
+      <div className="overlay-header">
+        <span className="overlay-title">Activity Focus</span>
+        <button
+          type="button"
+          className="overlay-close"
+          onClick={handleClose}
+          aria-label="Hide overlay"
+        >
+          ×
+        </button>
       </div>
-      <div className="overlay-timer" aria-live="polite">
-        {timerLabel}
-      </div>
+      {session ? (
+        <>
+          <div className="overlay-activity">{session.name}</div>
+          <div className="overlay-timer">{formattedElapsed}</div>
+          <div className="overlay-meta">
+            <span className={`overlay-status ${status === 'Tracking now' ? 'running' : 'paused'}`}>
+              {status}
+            </span>
+            {startedAt ? <span className="overlay-start">Started {startedAt}</span> : null}
+          </div>
+        </>
+      ) : (
+        <div className="overlay-empty">No activity running</div>
+      )}
     </div>
   );
 }

@@ -7,13 +7,11 @@ body {
   background: transparent;
   color: #f7f9ff;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  overflow: hidden;
 }
 
 #root {
   width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
 .activity-overlay-body {
@@ -24,51 +22,108 @@ body {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 12px 18px;
+  padding: 14px 18px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(18, 21, 33, 0.82), rgba(6, 8, 16, 0.75));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(18px);
+  gap: 8px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(32, 36, 54, 0.82), rgba(12, 14, 24, 0.78));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
   min-width: 220px;
   min-height: 120px;
+}
+
+.activity-overlay.empty {
+  justify-content: space-between;
+}
+
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   -webkit-app-region: drag;
-  user-select: none;
-  overflow: hidden;
+}
+
+.overlay-title {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.overlay-close {
+  -webkit-app-region: no-drag;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.overlay-close:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .overlay-activity {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(247, 249, 255, 0.85);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .overlay-timer {
-  font-size: 2.6rem;
+  font-size: 2rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #8cffe0;
-  text-shadow: 0 0 18px rgba(140, 255, 224, 0.4);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #7dffb8;
+  text-shadow: 0 0 18px rgba(125, 255, 184, 0.45);
 }
 
-.activity-overlay.inactive .overlay-activity {
-  color: rgba(247, 249, 255, 0.58);
+.overlay-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: rgba(247, 249, 255, 0.7);
 }
 
-.activity-overlay.inactive .overlay-timer {
-  color: rgba(247, 249, 255, 0.55);
-  text-shadow: none;
+.overlay-status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.overlay-status.running {
+  color: #0f7d3d;
+  background: rgba(125, 255, 184, 0.25);
+}
+
+.overlay-status.paused {
+  color: rgba(247, 249, 255, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.overlay-start {
+  opacity: 0.75;
+}
+
+.overlay-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: rgba(247, 249, 255, 0.7);
+  text-align: center;
 }
