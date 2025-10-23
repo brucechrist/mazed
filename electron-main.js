@@ -1,4 +1,13 @@
-const { app, BrowserWindow, Menu, ipcMain, Tray, nativeImage, globalShortcut } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  ipcMain,
+  Tray,
+  nativeImage,
+  globalShortcut,
+  screen,
+} = require('electron');
 const activeWindow = require('active-win');
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +17,9 @@ const { spawn } = require('child_process');
 let mainWindow;
 let tray;
 let isQuitting = false;
+let activityOverlayWindow = null;
+let activityOverlayEnabled = false;
+let activityOverlayState = null;
 
 const LIBRARY_DIR_NAME = 'LibraryStorage';
 const LIBRARY_IMAGES_SUBDIR = 'images';
@@ -126,6 +138,169 @@ const findFallbackImageData = async (dir) => {
     }
   }
   return null;
+};
+
+const sanitizeOverlaySession = (session) => {
+  if (!session || typeof session !== 'object') {
+    return null;
+  }
+
+  const name = typeof session.name === 'string' ? session.name.trim() : '';
+  if (!name) {
+    return null;
+  }
+
+  const toIsoString = (value) =>
+    typeof value === 'string' && value.trim() !== '' ? value : null;
+
+  const elapsedValue = Number(session.elapsed);
+  const elapsed = Number.isFinite(elapsedValue) && elapsedValue > 0 ? elapsedValue : 0;
+
+  return {
+    id: session.id != null ? String(session.id) : null,
+    name,
+    startedAt: toIsoString(session.startedAt),
+    activeSegmentStart: toIsoString(session.activeSegmentStart),
+    elapsed,
+  };
+};
+
+const broadcastActivityOverlayEnabled = () => {
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('activity-overlay:enabled', activityOverlayEnabled);
+    }
+    if (activityOverlayWindow && !activityOverlayWindow.isDestroyed()) {
+      activityOverlayWindow.webContents.send(
+        'activity-overlay:enabled',
+        activityOverlayEnabled
+      );
+    }
+  } catch (error) {
+    console.error('Failed to broadcast overlay enabled state', error);
+  }
+};
+
+const defaultOverlayBounds = () => {
+  const width = 280;
+  const height = 160;
+  const margin = 24;
+
+  try {
+    const display = screen.getPrimaryDisplay();
+    if (!display) {
+      return { width, height, x: 120, y: 120 };
+    }
+    const workArea = display.workArea || {
+      x: display.bounds?.x || 0,
+      y: display.bounds?.y || 0,
+      width: display.bounds?.width || width,
+      height: display.bounds?.height || height,
+    };
+    const x = Math.round(workArea.x + workArea.width - width - margin);
+    const y = Math.round(workArea.y + margin);
+    return { width, height, x, y };
+  } catch (error) {
+    console.error('Failed to determine overlay bounds', error);
+    return { width, height, x: 120, y: 120 };
+  }
+};
+
+const ensureActivityOverlayWindow = () => {
+  if (activityOverlayWindow && !activityOverlayWindow.isDestroyed()) {
+    return activityOverlayWindow;
+  }
+
+  const { width, height, x, y } = defaultOverlayBounds();
+
+  activityOverlayWindow = new BrowserWindow({
+    width,
+    height,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    skipTaskbar: true,
+    fullscreenable: false,
+    focusable: true,
+    hasShadow: false,
+    show: false,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+    },
+  });
+
+  activityOverlayWindow.setMenu(null);
+
+  if (process.platform === 'darwin') {
+    try {
+      activityOverlayWindow.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true,
+      });
+    } catch (error) {
+      console.error('Failed to mark overlay visible on all workspaces', error);
+    }
+  }
+
+  const devServerURL = process.env.VITE_DEV_SERVER_URL;
+  if (devServerURL) {
+    activityOverlayWindow.loadURL(`${devServerURL}?overlay=activity`);
+  } else {
+    activityOverlayWindow.loadFile(path.join(__dirname, 'dist/index.html'), {
+      query: { overlay: 'activity' },
+    });
+  }
+
+  activityOverlayWindow.on('closed', () => {
+    activityOverlayWindow = null;
+    if (!isQuitting && activityOverlayEnabled) {
+      activityOverlayEnabled = false;
+      broadcastActivityOverlayEnabled();
+    }
+  });
+
+  activityOverlayWindow.webContents.on('did-finish-load', () => {
+    if (!activityOverlayWindow || activityOverlayWindow.isDestroyed()) {
+      return;
+    }
+    activityOverlayWindow.webContents.send('activity-overlay:update', activityOverlayState);
+    activityOverlayWindow.webContents.send(
+      'activity-overlay:enabled',
+      activityOverlayEnabled
+    );
+  });
+
+  return activityOverlayWindow;
+};
+
+const showActivityOverlayWindow = () => {
+  const win = ensureActivityOverlayWindow();
+  if (!win) {
+    return;
+  }
+
+  try {
+    win.setAlwaysOnTop(true, 'screen-saver');
+  } catch {
+    win.setAlwaysOnTop(true);
+  }
+
+  if (typeof win.showInactive === 'function') {
+    win.showInactive();
+  } else {
+    win.show();
+  }
+};
+
+const hideActivityOverlayWindow = () => {
+  if (!activityOverlayWindow || activityOverlayWindow.isDestroyed()) {
+    return;
+  }
+  activityOverlayWindow.hide();
 };
 
 function findTrayIcon() {
@@ -906,6 +1081,35 @@ function registerGlobalShortcuts() {
     `Failed to register a global shortcut to toggle Mazed. Tried: ${tried.join(', ')}`
   );
 }
+
+ipcMain.handle('activity-overlay:set-enabled', (_event, enabled) => {
+  const next = Boolean(enabled);
+  activityOverlayEnabled = next;
+  if (next) {
+    showActivityOverlayWindow();
+  } else {
+    hideActivityOverlayWindow();
+  }
+  broadcastActivityOverlayEnabled();
+  return next;
+});
+
+ipcMain.handle('activity-overlay:get-state', () => ({
+  enabled: activityOverlayEnabled,
+  session: activityOverlayState,
+}));
+
+ipcMain.on('activity-overlay:update', (_event, payload) => {
+  try {
+    const sanitized = sanitizeOverlaySession(payload);
+    activityOverlayState = sanitized;
+    if (activityOverlayWindow && !activityOverlayWindow.isDestroyed()) {
+      activityOverlayWindow.webContents.send('activity-overlay:update', sanitized);
+    }
+  } catch (error) {
+    console.error('Failed to update activity overlay state', error);
+  }
+});
 
 ipcMain.removeHandler('set-window-size');
 ipcMain.handle('set-window-size', (_e, { width, height }) => {

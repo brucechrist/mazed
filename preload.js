@@ -16,6 +16,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('library-save-image', { id, dataUrl, mimeType }),
   loadLibraryImage: (id) => ipcRenderer.invoke('library-load-image', id),
   deleteLibraryImage: (id) => ipcRenderer.invoke('library-delete-image', id),
+  setActivityOverlayEnabled: (enabled) =>
+    ipcRenderer.invoke('activity-overlay:set-enabled', Boolean(enabled)),
+  updateActivityOverlay: (session) =>
+    ipcRenderer.send('activity-overlay:update', session),
+  requestActivityOverlayState: () =>
+    ipcRenderer.invoke('activity-overlay:get-state'),
+  onActivityOverlayUpdate: (callback) => {
+    if (typeof callback !== 'function') {
+      return () => {};
+    }
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('activity-overlay:update', listener);
+    return () => ipcRenderer.removeListener('activity-overlay:update', listener);
+  },
+  onActivityOverlayEnabled: (callback) => {
+    if (typeof callback !== 'function') {
+      return () => {};
+    }
+    const listener = (_event, enabled) => callback(enabled);
+    ipcRenderer.on('activity-overlay:enabled', listener);
+    return () => ipcRenderer.removeListener('activity-overlay:enabled', listener);
+  },
 });
 
 /* =================================
