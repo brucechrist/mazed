@@ -92,6 +92,11 @@ const TAG_COLORS = {
   formless: '#60a5fa',
 };
 
+const NOTE_TITLE_KEYS = ['title', 'name', 'heading'];
+const NOTE_CONTENT_KEYS = ['content', 'body', 'note', 'text'];
+const NOTE_TAG_KEYS = ['tag', 'quadrant', 'category'];
+const NOTE_UPDATED_AT_KEYS = ['updatedAt', 'updated_at', 'modifiedAt', 'editedAt', 'lastUpdated'];
+
 const getLocalStorage = () => {
   if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
     return null;
@@ -105,6 +110,20 @@ const getLocalStorage = () => {
 };
 
 const isPlainObject = (value) => value != null && typeof value === 'object' && !Array.isArray(value);
+
+const pickFirstAvailableField = (entry, keys, fallbackKey) => {
+  if (!isPlainObject(entry)) {
+    return { key: fallbackKey, value: undefined, hasMatch: false };
+  }
+
+  for (const key of keys) {
+    if (entry[key] !== undefined && entry[key] !== null) {
+      return { key, value: entry[key], hasMatch: true };
+    }
+  }
+
+  return { key: fallbackKey, value: undefined, hasMatch: false };
+};
 
 const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
 
@@ -271,6 +290,9 @@ const normaliseNote = (entry, index) => {
       sortKey: createdAt.getTime(),
       wordCount: text ? text.split(/\s+/).filter(Boolean).length : 0,
       characterCount: text.length,
+      storageIndex: index,
+      fieldMapping: null,
+      sourceType: 'primitive',
     };
   }
 
@@ -291,13 +313,18 @@ const normaliseNote = (entry, index) => {
 
   const baseId = referenceId ? `${referenceId}-${index}` : `note-${index}`;
 
-  const rawTitle = toText(entry.title ?? entry.name ?? entry.heading ?? '');
-  const rawContent = toText(entry.content ?? entry.body ?? entry.note ?? entry.text ?? '');
+  const titleField = pickFirstAvailableField(entry, NOTE_TITLE_KEYS, 'title');
+  const contentField = pickFirstAvailableField(entry, NOTE_CONTENT_KEYS, 'content');
+  const tagField = pickFirstAvailableField(entry, NOTE_TAG_KEYS, 'tag');
+  const updatedField = pickFirstAvailableField(entry, NOTE_UPDATED_AT_KEYS, 'updatedAt');
+
+  const rawTitle = toText(titleField.value ?? '');
+  const rawContent = toText(contentField.value ?? '');
   const content = rawContent;
   const titleFromContent = content.split(/\n/).find((line) => line.trim()) || '';
   const title = rawTitle.trim() || titleFromContent.trim() || 'Untitled note';
 
-  const tagCandidate = toText(entry.tag ?? entry.quadrant ?? entry.category ?? '').trim().toUpperCase();
+  const tagCandidate = toText(tagField.value ?? '').trim().toUpperCase();
   const tag = QUADRANT_TAGS.includes(tagCandidate) ? tagCandidate : 'II';
 
   const createdAtSource =
@@ -313,9 +340,7 @@ const normaliseNote = (entry, index) => {
   const createdAt = parseDate(createdAtSource) ?? new Date(0);
   const sortKey = isValidDate(createdAt) ? createdAt.getTime() : 0;
 
-  const updatedAtSource =
-    entry.updatedAt ?? entry.updated_at ?? entry.modifiedAt ?? entry.editedAt ?? entry.lastUpdated;
-  const updatedAt = parseDate(updatedAtSource);
+  const updatedAt = parseDate(updatedField.value);
 
   const preview = createPreview(content);
   const searchable = `${title} ${content} ${tag}`.toLowerCase();
@@ -335,6 +360,14 @@ const normaliseNote = (entry, index) => {
     sortKey,
     wordCount,
     characterCount: content.length,
+    storageIndex: index,
+    fieldMapping: {
+      title: titleField.key,
+      content: contentField.key,
+      tag: tagField.key,
+      updatedAt: updatedField.key,
+    },
+    sourceType: 'object',
   };
 };
 
@@ -357,14 +390,20 @@ const loadStoredNotes = () => {
       ? parsed.notes
       : [];
 
-    const normalised = source
-      .map((entry, index) => normaliseNote(entry, index))
-      .filter(Boolean)
-      .map((note, index) => ({
+    const normalised = [];
+    source.forEach((entry, sourceIndex) => {
+      const note = normaliseNote(entry, sourceIndex);
+      if (!note) {
+        return;
+      }
+
+      const listIndex = normalised.length;
+      normalised.push({
         ...note,
-        id: `${note.id}-${index}`,
+        id: `${note.id}-${listIndex}`,
         sortKey: Number.isFinite(note.sortKey) ? note.sortKey : 0,
-      }));
+      });
+    });
 
     normalised.sort((a, b) => {
       if (b.sortKey !== a.sortKey) {
@@ -381,6 +420,126 @@ const loadStoredNotes = () => {
   }
 };
 
+const buildUpdatedEntry = (originalEntry, note, { title, content, tag }) => {
+  const timestamp = new Date().toISOString();
+  const safeTitle = title && title.trim() ? title.trim() : 'Untitled note';
+  const safeContent = typeof content === 'string' ? content : '';
+  const normalisedTag = QUADRANT_TAGS.includes(tag) ? tag : 'II';
+
+  if (!isPlainObject(originalEntry)) {
+    const createdAt =
+      note?.createdAt instanceof Date && isValidDate(note.createdAt)
+        ? note.createdAt.toISOString()
+        : timestamp;
+
+    const payload = {
+      id: note?.referenceId ?? `note-${Date.now()}`,
+      title: safeTitle,
+      content: safeContent,
+      tag: normalisedTag,
+      createdAt,
+      updatedAt: timestamp,
+    };
+
+    if (note?.referenceId) {
+      payload.id = note.referenceId;
+    }
+
+    return payload;
+  }
+
+  const mapping = note?.fieldMapping ?? {};
+  const updatedEntry = { ...originalEntry };
+
+  const titleKey = mapping.title ?? 'title';
+  updatedEntry[titleKey] = safeTitle;
+
+  const contentKey = mapping.content ?? 'content';
+  updatedEntry[contentKey] = safeContent;
+
+  const tagKey = mapping.tag ?? 'tag';
+  updatedEntry[tagKey] = normalisedTag;
+
+  const updatedAtKey =
+    mapping.updatedAt ??
+    (Object.prototype.hasOwnProperty.call(originalEntry, 'updated_at') ? 'updated_at' : 'updatedAt');
+  updatedEntry[updatedAtKey] = timestamp;
+
+  if (!updatedEntry.id && note?.referenceId) {
+    updatedEntry.id = note.referenceId;
+  }
+
+  if (note?.createdAt instanceof Date && isValidDate(note.createdAt)) {
+    const isoCreatedAt = note.createdAt.toISOString();
+    if (Object.prototype.hasOwnProperty.call(originalEntry, 'createdAt')) {
+      updatedEntry.createdAt = isoCreatedAt;
+    } else if (Object.prototype.hasOwnProperty.call(originalEntry, 'created_at')) {
+      updatedEntry.created_at = isoCreatedAt;
+    } else if (!updatedEntry.createdAt && !updatedEntry.created_at) {
+      updatedEntry.createdAt = isoCreatedAt;
+    }
+  }
+
+  return updatedEntry;
+};
+
+const updateNoteInStorage = (note, fields) => {
+  const storage = getLocalStorage();
+  if (!storage) {
+    return { success: false, reason: 'storage-unavailable' };
+  }
+
+  let raw;
+  try {
+    raw = storage.getItem('notes');
+  } catch (error) {
+    console.warn('Failed to read notes from storage', error);
+    return { success: false, reason: 'read-failed' };
+  }
+
+  if (!raw) {
+    return { success: false, reason: 'missing-data' };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    console.warn('Failed to parse stored notes', error);
+    return { success: false, reason: 'parse-failed' };
+  }
+
+  let notesSource;
+  let wrapObject = false;
+  if (Array.isArray(parsed)) {
+    notesSource = [...parsed];
+  } else if (parsed && Array.isArray(parsed.notes)) {
+    notesSource = [...parsed.notes];
+    wrapObject = true;
+  } else {
+    return { success: false, reason: 'invalid-structure' };
+  }
+
+  const index = note?.storageIndex;
+  if (!Number.isInteger(index) || index < 0 || index >= notesSource.length) {
+    return { success: false, reason: 'invalid-index' };
+  }
+
+  const updatedEntry = buildUpdatedEntry(notesSource[index], note, fields);
+  notesSource[index] = updatedEntry;
+
+  const payload = wrapObject ? { ...parsed, notes: notesSource } : notesSource;
+
+  try {
+    storage.setItem('notes', JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Failed to persist notes to storage', error);
+    return { success: false, reason: 'write-failed' };
+  }
+
+  return { success: true };
+};
+
 const pluralise = (count, singular, plural) => (count === 1 ? singular : plural);
 
 export default function NotesListModal({ onClose }) {
@@ -389,6 +548,12 @@ export default function NotesListModal({ onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTag, setActiveTag] = useState('ALL');
   const [selectedId, setSelectedId] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editTag, setEditTag] = useState(QUADRANT_TAGS[0]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState(null);
   const modalDimensions = useMemo(() => computeModalDimensions(viewportSize), [viewportSize]);
   const modalStyle = useMemo(() => {
     if (!modalDimensions) {
@@ -488,7 +653,35 @@ export default function NotesListModal({ onClose }) {
     return counts;
   }, [notes]);
 
-  const selectedNote = filteredNotes.find((note) => note.id === selectedId) ?? null;
+  const selectedNote = useMemo(() => {
+    if (!selectedId) {
+      return null;
+    }
+
+    return (
+      filteredNotes.find((note) => note.id === selectedId) ??
+      notes.find((note) => note.id === selectedId) ??
+      null
+    );
+  }, [filteredNotes, notes, selectedId]);
+
+  useEffect(() => {
+    if (!selectedNote) {
+      setIsEditing(false);
+      setEditTitle('');
+      setEditContent('');
+      setEditTag(QUADRANT_TAGS[0]);
+      setEditError(null);
+      return;
+    }
+
+    if (!isEditing) {
+      setEditTitle(selectedNote.title);
+      setEditContent(selectedNote.content);
+      setEditTag(selectedNote.tag);
+      setEditError(null);
+    }
+  }, [selectedNote, isEditing]);
 
   const subtitle = useMemo(() => {
     if (notes.length === 0) {
@@ -506,10 +699,121 @@ export default function NotesListModal({ onClose }) {
     return `Showing ${filteredNotes.length} of ${notes.length} saved ${pluralise(notes.length, 'note', 'notes')}.`;
   }, [notes, filteredNotes, activeTag, searchTerm]);
 
+  const editingMetrics = useMemo(() => {
+    if (!selectedNote) {
+      return { wordCount: 0, characterCount: 0 };
+    }
+
+    if (!isEditing) {
+      return {
+        wordCount: selectedNote.wordCount ?? 0,
+        characterCount: selectedNote.characterCount ?? 0,
+      };
+    }
+
+    const trimmed = editContent.trim();
+    return {
+      wordCount: trimmed ? trimmed.split(/\s+/).length : 0,
+      characterCount: editContent.length,
+    };
+  }, [selectedNote, isEditing, editContent]);
+
   const handleOverlayClick = (event) => {
     if (event.target === event.currentTarget && typeof onClose === 'function') {
       onClose();
     }
+  };
+
+  const startEditing = () => {
+    if (!selectedNote) {
+      return;
+    }
+
+    setIsEditing(true);
+    setEditTitle(selectedNote.title);
+    setEditContent(selectedNote.content);
+    setEditTag(selectedNote.tag);
+    setEditError(null);
+  };
+
+  const handleCancelEdit = () => {
+    if (isSavingEdit) {
+      return;
+    }
+
+    setIsEditing(false);
+    setEditError(null);
+    if (selectedNote) {
+      setEditTitle(selectedNote.title);
+      setEditContent(selectedNote.content);
+      setEditTag(selectedNote.tag);
+    } else {
+      setEditTitle('');
+      setEditContent('');
+      setEditTag(QUADRANT_TAGS[0]);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedNote || isSavingEdit) {
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setEditError(null);
+
+    const trimmedTitle = editTitle.trim();
+    const cleanedContent = editContent.replace(/\r\n/g, '\n');
+    const safeTitle = trimmedTitle || 'Untitled note';
+    const safeTag = QUADRANT_TAGS.includes(editTag) ? editTag : 'II';
+
+    const result = updateNoteInStorage(selectedNote, {
+      title: safeTitle,
+      content: cleanedContent,
+      tag: safeTag,
+    });
+
+    if (!result.success) {
+      setEditError('Unable to save changes. Please try again.');
+      setIsSavingEdit(false);
+      return;
+    }
+
+    const updatedNotes = loadStoredNotes();
+    setNotes(updatedNotes);
+
+    const nextSelected =
+      updatedNotes.find((note) => note.storageIndex === selectedNote.storageIndex) ??
+      (selectedNote.referenceId
+        ? updatedNotes.find((note) => note.referenceId === selectedNote.referenceId)
+        : null);
+
+    if (nextSelected) {
+      setSelectedId(nextSelected.id);
+
+      const query = searchTerm.trim().toLowerCase();
+      const matchesTag = activeTag === 'ALL' || nextSelected.tag === activeTag;
+      const matchesQuery = !query || nextSelected.searchable.includes(query);
+
+      if (!matchesTag) {
+        setActiveTag(nextSelected.tag);
+      }
+
+      if (!matchesQuery) {
+        setSearchTerm('');
+      }
+    } else if (updatedNotes.length > 0) {
+      setSelectedId(updatedNotes[0].id);
+    } else {
+      setSelectedId(null);
+    }
+
+    setEditTitle(safeTitle);
+    setEditContent(cleanedContent);
+    setEditTag(safeTag);
+    setEditError(null);
+    setIsEditing(false);
+    setIsSavingEdit(false);
   };
 
   const handleRefresh = () => {
@@ -606,28 +910,109 @@ export default function NotesListModal({ onClose }) {
             {selectedNote ? (
               <>
                 <div className="notes-detail__header">
-                  <span className="note-card__tag" data-tag={selectedNote.tag}>
-                    {selectedNote.tag}
-                  </span>
-                  <div className="notes-detail__meta">
-                    <span>Created {selectedNote.createdAtLabel}</span>
-                    {selectedNote.updatedAtLabel ? (
-                      <span>Updated {selectedNote.updatedAtLabel}</span>
-                    ) : null}
-                    <span>
-                      {selectedNote.wordCount}{' '}
-                      {pluralise(selectedNote.wordCount, 'word', 'words')}
+                  <div className="notes-detail__summary">
+                    <span
+                      className="note-card__tag"
+                      data-tag={isEditing ? editTag : selectedNote.tag}
+                    >
+                      {isEditing ? editTag : selectedNote.tag}
                     </span>
-                    <span>{selectedNote.characterCount} characters</span>
-                    {selectedNote.referenceId ? (
-                      <span>Ref. {selectedNote.referenceId}</span>
-                    ) : null}
+                    <div className="notes-detail__meta">
+                      <span>Created {selectedNote.createdAtLabel}</span>
+                      {selectedNote.updatedAtLabel ? (
+                        <span>Updated {selectedNote.updatedAtLabel}</span>
+                      ) : null}
+                      <span>
+                        {editingMetrics.wordCount}{' '}
+                        {pluralise(editingMetrics.wordCount, 'word', 'words')}
+                      </span>
+                      <span>{editingMetrics.characterCount} characters</span>
+                      {selectedNote.referenceId ? (
+                        <span>Ref. {selectedNote.referenceId}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="notes-detail__actions">
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          className="ghost-button"
+                          onClick={handleCancelEdit}
+                          disabled={isSavingEdit}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={handleSaveEdit}
+                          disabled={isSavingEdit}
+                        >
+                          {isSavingEdit ? 'Saving…' : 'Save changes'}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="ghost-button" onClick={startEditing}>
+                        Edit note
+                      </button>
+                    )}
                   </div>
                 </div>
-                <h4 className="notes-detail__title">{selectedNote.title}</h4>
-                <div className="note-view-content">
-                  {selectedNote.content ? selectedNote.content : 'No additional context yet.'}
-                </div>
+                {isEditing ? (
+                  <div className="notes-edit-form">
+                    <label className="form-field">
+                      <span>Title</span>
+                      <input
+                        className="note-title"
+                        value={editTitle}
+                        onChange={(event) => setEditTitle(event.target.value)}
+                        placeholder="Update the note title"
+                        disabled={isSavingEdit}
+                      />
+                    </label>
+
+                    <label className="form-field">
+                      <span>Notes</span>
+                      <textarea
+                        className="note-content"
+                        value={editContent}
+                        onChange={(event) => setEditContent(event.target.value)}
+                        placeholder="Revise the insight, context, or next steps..."
+                        disabled={isSavingEdit}
+                      />
+                    </label>
+
+                    <div className="notes-edit-form__footer">
+                      <div className="form-field form-field--inline">
+                        <span>Quadrant</span>
+                        <div className="tag-options">
+                          {QUADRANT_TAGS.map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              data-tag={option}
+                              className={`tag-chip ${editTag === option ? 'is-active' : ''}`}
+                              style={{ '--tag-color': TAG_COLORS[option] }}
+                              onClick={() => setEditTag(option)}
+                              disabled={isSavingEdit}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {editError ? <p className="notes-edit-form__error">{editError}</p> : null}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h4 className="notes-detail__title">{selectedNote.title}</h4>
+                    <div className="note-view-content">
+                      {selectedNote.content ? selectedNote.content : 'No additional context yet.'}
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="notes-empty-detail">

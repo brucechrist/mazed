@@ -61,13 +61,15 @@ export default function NoteModal({ onClose }) {
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
     const notes = loadStoredNotes();
+    const timestamp = new Date().toISOString();
 
     const newNote = {
       id: Date.now(),
       title: trimmedTitle || 'Untitled',
       content: trimmedContent,
       tag,
-      createdAt: new Date().toISOString(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
 
     const updatedNotes = [...notes, newNote];
