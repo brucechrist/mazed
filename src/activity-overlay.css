@@ -17,6 +17,10 @@ body.activity-overlay-body #root {
   overflow: hidden;
 }
 
+.activity-overlay-body {
+  background: transparent;
+}
+
 .activity-overlay {
   box-sizing: border-box;
   width: 100%;
