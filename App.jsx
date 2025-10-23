@@ -15,6 +15,7 @@ import Moodtracker from './Moodtracker.jsx';
 import MoodQuadrantGame from './MoodQuadrantGame.jsx';
 import Anima from './Anima.jsx';
 import ToolsBlog from './src/ToolsBlog.jsx';
+import SemiFormlessWorkbench from './src/SemiFormlessWorkbench.jsx';
 import MomentoMori from './MomentoMori.jsx';
 import Watchdog from './Watchdog.jsx';
 import World from './World.jsx';
@@ -70,6 +71,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showMomentoMori, setShowMomentoMori] = useState(false);
   // Avoid naming clash with src/App.jsx by giving the blog state a unique name
   const [showToolsBlog, setShowToolsBlog] = useState(false);
+  const [showSemiFormlessWorkbench, setShowSemiFormlessWorkbench] = useState(false);
   const [showWatchdog, setShowWatchdog] = useState(false);
 const [showAkashicRecords, setShowAkashicRecords] = useState(false);
 const [showProfile, setShowProfile] = useState(false);
@@ -103,6 +105,7 @@ const anyAppOpen =
   showMomentoMori ||
   showWatchdog ||
   showToolsBlog ||
+  showSemiFormlessWorkbench ||
   showAkashicRecords ||
   showProfile ||
   showSettings;
@@ -124,6 +127,7 @@ const closeOpenApp = () => {
   setShowMomentoMori(false);
   setShowWatchdog(false);
   setShowToolsBlog(false);
+  setShowSemiFormlessWorkbench(false);
   setShowAkashicRecords(false);
   setShowProfile(false);
   setShowSettings(false);
@@ -379,6 +383,10 @@ useEffect(() => {
               <Watchdog onBack={() => setShowWatchdog(false)} />
             ) : showToolsBlog ? (
               <ToolsBlog onBack={() => setShowToolsBlog(false)} />
+            ) : showSemiFormlessWorkbench ? (
+              <SemiFormlessWorkbench
+                onBack={() => setShowSemiFormlessWorkbench(false)}
+              />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : (
@@ -445,6 +453,13 @@ useEffect(() => {
                 <div className="app-card" onClick={() => setShowToolsBlog(true)}>
                   <div className="star-icon">📝</div>
                   <span>Blog</span>
+                </div>
+                <div
+                  className="app-card"
+                  onClick={() => setShowSemiFormlessWorkbench(true)}
+                >
+                  <div className="star-icon">🧩</div>
+                  <span>Semi-Formless Canvas</span>
                 </div>
                 <div className="app-card" onClick={() => setShowAnima(true)}>
                   <div className="star-icon">💃</div>

@@ -28,6 +28,7 @@ import ActivityLog from './ActivityLog.jsx';
 import Orb from '../Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
+import Tips from './Tips.jsx';
 import CharacterEvolve from './CharacterEvolve.jsx';
 import Weakness from './Weakness.jsx';
 import SemiFormlessCharacter from './SemiFormlessCharacter.jsx';
@@ -91,6 +92,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showAccessLog, setShowAccessLog] = useState(false);
   const [showIdeaBoard, setShowIdeaBoard] = useState(false);
   const [showImplementationIdeas, setShowImplementationIdeas] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const [showOrb, setShowOrb] = useState(false);
   const [showWatchdog, setShowWatchdog] = useState(false);
   const [showAkashicRecords, setShowAkashicRecords] = useState(false);
@@ -131,6 +133,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       accessLog: 'Semi-Formless',
       ideaBoard: 'Form',
       implementationIdeas: 'Form',
+      tips: 'Form',
       orb: 'Form',
       watchdog: 'Form',
     };
@@ -205,6 +208,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showSemiCharacter ||
     showIdeaBoard ||
     showImplementationIdeas ||
+    showTips ||
     showOrb ||
     showWatchdog ||
     showToolsBlog ||
@@ -239,6 +243,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowSemiCharacter(false);
     setShowIdeaBoard(false);
     setShowImplementationIdeas(false);
+    setShowTips(false);
     setShowOrb(false);
     setShowWatchdog(false);
     setShowToolsBlog(false);
@@ -725,6 +730,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <IdeaBoard onBack={() => setShowIdeaBoard(false)} />
             ) : showImplementationIdeas ? (
               <ImplementationIdeas onBack={() => setShowImplementationIdeas(false)} />
+            ) : showTips ? (
+              <Tips onBack={() => setShowTips(false)} />
             ) : showOrb ? (
               <Orb onBack={() => setShowOrb(false)} />
             ) : showWatchdog ? (
@@ -1043,6 +1050,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">📑</div>
                     <span>Implementation Ideas</span>
+                  </div>
+                )}
+                {appLayers.tips === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowTips(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'tips')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'tips')}
+                  >
+                    <div className="star-icon">💡</div>
+                    <span>Tips</span>
                   </div>
                 )}
                 {!showToolsBlog && activeLayer === 'Form' && (

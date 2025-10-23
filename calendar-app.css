@@ -1,0 +1,194 @@
+.calendar-app {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  height: 100vh;
+}
+
+.calendar-container {
+  flex: 1;
+  background: #000;
+  color: #e6e7eb;
+  padding: 10px;
+  border-radius: 8px;
+  height: 100%;
+}
+
+.calendar-container .rbc-calendar,
+.calendar-container .rbc-month-view,
+.calendar-container .rbc-time-view,
+.calendar-container .rbc-agenda-view {
+  background: #000;
+  color: #e6e7eb;
+}
+
+.calendar-container .rbc-time-content > * {
+  border-color: #333;
+}
+
+.calendar-container .rbc-off-range-bg {
+  background: #000;
+}
+
+/* Neutral style for calendar events */
+.calendar-container .rbc-event,
+.calendar-container .rbc-addons-dnd .rbc-event {
+  background-color: #17181d;
+  color: #fff;
+}
+
+.calendar-container .rbc-toolbar button {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  margin: 0 2px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.calendar-container .rbc-toolbar button.rbc-active {
+  background: #17181d;
+  color: #e6e7eb;
+}
+.calendar-container .rbc-time-slot {
+  min-height: 3rem;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot {
+  position: relative;
+  /* Increase the height of each timeslot for better visibility */
+  min-height: 3rem;
+}
+.calendar-container .rbc-day-slot .rbc-time-slot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.calendar-container .rbc-day-bg.rbc-today,
+.calendar-container .rbc-time-header .rbc-today,
+.calendar-container .rbc-today {
+  background-color: #000 !important;
+}
+.planned-event {
+  left: 0% !important;
+  width: 50% !important;
+}
+.done-event {
+  left: 50% !important;
+  width: 50% !important;
+}
+.fullpage-calendar {
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+.block-event {
+  background: #17181d !important;
+  color: #fff !important;
+  left: 50% !important;
+  width: 50% !important;
+}
+
+
+/* Override default blue highlights */
+.calendar-container .rbc-event.rbc-selected,
+.calendar-container .rbc-day-slot .rbc-selected.rbc-background-event {
+  background-color: #444;
+}
+
+.calendar-container .rbc-selected-cell {
+  background-color: #222;
+}
+
+.calendar-container .rbc-show-more {
+  color: #ccc;
+}
+
+.calendar-container .rbc-slot-selection {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-event-content {
+  position: relative;
+}
+
+.calendar-event-content .event-done-button {
+  position: absolute;
+  top: 2px;
+  right: 18px;
+  left: auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  background-color: #34a853;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.calendar-event-content .event-done-button:hover,
+.calendar-event-content .event-done-button:focus {
+  background-color: #2c8b46;
+  outline: none;
+}
+
+.calendar-event-content .event-delete-icon {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Active event styling for ongoing activities */
+.active-event {
+  background-color: #34a853 !important;
+  border-left: 3px solid #2e8b4a !important;
+  animation: pulse 2s infinite;
+  opacity: 0.95;
+}
+
+.active-event .calendar-event-content {
+  font-weight: 600;
+}
+
+.active-event::before {
+  content: "🔵 ";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

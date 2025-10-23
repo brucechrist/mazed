@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './tools-blog.css';
+import {
+  BLUEPRINTS,
+  BLUEPRINT_MAP,
+  MODULE_LIBRARY,
+  MODULE_MAP,
+  cloneBlock,
+  createBlock,
+  getModuleSizes,
+  sanitizeBlocks,
+} from './semiFormlessLibrary.jsx';
 
 const THEMES = [
   'Training sync',
@@ -242,6 +252,7 @@ const sanitizePostRecord = (post) => {
     activitySessions: Array.isArray(post.activitySessions)
       ? post.activitySessions.map((session) => sanitizeActivitySession(session)).filter(Boolean)
       : [],
+    canvasBlocks: sanitizeBlocks(post.canvasBlocks),
   };
 
   const preserved = { ...post };
@@ -475,15 +486,154 @@ export default function ToolsBlog({ onBack }) {
   const [editDraft, setEditDraft] = useState(null);
   const [openMenuPostId, setOpenMenuPostId] = useState(null);
   const [viewMode, setViewMode] = useState(VIEW_MODES.LIST);
+  const [openCanvasLibraryPostId, setOpenCanvasLibraryPostId] = useState(null);
+  const [openCanvasBlueprintPostId, setOpenCanvasBlueprintPostId] = useState(null);
 
   useEffect(() => {
     persistBlogPosts(posts);
   }, [posts]);
 
+  useEffect(() => {
+    if (viewMode !== VIEW_MODES.CLASSIC) {
+      setOpenCanvasLibraryPostId(null);
+      setOpenCanvasBlueprintPostId(null);
+    }
+  }, [viewMode]);
+
   const closeActionMenu = () => setOpenMenuPostId(null);
+
+  const toggleCanvasLibrary = (postId) => {
+    setOpenCanvasLibraryPostId((current) => (current === postId ? null : postId));
+    setOpenCanvasBlueprintPostId(null);
+  };
+
+  const toggleCanvasBlueprintMenu = (postId) => {
+    setOpenCanvasBlueprintPostId((current) => (current === postId ? null : postId));
+    setOpenCanvasLibraryPostId(null);
+  };
+
+  const updatePostCanvasBlocks = (postId, updater) => {
+    setPosts((previousPosts) =>
+      previousPosts.map((post) => {
+        if (post.id !== postId) {
+          return post;
+        }
+        const currentBlocks = sanitizeBlocks(post.canvasBlocks);
+        const nextBlocksSource =
+          typeof updater === 'function' ? updater(currentBlocks) : updater;
+        const nextBlocks = sanitizeBlocks(nextBlocksSource);
+        return { ...post, canvasBlocks: nextBlocks };
+      }),
+    );
+  };
+
+  const handleAddCanvasBlock = (postId, moduleId) => {
+    const newBlock = createBlock(moduleId);
+    if (!newBlock) {
+      return;
+    }
+    updatePostCanvasBlocks(postId, (blocks) => [...blocks, newBlock]);
+    setOpenCanvasLibraryPostId(null);
+    setOpenCanvasBlueprintPostId(null);
+  };
+
+  const handleApplyCanvasBlueprint = (postId, blueprintId) => {
+    const blueprint = BLUEPRINT_MAP.get(blueprintId);
+    if (!blueprint) {
+      return;
+    }
+    const generatedBlocks =
+      typeof blueprint.createBlocks === 'function' ? blueprint.createBlocks() : [];
+    const sanitizedBlueprint = sanitizeBlocks(generatedBlocks);
+    if (sanitizedBlueprint.length === 0) {
+      return;
+    }
+    updatePostCanvasBlocks(postId, (blocks) => [...blocks, ...sanitizedBlueprint]);
+    setOpenCanvasLibraryPostId(null);
+    setOpenCanvasBlueprintPostId(null);
+  };
+
+  const handleRemoveCanvasBlock = (postId, blockId) => {
+    updatePostCanvasBlocks(postId, (blocks) =>
+      blocks.filter((block) => block.id !== blockId),
+    );
+  };
+
+  const handleDuplicateCanvasBlock = (postId, blockId) => {
+    updatePostCanvasBlocks(postId, (blocks) => {
+      const index = blocks.findIndex((block) => block.id === blockId);
+      if (index === -1) {
+        return blocks;
+      }
+      const duplicated = cloneBlock(blocks[index]);
+      if (!duplicated) {
+        return blocks;
+      }
+      const next = [...blocks];
+      next.splice(index + 1, 0, duplicated);
+      return next;
+    });
+  };
+
+  const handleResizeCanvasBlock = (postId, blockId) => {
+    updatePostCanvasBlocks(postId, (blocks) =>
+      blocks.map((block) => {
+        if (block.id !== blockId) {
+          return block;
+        }
+        const sizes = getModuleSizes(block.moduleId);
+        const currentIndex = sizes.indexOf(block.size);
+        const nextSize = sizes[(currentIndex + 1) % sizes.length];
+        return { ...block, size: nextSize };
+      }),
+    );
+  };
+
+  const handleMoveCanvasBlock = (postId, blockId, direction) => {
+    updatePostCanvasBlocks(postId, (blocks) => {
+      const index = blocks.findIndex((block) => block.id === blockId);
+      if (index === -1) {
+        return blocks;
+      }
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= blocks.length) {
+        return blocks;
+      }
+      const next = [...blocks];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const handleUpdateCanvasBlockState = (postId, blockId, updater) => {
+    updatePostCanvasBlocks(postId, (blocks) =>
+      blocks.map((block) => {
+        if (block.id !== blockId) {
+          return block;
+        }
+        const module = MODULE_MAP.get(block.moduleId);
+        const previousState = block.state ?? {};
+        const nextState =
+          typeof updater === 'function'
+            ? updater(previousState)
+            : { ...previousState, ...updater };
+        let sanitizedState = nextState;
+        if (module && typeof module.sanitizeState === 'function') {
+          sanitizedState = module.sanitizeState(nextState);
+        }
+        return {
+          ...block,
+          state: sanitizedState,
+        };
+      }),
+    );
+  };
 
   const startEditing = (post) => {
     closeActionMenu();
+    setOpenCanvasLibraryPostId(null);
+    setOpenCanvasBlueprintPostId(null);
     setEditingPostId(post.id);
     setEditDraft({
       title: post.title,
@@ -523,6 +673,8 @@ export default function ToolsBlog({ onBack }) {
 
   const removePost = (postId) => {
     closeActionMenu();
+    setOpenCanvasLibraryPostId((current) => (current === postId ? null : current));
+    setOpenCanvasBlueprintPostId((current) => (current === postId ? null : current));
     setPosts((previousPosts) => previousPosts.filter((post) => post.id !== postId));
     if (editingPostId === postId) {
       cancelEditing();
@@ -746,6 +898,11 @@ export default function ToolsBlog({ onBack }) {
           const hasLink = linkToDisplay.length > 0;
           const hasMedia =
             imageSources.length > 0 || Boolean(youTubeEmbedUrl) || hasLink;
+          const canvasBlocks = Array.isArray(post.canvasBlocks)
+            ? post.canvasBlocks
+            : [];
+          const isLibraryOpen = openCanvasLibraryPostId === post.id;
+          const isBlueprintMenuOpen = openCanvasBlueprintPostId === post.id;
 
           return (
             <article key={post.id} className={articleClassName}>
@@ -1045,6 +1202,30 @@ export default function ToolsBlog({ onBack }) {
                       )}
                     </div>
                   )}
+                  {viewMode === VIEW_MODES.CLASSIC && (
+                    <BlogClassicCanvas
+                      blocks={canvasBlocks}
+                      onAddBlock={(moduleId) => handleAddCanvasBlock(post.id, moduleId)}
+                      onApplyBlueprint={(blueprintId) =>
+                        handleApplyCanvasBlueprint(post.id, blueprintId)
+                      }
+                      onRemoveBlock={(blockId) => handleRemoveCanvasBlock(post.id, blockId)}
+                      onDuplicateBlock={(blockId) =>
+                        handleDuplicateCanvasBlock(post.id, blockId)
+                      }
+                      onResizeBlock={(blockId) => handleResizeCanvasBlock(post.id, blockId)}
+                      onMoveBlock={(blockId, direction) =>
+                        handleMoveCanvasBlock(post.id, blockId, direction)
+                      }
+                      onUpdateBlockState={(blockId, updater) =>
+                        handleUpdateCanvasBlockState(post.id, blockId, updater)
+                      }
+                      isLibraryOpen={isLibraryOpen}
+                      isBlueprintMenuOpen={isBlueprintMenuOpen}
+                      onToggleLibrary={() => toggleCanvasLibrary(post.id)}
+                      onToggleBlueprints={() => toggleCanvasBlueprintMenu(post.id)}
+                    />
+                  )}
                   <div className="blog-card-footer">
                     <span className="blog-card-tag">{post.stream}</span>
                     <span className="blog-card-mood">{post.mood}</span>
@@ -1056,6 +1237,218 @@ export default function ToolsBlog({ onBack }) {
         })}
       </div>
     </div>
+  );
+}
+
+function BlogClassicCanvas({
+  blocks,
+  onAddBlock,
+  onApplyBlueprint,
+  onRemoveBlock,
+  onDuplicateBlock,
+  onResizeBlock,
+  onMoveBlock,
+  onUpdateBlockState,
+  isLibraryOpen,
+  isBlueprintMenuOpen,
+  onToggleLibrary,
+  onToggleBlueprints,
+}) {
+  const safeBlocks = Array.isArray(blocks) ? blocks : [];
+  const hasBlocks = safeBlocks.length > 0;
+
+  const renderBlockContent = (block) => {
+    const module = MODULE_MAP.get(block.moduleId);
+    if (!module) {
+      return (
+        <div className="canvas-missing-module">
+          This block references <code>{block.moduleId}</code>, which is no longer available.
+        </div>
+      );
+    }
+
+    const context = {
+      block,
+      updateState: (value) => onUpdateBlockState(block.id, value),
+    };
+
+    if (typeof module.render === 'function') {
+      return module.render(context);
+    }
+
+    return (
+      <div className="canvas-missing-module">
+        Module <code>{module.id}</code> does not expose a render method.
+      </div>
+    );
+  };
+
+  return (
+    <section className="blog-classic-canvas" aria-label="Classic canvas">
+      <header className="blog-classic-toolbar">
+        <div className="blog-classic-toolbar-left">
+          <span className="blog-classic-toolbar-title">Classic canvas</span>
+          <span className="blog-classic-toolbar-count">
+            {safeBlocks.length} block{safeBlocks.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <div className="blog-classic-toolbar-actions">
+          <button
+            type="button"
+            className="blog-classic-button"
+            onClick={onToggleLibrary}
+            aria-expanded={isLibraryOpen}
+          >
+            ＋ Add block
+          </button>
+          <button
+            type="button"
+            className="blog-classic-button blog-classic-button--ghost"
+            onClick={onToggleBlueprints}
+            aria-expanded={isBlueprintMenuOpen}
+          >
+            ⋆ Blueprints
+          </button>
+        </div>
+      </header>
+
+      {isLibraryOpen && (
+        <div className="blog-classic-library" role="menu">
+          {MODULE_LIBRARY.map((module) => (
+            <button
+              key={module.id}
+              type="button"
+              className="blog-classic-library-item"
+              onClick={() => onAddBlock(module.id)}
+              role="menuitem"
+            >
+              <span className="blog-classic-library-icon" aria-hidden="true">
+                {module.icon}
+              </span>
+              <div className="blog-classic-library-copy">
+                <span className="blog-classic-library-title">{module.label}</span>
+                <span className="blog-classic-library-description">
+                  {module.description}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isBlueprintMenuOpen && (
+        <div className="blog-classic-blueprints" role="menu">
+          {BLUEPRINTS.map((blueprint) => (
+            <button
+              key={blueprint.id}
+              type="button"
+              className="blog-classic-library-item blog-classic-library-item--blueprint"
+              onClick={() => onApplyBlueprint(blueprint.id)}
+              role="menuitem"
+            >
+              <span className="blog-classic-library-icon" aria-hidden="true">
+                {blueprint.icon}
+              </span>
+              <div className="blog-classic-library-copy">
+                <span className="blog-classic-library-title">{blueprint.label}</span>
+                <span className="blog-classic-library-description">
+                  {blueprint.description}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {hasBlocks ? (
+        <div className="blog-classic-grid">
+          {safeBlocks.map((block, index) => {
+            const module = MODULE_MAP.get(block.moduleId);
+            const moduleLabel = module?.label ?? block.moduleId;
+            const moduleIcon = module?.icon ?? '✦';
+            const blockSize = block.size || 'medium';
+            const blockClassName = [
+              'canvas-block',
+              `canvas-block--${blockSize}`,
+              module?.hideBackButton ? 'canvas-block--hide-back' : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+
+            return (
+              <div key={block.id} className={blockClassName}>
+                <header className="canvas-block-header">
+                  <div className="canvas-block-meta">
+                    <span className="canvas-block-icon" aria-hidden="true">
+                      {moduleIcon}
+                    </span>
+                    <div className="canvas-block-title-group">
+                      <span className="canvas-block-title">{moduleLabel}</span>
+                      <span className="canvas-block-subtitle">Block {index + 1}</span>
+                    </div>
+                  </div>
+                  <div className="canvas-block-actions">
+                    <button
+                      type="button"
+                      className="canvas-block-button"
+                      onClick={() => onMoveBlock(block.id, -1)}
+                      disabled={index === 0}
+                      aria-label="Move block up"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-block-button"
+                      onClick={() => onMoveBlock(block.id, 1)}
+                      disabled={index === safeBlocks.length - 1}
+                      aria-label="Move block down"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-block-button"
+                      onClick={() => onResizeBlock(block.id)}
+                      aria-label="Cycle block width"
+                    >
+                      ⤢
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-block-button"
+                      onClick={() => onDuplicateBlock(block.id)}
+                      aria-label="Duplicate block"
+                    >
+                      ⧉
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-block-button canvas-block-button--danger"
+                      onClick={() => onRemoveBlock(block.id)}
+                      aria-label="Remove block"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </header>
+                <div className="canvas-block-body">{renderBlockContent(block)}</div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="blog-classic-empty">
+          <span className="blog-classic-empty-icon" aria-hidden="true">
+            ✶
+          </span>
+          <p>
+            Drop any tool from the library or apply a blueprint to start layering
+            your canvas.
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 
