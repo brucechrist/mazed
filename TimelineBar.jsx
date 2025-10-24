@@ -58,8 +58,6 @@ export default function TimelineBar({
     volumeSeries: null,
     resizeObserver: null,
   });
-  const [isChartReady, setIsChartReady] = React.useState(false);
-  const [chartError, setChartError] = React.useState(null);
 
   const toggleInsightsPanel = () => {
     setIsInsightsOpen((prev) => !prev);
@@ -72,10 +70,6 @@ export default function TimelineBar({
   const insightsPanelId = 'timeline-insights-panel';
 
   React.useEffect(() => {
-    if (!isInsightsOpen) {
-      return undefined;
-    }
-
     let cancelled = false;
     let animationFrame;
 
@@ -84,9 +78,6 @@ export default function TimelineBar({
       if (!container || chartResourcesRef.current.chart) {
         return;
       }
-
-      setIsChartReady(false);
-      setChartError(null);
 
       if (!lightweightChartsPromise) {
         lightweightChartsPromise = import('lightweight-charts');
@@ -197,44 +188,33 @@ export default function TimelineBar({
           volumeSeries,
           resizeObserver,
         };
-
-        if (!cancelled) {
-          setIsChartReady(true);
-        }
       };
 
       ensureDimensionsAndCreate();
     };
 
-    initializeChart().catch((error) => {
-      if (!cancelled) {
-        console.error('Failed to load lightweight chart', error);
-        setChartError('Unable to load the market view right now.');
-      }
-    });
+    initializeChart();
 
     return () => {
       cancelled = true;
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
       }
-    };
-  }, [isInsightsOpen]);
 
-  React.useEffect(() => () => {
-    const { chart, resizeObserver } = chartResourcesRef.current;
-    if (resizeObserver) {
-      resizeObserver.disconnect();
-    }
-    if (chart) {
-      chart.remove();
-    }
+      const { chart, resizeObserver } = chartResourcesRef.current;
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if (chart) {
+        chart.remove();
+      }
 
-    chartResourcesRef.current = {
-      chart: null,
-      candleSeries: null,
-      volumeSeries: null,
-      resizeObserver: null,
+      chartResourcesRef.current = {
+        chart: null,
+        candleSeries: null,
+        volumeSeries: null,
+        resizeObserver: null,
+      };
     };
   }, []);
 
@@ -315,23 +295,7 @@ export default function TimelineBar({
             aria-expanded={isInsightsOpen}
             aria-label={`${isInsightsOpen ? 'Hide' : 'Show'} timeline insights`}
           >
-            <span
-              aria-hidden="true"
-              className="timeline-bar__panel-toggle-icon"
-            >
-              {isInsightsOpen ? (
-                <svg viewBox="0 0 16 16" className="timeline-bar__panel-toggle-icon-close">
-                  <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
-                </svg>
-              ) : (
-                <svg
-                  viewBox="0 0 16 16"
-                  className="timeline-bar__panel-toggle-icon-chevron"
-                >
-                  <path d="M6.5 4l4 4-4 4" />
-                </svg>
-              )}
-            </span>
+            <span aria-hidden="true">{isInsightsOpen ? '×' : '^'}</span>
           </button>
         </div>
         <div className="timeline-bar__section timeline-bar__section--focus">
@@ -430,36 +394,8 @@ export default function TimelineBar({
             </button>
           </div>
           <div className="timeline-insights__body">
-            <div className="timeline-insights__chart-shell">
-              <div className="timeline-insights__chart-toolbar">
-                <div className="timeline-insights__chart-symbol">BTC · USDT</div>
-                <div className="timeline-insights__chart-meta">1H · Simulated feed</div>
-              </div>
-              <div
-                className="timeline-insights__chart"
-                ref={chartContainerRef}
-                data-ready={isChartReady}
-                data-error={chartError ? 'true' : 'false'}
-              >
-                <div
-                  className="timeline-insights__chart-status"
-                  role="status"
-                  aria-hidden={isChartReady || chartError ? 'true' : 'false'}
-                >
-                  Loading market view…
-                </div>
-                <div
-                  className="timeline-insights__chart-status timeline-insights__chart-status--error"
-                  role="alert"
-                  aria-hidden={chartError ? 'false' : 'true'}
-                >
-                  {chartError || 'Unable to load the market view right now.'}
-                </div>
-              </div>
-            </div>
-            <p className="timeline-insights__footnote">
-              Prototype data powered by TradingView’s lightweight-charts. Live
-              account hooks will stream here next.
+            <p className="timeline-insights__placeholder">
+              Lightweight charts and metrics will appear here.
             </p>
           </div>
         </div>
