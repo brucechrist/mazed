@@ -18,6 +18,7 @@ import ToolsBlog from './src/ToolsBlog.jsx';
 import SemiFormlessWorkbench from './src/SemiFormlessWorkbench.jsx';
 import MomentoMori from './MomentoMori.jsx';
 import Watchdog from './Watchdog.jsx';
+import Allignement from './Allignement.jsx';
 import World from './World.jsx';
 import FriendsList from './FriendsList.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -70,6 +71,7 @@ export default function QuadrantPage({ initialTab }) {
   const [showAnima, setShowAnima] = useState(false);
   const [showMoodQuadrantGame, setShowMoodQuadrantGame] = useState(false);
   const [showMomentoMori, setShowMomentoMori] = useState(false);
+  const [showAllignement, setShowAllignement] = useState(false);
   // Avoid naming clash with src/App.jsx by giving the blog state a unique name
   const [showToolsBlog, setShowToolsBlog] = useState(false);
   const [showSemiFormlessWorkbench, setShowSemiFormlessWorkbench] = useState(false);
@@ -106,6 +108,7 @@ const anyAppOpen =
   showAnima ||
   showMoodQuadrantGame ||
   showMomentoMori ||
+  showAllignement ||
   showWatchdog ||
   showToolsBlog ||
   showSemiFormlessWorkbench ||
@@ -129,6 +132,7 @@ const focusLabel = useMemo(() => {
     { condition: showAnima, label: 'Anima' },
     { condition: showMoodQuadrantGame, label: 'Mood Quadrant' },
     { condition: showMomentoMori, label: 'Momento Mori' },
+    { condition: showAllignement, label: 'Allignement' },
     { condition: showWatchdog, label: 'Watchdog' },
     { condition: showToolsBlog, label: 'Tools Blog' },
     { condition: showSemiFormlessWorkbench, label: 'Semi-Formless Canvas' },
@@ -147,6 +151,7 @@ const focusLabel = useMemo(() => {
   showMoodtracker,
   showMomentoMori,
   showMusic,
+  showAllignement,
   showNofap,
   showProfile,
   showRatings,
@@ -176,6 +181,7 @@ const closeOpenApp = () => {
   setShowAnima(false);
   setShowMoodQuadrantGame(false);
   setShowMomentoMori(false);
+  setShowAllignement(false);
   setShowWatchdog(false);
   setShowToolsBlog(false);
   setShowSemiFormlessWorkbench(false);
@@ -508,6 +514,8 @@ useEffect(() => {
               <SemiFormlessWorkbench
                 onBack={() => setShowSemiFormlessWorkbench(false)}
               />
+            ) : showAllignement ? (
+              <Allignement onBack={() => setShowAllignement(false)} />
             ) : showAnima ? (
               <Anima onBack={() => setShowAnima(false)} />
             ) : (
@@ -574,6 +582,10 @@ useEffect(() => {
                 <div className="app-card" onClick={() => setShowToolsBlog(true)}>
                   <div className="star-icon">📝</div>
                   <span>Blog</span>
+                </div>
+                <div className="app-card" onClick={() => setShowAllignement(true)}>
+                  <div className="star-icon">⚖️</div>
+                  <span>Allignement</span>
                 </div>
                 <div
                   className="app-card"

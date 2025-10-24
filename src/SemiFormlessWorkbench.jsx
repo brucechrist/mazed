@@ -5,6 +5,7 @@ import ActivityTimer from './ActivityTimer.jsx';
 import MoodQuadrantGame from '../MoodQuadrantGame.jsx';
 import NofapCalendar from '../NofapCalendar.jsx';
 import Singing from '../Singing.jsx';
+import Allignement from '../Allignement.jsx';
 import './semi-formless-workbench.css';
 
 const BLOCK_SIZES = ['narrow', 'medium', 'wide'];
@@ -113,6 +114,16 @@ const MODULE_LIBRARY = [
     sizes: ['medium', 'wide'],
     hideBackButton: true,
     render: () => <Singing onBack={() => {}} />,
+  },
+  {
+    id: 'allignement-map',
+    label: 'Allignement Map',
+    icon: '⚖️',
+    description: 'Track the under, aligned, and over states for any focus area.',
+    defaultSize: 'wide',
+    sizes: ['medium', 'wide'],
+    hideBackButton: true,
+    render: () => <Allignement onBack={() => {}} />,
   },
 ];
 

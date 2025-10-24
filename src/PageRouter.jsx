@@ -39,6 +39,7 @@ import Tips from './Tips.jsx';
 import Orb from './Orb.jsx';
 import Watchdog from './Watchdog.jsx';
 import Collective from './Collective.jsx';
+import Allignement from '../Allignement.jsx';
 
 export default function PageRouter() {
   const [page, setPage] = useState('5th');
@@ -232,6 +233,7 @@ export default function PageRouter() {
       activity: <ActivityApp onBack={goBack} />,
       activityLog: <ActivityLog onBack={goBack} />,
       characterEvolve: <CharacterEvolve onBack={goBack} />,
+      allignement: <Allignement onBack={goBack} />,
       semiCharacter: <SemiFormlessCharacter onBack={goBack} />,
       formlessCharacter: <FormlessCharacter onBack={goBack} />,
       ideaBoard: <IdeaBoard onBack={goBack} />,
