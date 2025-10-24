@@ -41,6 +41,7 @@ import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
 import ActivityLogger from './ActivityLogger.jsx';
 import TimelineBar from '../TimelineBar.jsx';
+import Allignement from '../Allignement.jsx';
 
 const placeholderImg =
   "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'50'%20height%3D'50'%3E%3Crect%20width%3D'50'%20height%3D'50'%20rx%3D'25'%20fill%3D'%23444'%2F%3E%3Ctext%20x%3D'25'%20y%3D'33'%20font-size%3D'26'%20text-anchor%3D'middle'%20fill%3D'%23aaa'%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E";
@@ -76,6 +77,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showMomentoMori, setShowMomentoMori] = useState(false);
+  const [showAllignement, setShowAllignement] = useState(false);
   const [showSemiCharacter, setShowSemiCharacter] = useState(false);
   // Blog visibility starts hidden and becomes visible when on the Form layer.
   // Use a unique name to avoid clashes with the top-level App component.
@@ -121,6 +123,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       typomancy: 'Form',
       moodtracker: 'Form',
       momentoMori: 'Form',
+      allignement: 'Form',
       quadrantComb: 'Form',
       trinities: 'Form',
       anima: 'Form',
@@ -207,6 +210,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showTypomancy ||
     showMoodtracker ||
     showMomentoMori ||
+    showAllignement ||
     showQuadrantComb ||
     showTrinities ||
     showAnima ||
@@ -243,6 +247,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       { condition: showTypomancy, label: 'Typomancy' },
       { condition: showMoodtracker, label: 'Moodtracker' },
       { condition: showMomentoMori, label: 'Momento Mori' },
+      { condition: showAllignement, label: 'Allignement' },
       { condition: showQuadrantComb, label: 'Quadrant Combinaisons' },
       { condition: showTrinities, label: 'Trinities' },
       { condition: showAnima, label: 'Anima' },
@@ -283,6 +288,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showLibrary,
     showMoodtracker,
     showMomentoMori,
+    showAllignement,
     showMusic,
     showNofap,
     showProfile,
@@ -317,6 +323,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowTypomancy(false);
     setShowMoodtracker(false);
     setShowMomentoMori(false);
+    setShowAllignement(false);
     setShowQuadrantComb(false);
     setShowTrinities(false);
     setShowAnima(false);
@@ -853,6 +860,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <ActivityApp onBack={() => setShowActivity(false)} />
             ) : showActivityLog ? (
               <ActivityLog onBack={() => setShowActivityLog(false)} />
+            ) : showAllignement ? (
+              <Allignement onBack={() => setShowAllignement(false)} />
             ) : showCharacterEvolve ? (
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
             ) : showWeakness ? (
@@ -1017,6 +1026,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">☠️</div>
                     <span>Momento Mori</span>
+                  </div>
+                )}
+                {appLayers.allignement === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowAllignement(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'allignement')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'allignement')}
+                  >
+                    <div className="star-icon">⚖️</div>
+                    <span>Allignement</span>
                   </div>
                 )}
                 {appLayers.quadrantComb === activeLayer && (
