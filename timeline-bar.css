@@ -170,7 +170,11 @@
   color: rgba(17, 20, 28, 0.78);
 }
 
-.timeline-insights__placeholder {
+.timeline-insights__chart canvas {
+  border-radius: 16px;
+}
+
+.timeline-insights__footnote {
   margin: 0;
   font-size: 0.9rem;
   color: rgba(17, 20, 28, 0.66);
