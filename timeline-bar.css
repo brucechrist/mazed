@@ -83,39 +83,18 @@
 
 .timeline-insights {
   position: fixed;
-  inset: 20px 28px 32px 118px;
+  inset: 0;
   padding: 32px;
-  background: linear-gradient(
-      120deg,
-      rgba(255, 255, 255, 0.16) 0%,
-      rgba(255, 255, 255, 0.06) 46%,
-      rgba(17, 18, 22, 0.08) 100%
-    ),
-    radial-gradient(
-      120% 120% at 0% 50%,
-      rgba(255, 255, 255, 0.24) 0%,
-      rgba(255, 255, 255, 0.08) 34%,
-      rgba(255, 255, 255, 0.02) 68%
-    ),
-    radial-gradient(
-      120% 120% at 100% 50%,
-      rgba(255, 255, 255, 0.24) 0%,
-      rgba(255, 255, 255, 0.08) 34%,
-      rgba(255, 255, 255, 0.02) 68%
-    );
-  color: #11141c;
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 18px 60px rgba(7, 10, 18, 0.18);
-  transform: translate3d(0, 18px, 0) scale(0.995);
+  background: rgba(8, 9, 12, 0.9);
+  color: #e6e7eb;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  transform: translateY(12px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.25s ease, transform 0.25s ease;
   z-index: 1200;
   display: flex;
-  will-change: transform, opacity;
 }
 
 .timeline-insights.is-open {
@@ -127,26 +106,14 @@
 .timeline-insights__dialog {
   width: 100%;
   height: 100%;
-  border-radius: 28px;
-  border: 1px solid rgba(17, 18, 22, 0.08);
-  background: linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.82),
-      rgba(255, 255, 255, 0.5)
-    ),
-    rgba(255, 255, 255, 0.38);
-  box-shadow: 0 26px 70px rgba(10, 13, 22, 0.18);
+  border-radius: 0;
+  border: none;
+  background: rgba(17, 18, 22, 0.95);
+  box-shadow: none;
   padding: 36px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: #11141c;
-  transform: translate3d(0, 22px, 0) scale(0.985);
-  opacity: 0;
-  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.5s ease;
-  will-change: transform, opacity;
 }
 
 .timeline-insights__header {
@@ -193,26 +160,20 @@
 
 .timeline-insights__body {
   flex: 1;
-  background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.76),
-      rgba(255, 255, 255, 0.3)
-    ),
-    rgba(17, 20, 28, 0.03);
-  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
   padding: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: rgba(17, 20, 28, 0.6);
-  transition: background 0.6s ease;
+  color: rgba(17, 20, 28, 0.78);
 }
 
 .timeline-insights__placeholder {
   margin: 0;
   font-size: 0.9rem;
-  color: rgba(17, 20, 28, 0.58);
+  color: rgba(17, 20, 28, 0.66);
 }
 
 @media (max-width: 1200px) {
@@ -243,12 +204,31 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .timeline-insights,
+@media (max-width: 1200px) {
+  .timeline-insights {
+    inset: 16px 20px 24px 96px;
+  }
+}
+
+@media (max-width: 900px) {
+  .timeline-insights {
+    inset: 14px;
+  }
+
   .timeline-insights__dialog {
-    transition-duration: 0.01ms !important;
-    transition-timing-function: linear !important;
-    transform: none !important;
+    border-radius: 22px;
+    padding: 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .timeline-insights__dialog {
+    padding: 20px;
+  }
+
+  .timeline-insights__body {
+    border-radius: 16px;
+    padding: 18px;
   }
 }
 
@@ -475,44 +455,22 @@ body.light-theme .timeline-bar__panel-toggle.is-open {
 }
 
 body.light-theme .timeline-insights {
-  background: linear-gradient(
-      120deg,
-      rgba(255, 255, 255, 0.82) 0%,
-      rgba(255, 255, 255, 0.46) 50%,
-      rgba(229, 236, 247, 0.32) 100%
-    ),
-    radial-gradient(
-      120% 120% at 0% 50%,
-      rgba(255, 255, 255, 0.68) 0%,
-      rgba(255, 255, 255, 0.24) 38%,
-      rgba(255, 255, 255, 0.08) 70%
-    ),
-    radial-gradient(
-      120% 120% at 100% 50%,
-      rgba(255, 255, 255, 0.68) 0%,
-      rgba(255, 255, 255, 0.24) 38%,
-      rgba(255, 255, 255, 0.08) 70%
-    );
+  background: rgba(255, 255, 255, 0.9);
   color: #111;
 }
 
 body.light-theme .timeline-insights__dialog {
-  background: linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.97),
-      rgba(255, 255, 255, 0.76)
-    ),
-    rgba(255, 255, 255, 0.64);
+  background: rgba(255, 255, 255, 0.96);
   color: inherit;
 }
 
 body.light-theme .timeline-insights__body {
   background: linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.94),
-      rgba(241, 245, 253, 0.52)
+      rgba(255, 255, 255, 0.92),
+      rgba(239, 242, 249, 0.56)
     ),
-    rgba(17, 18, 22, 0.015);
+    rgba(17, 18, 22, 0.02);
 }
 
 body.light-theme .timeline-insights__placeholder {

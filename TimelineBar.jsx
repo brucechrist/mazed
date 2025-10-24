@@ -40,23 +40,7 @@ export default function TimelineBar({
             aria-expanded={isInsightsOpen}
             aria-label={`${isInsightsOpen ? 'Hide' : 'Show'} timeline insights`}
           >
-            <span
-              aria-hidden="true"
-              className="timeline-bar__panel-toggle-icon"
-            >
-              {isInsightsOpen ? (
-                <svg viewBox="0 0 16 16" className="timeline-bar__panel-toggle-icon-close">
-                  <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
-                </svg>
-              ) : (
-                <svg
-                  viewBox="0 0 16 16"
-                  className="timeline-bar__panel-toggle-icon-chevron"
-                >
-                  <path d="M6.5 4l4 4-4 4" />
-                </svg>
-              )}
-            </span>
+            <span aria-hidden="true">{isInsightsOpen ? '×' : '^'}</span>
           </button>
         </div>
         <div className="timeline-bar__section timeline-bar__section--focus">
