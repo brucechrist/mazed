@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './styles.css';
 import StatsQuadrant from './StatsQuadrant.jsx';
 import NofapCalendar from './NofapCalendar.jsx';
@@ -40,6 +40,8 @@ import { supabaseClient } from './supabaseClient';
 import VersionLabel from './VersionLabel.jsx';
 import { QuestProvider } from './QuestContext.jsx';
 import ActivityLogger from './ActivityLogger.jsx';
+import TimelineBar from '../TimelineBar.jsx';
+import Allignement from '../Allignement.jsx';
 
 const placeholderImg =
   "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'50'%20height%3D'50'%3E%3Crect%20width%3D'50'%20height%3D'50'%20rx%3D'25'%20fill%3D'%23444'%2F%3E%3Ctext%20x%3D'25'%20y%3D'33'%20font-size%3D'26'%20text-anchor%3D'middle'%20fill%3D'%23aaa'%3E%3F%3C%2Ftext%3E%3C%2Fsvg%3E";
@@ -75,6 +77,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   const [showTypomancy, setShowTypomancy] = useState(false);
   const [showMoodtracker, setShowMoodtracker] = useState(false);
   const [showMomentoMori, setShowMomentoMori] = useState(false);
+  const [showAllignement, setShowAllignement] = useState(false);
   const [showSemiCharacter, setShowSemiCharacter] = useState(false);
   // Blog visibility starts hidden and becomes visible when on the Form layer.
   // Use a unique name to avoid clashes with the top-level App component.
@@ -120,6 +123,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       typomancy: 'Form',
       moodtracker: 'Form',
       momentoMori: 'Form',
+      allignement: 'Form',
       quadrantComb: 'Form',
       trinities: 'Form',
       anima: 'Form',
@@ -169,6 +173,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     () => localStorage.getItem('theme') || 'dark'
   );
 
+  const toggleAutoLog = (nextValue) => {
+    if (typeof nextValue === 'boolean') {
+      setAutoLog(nextValue);
+    } else {
+      setAutoLog((prev) => !prev);
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  };
+
   const [selectedAppIndex, setSelectedAppIndex] = useState(-1);
   const [sidebarIndex, setSidebarIndex] = useState(() =>
     tabs.findIndex((t) => t.label === (initialTab || tabs[0].label))
@@ -194,6 +210,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showTypomancy ||
     showMoodtracker ||
     showMomentoMori ||
+    showAllignement ||
     showQuadrantComb ||
     showTrinities ||
     showAnima ||
@@ -216,6 +233,83 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     showProfile ||
     showSettings;
 
+  const focusLabel = useMemo(() => {
+    const focusEntries = [
+      { condition: showJournal, label: 'Quest Journal' },
+      { condition: showNofap, label: 'NoFap Calendar' },
+      { condition: showRatings, label: 'Version Ratings' },
+      { condition: showWhoAmI, label: 'Who Am I?' },
+      { condition: showMusic, label: 'Music Search' },
+      { condition: showSinging, label: 'Singing Studio' },
+      { condition: showShadowWork, label: 'Shadow Work' },
+      { condition: showCalendarApp, label: 'Calendar' },
+      { condition: showTimeline, label: 'Timeline' },
+      { condition: showTypomancy, label: 'Typomancy' },
+      { condition: showMoodtracker, label: 'Moodtracker' },
+      { condition: showMomentoMori, label: 'Momento Mori' },
+      { condition: showAllignement, label: 'Allignement' },
+      { condition: showQuadrantComb, label: 'Quadrant Combinaisons' },
+      { condition: showTrinities, label: 'Trinities' },
+      { condition: showAnima, label: 'Anima' },
+      { condition: showBlog || showToolsBlog, label: 'Tools Blog' },
+      { condition: showLibrary, label: 'Library' },
+      { condition: showTodoGoals, label: 'Todo & Goals' },
+      { condition: showActivity, label: 'Activity' },
+      { condition: showActivityLog, label: 'Activity Log' },
+      { condition: showCharacterEvolve, label: 'Character Evolve' },
+      { condition: showWeakness, label: 'Weakness' },
+      { condition: showAccessLog, label: 'Access State Log' },
+      { condition: showSemiCharacter, label: 'Semi Character' },
+      { condition: showIdeaBoard, label: 'Idea Board' },
+      { condition: showImplementationIdeas, label: 'Implementation Ideas' },
+      { condition: showTips, label: 'Tips' },
+      { condition: showOrb, label: 'Orb' },
+      { condition: showWatchdog, label: 'Watchdog' },
+      { condition: showAkashicRecords, label: 'Akashic Records' },
+      { condition: showProfile, label: 'Profile' },
+      { condition: showSettings, label: 'Settings' },
+    ];
+
+    const match = focusEntries.find(({ condition }) => condition);
+    return match ? match.label : activeTab;
+  }, [
+    activeTab,
+    showAccessLog,
+    showActivity,
+    showActivityLog,
+    showAkashicRecords,
+    showAnima,
+    showBlog,
+    showCalendarApp,
+    showCharacterEvolve,
+    showIdeaBoard,
+    showImplementationIdeas,
+    showJournal,
+    showLibrary,
+    showMoodtracker,
+    showMomentoMori,
+    showAllignement,
+    showMusic,
+    showNofap,
+    showProfile,
+    showQuadrantComb,
+    showRatings,
+    showSemiCharacter,
+    showSettings,
+    showShadowWork,
+    showSinging,
+    showTips,
+    showTimeline,
+    showTodoGoals,
+    showToolsBlog,
+    showTrinities,
+    showTypomancy,
+    showWatchdog,
+    showWeakness,
+    showWhoAmI,
+    showOrb,
+  ]);
+
   const closeOpenApp = () => {
     setShowJournal(false);
     setShowNofap(false);
@@ -229,6 +323,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     setShowTypomancy(false);
     setShowMoodtracker(false);
     setShowMomentoMori(false);
+    setShowAllignement(false);
     setShowQuadrantComb(false);
     setShowTrinities(false);
     setShowAnima(false);
@@ -263,18 +358,24 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
     return willChange;
   };
 
+  const focusToolsTab = (layer = 'Form') => {
+    if (activeTab !== 'Tools') {
+      setActiveTab('Tools');
+    }
+    if (toolsTabIndex !== -1) {
+      setSidebarIndex(toolsTabIndex);
+    }
+    triggerElevatorToLayer(layer);
+  };
+
   const openToolsHome = () => {
-    setActiveTab('Tools');
-    setSidebarIndex(toolsTabIndex);
-    triggerElevatorToLayer('Form');
+    focusToolsTab('Form');
     closeOpenApp();
     setSelectedAppIndex(-1);
   };
 
   const openToolsBlog = () => {
-    setActiveTab('Tools');
-    setSidebarIndex(toolsTabIndex);
-    triggerElevatorToLayer('Semi-Formless');
+    focusToolsTab('Semi-Formless');
     closeOpenApp();
     setSelectedAppIndex(-1);
     window.postMessage(
@@ -284,9 +385,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
   };
 
   const openCollectiveLayer = () => {
-    setActiveTab('Tools');
-    setSidebarIndex(toolsTabIndex);
-    triggerElevatorToLayer('Formless');
+    focusToolsTab('Formless');
     closeOpenApp();
     setSelectedAppIndex(-1);
     window.postMessage(
@@ -294,6 +393,55 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
       '*'
     );
   };
+
+  const launchTool = (setter, layer = 'Form') => {
+    focusToolsTab(layer);
+    closeOpenApp();
+    setSelectedAppIndex(-1);
+    setter(true);
+  };
+
+  const openQuestJournal = () => launchTool(setShowJournal);
+  const openTimeline = () => launchTool(setShowTimeline);
+  const openMoodtracker = () => launchTool(setShowMoodtracker);
+
+  const openSettings = () => {
+    closeOpenApp();
+    setShowSettings(true);
+    setSidebarIndex(tabs.length);
+  };
+
+  const openProfile = () => {
+    closeOpenApp();
+    setShowProfile(true);
+    setSidebarIndex(tabs.length + 1);
+  };
+
+  const openAkashicRecords = () => {
+    closeOpenApp();
+    setShowAkashicRecords(true);
+  };
+
+  const timelineQuickActions = [
+    {
+      label: 'Quest Journal',
+      icon: '📓',
+      onClick: openQuestJournal,
+      active: showJournal,
+    },
+    {
+      label: 'Timeline',
+      icon: '🕒',
+      onClick: openTimeline,
+      active: showTimeline,
+    },
+    {
+      label: 'Moodtracker',
+      icon: '😊',
+      onClick: openMoodtracker,
+      active: showMoodtracker,
+    },
+  ];
 
   useEffect(() => {
     document.body.classList.toggle('light-theme', theme === 'light');
@@ -425,9 +573,9 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           } else {
             const actionIdx = sidebarIndex - tabs.length;
             if (actionIdx === 0) {
-              setShowSettings(true);
+              openSettings();
             } else if (actionIdx === 1) {
-              setShowProfile(true);
+              openProfile();
             } else if (actionIdx === 2) {
               window.location.reload();
             }
@@ -635,10 +783,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           <div className="bottom-buttons">
           <div
             className={`settings-button ${sidebarIndex === tabs.length ? 'selected' : ''}`}
-            onClick={() => {
-              setShowSettings(true);
-              setSidebarIndex(tabs.length);
-            }}
+            onClick={openSettings}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M13.6006 21.0761L19.0608 17.9236C19.6437 17.5871 19.9346 17.4188 20.1465 17.1834C20.3341 16.9751 20.4759 16.7297 20.5625 16.4632C20.6602 16.1626 20.6602 15.8267 20.6602 15.1568V8.84268C20.6602 8.17277 20.6602 7.83694 20.5625 7.53638C20.4759 7.26982 20.3341 7.02428 20.1465 6.816C19.9355 6.58161 19.6453 6.41405 19.0674 6.08043L13.5996 2.92359C13.0167 2.58706 12.7259 2.41913 12.416 2.35328C12.1419 2.295 11.8584 2.295 11.5843 2.35328C11.2744 2.41914 10.9826 2.58706 10.3997 2.92359L4.93843 6.07666C4.35623 6.41279 4.06535 6.58073 3.85352 6.816C3.66597 7.02428 3.52434 7.26982 3.43773 7.53638C3.33984 7.83765 3.33984 8.17436 3.33984 8.84742V15.1524C3.33984 15.8254 3.33984 16.1619 3.43773 16.4632C3.52434 16.7297 3.66597 16.9751 3.85352 17.1834C4.06548 17.4188 4.35657 17.5871 4.93945 17.9236L10.3997 21.0761C10.9826 21.4126 11.2744 21.5806 11.5843 21.6465C11.8584 21.7047 12.1419 21.7047 12.416 21.6465C12.7259 21.5806 13.0177 21.4126 13.6006 21.0761Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -647,10 +792,7 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           </div>
           <div
             className={`profile-button ${sidebarIndex === tabs.length + 1 ? 'selected' : ''}`}
-            onClick={() => {
-              setShowProfile(true);
-              setSidebarIndex(tabs.length + 1);
-            }}
+            onClick={openProfile}
           >
             <img className="sidebar-avatar" src={avatarUrl} alt="Profile" />
           </div>
@@ -718,6 +860,8 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
               <ActivityApp onBack={() => setShowActivity(false)} />
             ) : showActivityLog ? (
               <ActivityLog onBack={() => setShowActivityLog(false)} />
+            ) : showAllignement ? (
+              <Allignement onBack={() => setShowAllignement(false)} />
             ) : showCharacterEvolve ? (
               <CharacterEvolve onBack={() => setShowCharacterEvolve(false)} />
             ) : showWeakness ? (
@@ -882,6 +1026,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
                   >
                     <div className="star-icon">☠️</div>
                     <span>Momento Mori</span>
+                  </div>
+                )}
+                {appLayers.allignement === activeLayer && (
+                  <div
+                    className="app-card"
+                    onClick={() => setShowAllignement(true)}
+                    onContextMenu={(e) => handleContextMenu(e, 'allignement')}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'allignement')}
+                  >
+                    <div className="star-icon">⚖️</div>
+                    <span>Allignement</span>
                   </div>
                 )}
                 {appLayers.quadrantComb === activeLayer && (
@@ -1125,12 +1281,10 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
         <SettingsModal
           onClose={() => setShowSettings(false)}
           autoLog={autoLog}
-          onToggleAutoLog={setAutoLog}
+          onToggleAutoLog={toggleAutoLog}
           theme={theme}
-          onToggleTheme={() =>
-            setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-          }
-          onOpenAkashicRecords={() => setShowAkashicRecords(true)}
+          onToggleTheme={toggleTheme}
+          onOpenAkashicRecords={openAkashicRecords}
           mainBg={mainBg}
           onChangeMainBg={setMainBg}
           charBg={charBg}
@@ -1156,6 +1310,18 @@ export default function QuadrantPage({ initialTab, menuBg, onChangeMenuBg }) {
           ))}
         </ul>
       )}
+      <TimelineBar
+        focusLabel={focusLabel}
+        quickActions={timelineQuickActions}
+        autoLog={autoLog}
+        onToggleAutoLog={toggleAutoLog}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenSettings={openSettings}
+        onOpenProfile={openProfile}
+        onOpenAkashicRecords={openAkashicRecords}
+        isAnyAppOpen={anyAppOpen}
+      />
       <VersionLabel />
       </div>
     </QuestProvider>
