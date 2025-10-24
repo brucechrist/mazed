@@ -459,9 +459,14 @@ body.light-theme .timeline-insights__dialog {
 }
 
 body.light-theme .timeline-insights__body {
-  background: rgba(17, 18, 22, 0.05);
+  background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(239, 242, 249, 0.56)
+    ),
+    rgba(17, 18, 22, 0.02);
 }
 
 body.light-theme .timeline-insights__placeholder {
-  color: rgba(17, 18, 22, 0.65);
+  color: rgba(17, 18, 22, 0.55);
 }
