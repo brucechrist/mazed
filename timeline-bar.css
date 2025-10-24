@@ -166,6 +166,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.timeline-insights__chart canvas {
+  border-radius: 16px;
+}
+
+.timeline-insights__chart-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
   text-align: center;
   color: rgba(17, 20, 28, 0.78);
 }
