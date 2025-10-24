@@ -18,70 +18,75 @@
   flex-wrap: wrap;
 }
 
+.timeline-bar__section--panel-toggle {
+  flex: 0 0 auto;
+}
+
 .timeline-bar__panel-toggle {
-  position: fixed;
-  left: 32px;
-  bottom: 44px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(17, 18, 22, 0.88);
+  width: 58px;
+  height: 38px;
+  border-radius: 27px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
   color: #e6e7eb;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease,
     background-color 0.2s ease, border-color 0.2s ease;
-  z-index: 960;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
 
 .timeline-bar__panel-toggle:hover,
 .timeline-bar__panel-toggle:focus-visible {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   outline: none;
 }
 
 .timeline-bar__panel-toggle.is-open {
-  background: rgba(0, 180, 255, 0.3);
-  border-color: rgba(0, 180, 255, 0.6);
+  background: rgba(0, 180, 255, 0.35);
+  border-color: rgba(0, 180, 255, 0.65);
   color: #e6f7ff;
 }
 
 .timeline-insights {
   position: fixed;
-  left: 32px;
-  bottom: 120px;
-  width: 320px;
-  max-height: 420px;
-  padding: 20px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(17, 18, 22, 0.92);
+  inset: 0;
+  padding: 32px;
+  background: rgba(8, 9, 12, 0.9);
   color: #e6e7eb;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  transform: translateY(16px);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  transform: translateY(12px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
-  z-index: 955;
+  z-index: 1200;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .timeline-insights.is-open {
   transform: translateY(0);
   opacity: 1;
   pointer-events: auto;
+}
+
+.timeline-insights__dialog {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  background: rgba(17, 18, 22, 0.95);
+  box-shadow: none;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .timeline-insights__header {
@@ -122,8 +127,8 @@
 .timeline-insights__body {
   flex: 1;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,16 +293,12 @@
     margin: 20px;
   }
 
-  .timeline-bar__panel-toggle {
-    left: 20px;
-    bottom: 20px;
+  .timeline-insights {
+    padding: 16px;
   }
 
-  .timeline-insights {
-    left: 20px;
-    right: 20px;
-    width: auto;
-    bottom: 100px;
+  .timeline-insights__dialog {
+    padding: 24px;
   }
 }
 
@@ -347,14 +348,14 @@ body.light-theme .timeline-bar__ghost:focus-visible {
 }
 
 body.light-theme .timeline-bar__panel-toggle {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(17, 18, 22, 0.08);
   color: #111;
   border-color: rgba(17, 18, 22, 0.12);
 }
 
 body.light-theme .timeline-bar__panel-toggle:hover,
 body.light-theme .timeline-bar__panel-toggle:focus-visible {
-  background: rgba(17, 18, 22, 0.08);
+  background: rgba(17, 18, 22, 0.15);
 }
 
 body.light-theme .timeline-bar__panel-toggle.is-open {
@@ -363,10 +364,13 @@ body.light-theme .timeline-bar__panel-toggle.is-open {
 }
 
 body.light-theme .timeline-insights {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(17, 18, 22, 0.1);
+  background: rgba(255, 255, 255, 0.9);
   color: #111;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+}
+
+body.light-theme .timeline-insights__dialog {
+  background: rgba(255, 255, 255, 0.96);
+  color: inherit;
 }
 
 body.light-theme .timeline-insights__body {
