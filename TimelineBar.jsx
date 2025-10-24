@@ -28,42 +28,37 @@ export default function TimelineBar({
 
   return (
     <>
-      <button
-        type="button"
-        className={`timeline-bar__panel-toggle${
-          isInsightsOpen ? ' is-open' : ''
-        }`}
-        onClick={toggleInsightsPanel}
-        aria-controls={insightsPanelId}
-        aria-expanded={isInsightsOpen}
-        aria-label={`${isInsightsOpen ? 'Hide' : 'Show'} timeline insights`}
-      >
-        <span aria-hidden="true">{isInsightsOpen ? '×' : '^'}</span>
-      </button>
-      <aside
-        id={insightsPanelId}
-        className={`timeline-insights${isInsightsOpen ? ' is-open' : ''}`}
-        role="complementary"
-        aria-label="Timeline insights"
-      >
-        <div className="timeline-insights__header">
-          <h2 className="timeline-insights__title">Insights Panel</h2>
+      <div className="timeline-bar" role="contentinfo" aria-label="Timeline">
+        <div className="timeline-bar__section timeline-bar__section--panel-toggle">
           <button
             type="button"
-            className="timeline-insights__close"
-            onClick={closeInsightsPanel}
-            aria-label="Close insights panel"
+            className={`timeline-bar__panel-toggle${
+              isInsightsOpen ? ' is-open' : ''
+            }`}
+            onClick={toggleInsightsPanel}
+            aria-controls={insightsPanelId}
+            aria-expanded={isInsightsOpen}
+            aria-label={`${isInsightsOpen ? 'Hide' : 'Show'} timeline insights`}
           >
-            ×
+            <span
+              aria-hidden="true"
+              className="timeline-bar__panel-toggle-icon"
+            >
+              {isInsightsOpen ? (
+                <svg viewBox="0 0 16 16" className="timeline-bar__panel-toggle-icon-close">
+                  <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+                </svg>
+              ) : (
+                <svg
+                  viewBox="0 0 16 16"
+                  className="timeline-bar__panel-toggle-icon-chevron"
+                >
+                  <path d="M6.5 4l4 4-4 4" />
+                </svg>
+              )}
+            </span>
           </button>
         </div>
-        <div className="timeline-insights__body">
-          <p className="timeline-insights__placeholder">
-            Lightweight charts and metrics will appear here.
-          </p>
-        </div>
-      </aside>
-      <div className="timeline-bar" role="contentinfo" aria-label="Timeline">
         <div className="timeline-bar__section timeline-bar__section--focus">
           <div className="timeline-bar__label">Current Focus</div>
           <div className="timeline-bar__focus" aria-live="polite">
@@ -141,6 +136,31 @@ export default function TimelineBar({
           </button>
         </div>
       </div>
+      <aside
+        id={insightsPanelId}
+        className={`timeline-insights${isInsightsOpen ? ' is-open' : ''}`}
+        role="complementary"
+        aria-label="Timeline insights"
+      >
+        <div className="timeline-insights__dialog" role="document">
+          <div className="timeline-insights__header">
+            <h2 className="timeline-insights__title">Insights Panel</h2>
+            <button
+              type="button"
+              className="timeline-insights__close"
+              onClick={closeInsightsPanel}
+              aria-label="Close insights panel"
+            >
+              ×
+            </button>
+          </div>
+          <div className="timeline-insights__body">
+            <p className="timeline-insights__placeholder">
+              Lightweight charts and metrics will appear here.
+            </p>
+          </div>
+        </div>
+      </aside>
     </>
   );
 }
