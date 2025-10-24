@@ -1,0 +1,183 @@
+.allignement-app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: 100%;
+  padding: 1.5rem;
+  color: var(--text-primary, #f0f0f0);
+}
+
+.allignement-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.allignement-back {
+  background: transparent;
+  border: 1px solid var(--accent, #7f7fff);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.allignement-back:hover {
+  background: var(--accent, #7f7fff);
+  color: #111;
+}
+
+.allignement-title {
+  flex: 1;
+  min-width: 200px;
+}
+
+.allignement-title h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.allignement-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted, rgba(240, 240, 240, 0.7));
+}
+
+.allignement-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.allignement-button {
+  background: var(--card-bg, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--accent, #7f7fff);
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.allignement-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.allignement-button:not(:disabled):hover {
+  background: var(--accent, #7f7fff);
+  color: #111;
+  transform: translateY(-1px);
+}
+
+.allignement-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+
+.allignement-columns-header {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) repeat(3, minmax(180px, 1fr));
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, rgba(240, 240, 240, 0.7));
+}
+
+.allignement-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) repeat(3, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+  background: var(--card-bg, rgba(255, 255, 255, 0.04));
+  border-radius: 1rem;
+  padding: 0.75rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.allignement-label {
+  padding: 0.25rem 0.5rem;
+}
+
+.allignement-focus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.allignement-focus input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  color: inherit;
+}
+
+.allignement-focus input:focus {
+  outline: none;
+  border-color: var(--accent, #7f7fff);
+  box-shadow: 0 0 0 2px rgba(127, 127, 255, 0.2);
+}
+
+.allignement-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, rgba(240, 240, 240, 0.7));
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.allignement-remove:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.allignement-remove:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ff6b6b;
+}
+
+.allignement-row textarea {
+  min-height: 120px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: inherit;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.allignement-row textarea:focus {
+  outline: none;
+  border-color: var(--accent, #7f7fff);
+  box-shadow: 0 0 0 2px rgba(127, 127, 255, 0.2);
+}
+
+@media (max-width: 1100px) {
+  .allignement-columns-header {
+    display: none;
+  }
+
+  .allignement-row {
+    grid-template-columns: 1fr;
+  }
+
+  .allignement-row textarea {
+    min-height: 100px;
+  }
+
+  .allignement-focus {
+    justify-content: space-between;
+  }
+}
