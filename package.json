@@ -30,10 +30,27 @@
       "native/**",
       "runtime/**"
     ],
-    "mac": { "target": ["dmg", "zip"] },
-    "win": { "target": ["nsis", "zip"] },
-    "linux": { "target": ["AppImage", "deb"] },
-    "directories": { "output": "release" }
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "directories": {
+      "output": "release"
+    }
   },
   "keywords": [],
   "author": "",
@@ -46,6 +63,7 @@
     "golden-layout": "^2.6.0",
     "jimp": "^0.22.12",
     "konva": "^9.3.22",
+    "lightweight-charts": "^5.0.9",
     "react": "^19.1.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^19.1.0",
@@ -58,12 +76,12 @@
   "devDependencies": {
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
+    "@electron/rebuild": "4.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.5.2",
-    "@electron/rebuild": "4.0.1",
     "babel-jest": "^30.0.2",
     "concurrently": "^9.1.2",
     "electron": "^36.9.2",
