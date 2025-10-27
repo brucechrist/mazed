@@ -41,6 +41,15 @@ const NORMALIZED_SAMPLE_CANDLE_DATA = SAMPLE_CANDLE_DATA.map((point) => ({
 }));
 
 let lightweightChartsPromise;
+const getLightweightChartsModule = async () => {
+  if (!lightweightChartsPromise) {
+    lightweightChartsPromise = import('lightweight-charts').catch((error) => {
+      lightweightChartsPromise = null;
+      throw error;
+    });
+  }
+  return lightweightChartsPromise;
+};
 
 export default function TimelineBar({
   focusLabel = 'Tools',
@@ -186,11 +195,22 @@ export default function TimelineBar({
         return;
       }
 
-      if (!lightweightChartsPromise) {
-        lightweightChartsPromise = import('lightweight-charts');
+      let chartsModule;
+      try {
+        chartsModule = await getLightweightChartsModule();
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load lightweight-charts module', error);
+          setIsChartReady(false);
+          setChartStatusMessage('Unable to load chart preview.');
+          setChartFootnote(
+            'Install lightweight-charts to enable the BTC market preview.'
+          );
+        }
+        return;
       }
 
-      const { createChart, CrosshairMode } = await lightweightChartsPromise;
+      const { createChart, CrosshairMode } = chartsModule;
       if (cancelled) {
         return;
       }
