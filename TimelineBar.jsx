@@ -66,13 +66,25 @@ export default function TimelineBar({
   const actions = quickActions.filter(Boolean);
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
-  const [isChartReady, setIsChartReady] = React.useState(false);
+  const animationFrameRef = React.useRef(null);
+  const fallbackTimeoutRef = React.useRef(null);
   const chartResourcesRef = React.useRef({
     chart: null,
     candleSeries: null,
     volumeSeries: null,
     resizeObserver: null,
   });
+
+  const [isChartReady, setIsChartReady] = React.useState(false);
+  const [chartData, setChartData] = React.useState(null);
+  const [chartStatusMessage, setChartStatusMessage] = React.useState(
+    'Loading TradingView chart…'
+  );
+  const [chartFootnote, setChartFootnote] = React.useState(
+    'Live BTC/USDT market data provided by TradingView.'
+  );
+  const [chartMode, setChartMode] = React.useState('tradingview');
+  const [isTradingViewLoaded, setIsTradingViewLoaded] = React.useState(false);
 
   const applyDatasetToSeries = React.useCallback(
     (dataset, isDarkMode) => {
@@ -112,7 +124,108 @@ export default function TimelineBar({
 
   const insightsPanelId = 'timeline-insights-panel';
 
+  const tradingViewFrameId = React.useMemo(
+    () => `tradingview-frame-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+
+  const tradingViewEmbedUrl = React.useMemo(() => {
+    const params = new URLSearchParams({
+      frameElementId: tradingViewFrameId,
+      symbol: 'BINANCE:BTCUSDT',
+      interval: '60',
+      hidetoptoolbar: '0',
+      hidesidetoolbar: '0',
+      symboledit: '0',
+      saveimage: '0',
+      toolbarbg: theme === 'dark' ? '#131722' : '#f1f3f6',
+      studies: '[]',
+      hideideas: '1',
+      theme: theme === 'dark' ? 'dark' : 'light',
+      style: '1',
+      timezone: 'Etc/UTC',
+      enable_publishing: '0',
+      allow_symbol_change: '0',
+      details: '0',
+      calendar: '0',
+      hotlist: '0',
+      hidevolume: '0',
+      withdateranges: '1',
+      show_popup_button: '0',
+    });
+
+    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+  }, [theme, tradingViewFrameId]);
+
+  const clearFallbackTimeout = React.useCallback(() => {
+    if (fallbackTimeoutRef.current) {
+      clearTimeout(fallbackTimeoutRef.current);
+      fallbackTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleTradingViewLoad = React.useCallback(() => {
+    if (!isInsightsOpen || chartMode !== 'tradingview') {
+      return;
+    }
+
+    setIsTradingViewLoaded(true);
+    setIsChartReady(true);
+    setChartStatusMessage('');
+    clearFallbackTimeout();
+  }, [chartMode, clearFallbackTimeout, isInsightsOpen]);
+
+  const handleTradingViewError = React.useCallback(() => {
+    if (!isInsightsOpen || chartMode !== 'tradingview') {
+      return;
+    }
+
+    clearFallbackTimeout();
+    setIsTradingViewLoaded(false);
+    setChartStatusMessage('TradingView unavailable. Loading fallback preview…');
+    setChartFootnote('Data shown is simulated for demonstration purposes.');
+    setChartMode('lightweight');
+  }, [chartMode, clearFallbackTimeout, isInsightsOpen]);
+
   React.useEffect(() => {
+    if (!isInsightsOpen) {
+      clearFallbackTimeout();
+      setIsChartReady(false);
+      setChartData(null);
+      setChartMode('tradingview');
+      setIsTradingViewLoaded(false);
+      setChartStatusMessage('Loading TradingView chart…');
+      setChartFootnote('Live BTC/USDT market data provided by TradingView.');
+    }
+  }, [clearFallbackTimeout, isInsightsOpen]);
+
+  React.useEffect(() => {
+    if (!isInsightsOpen || chartMode !== 'tradingview') {
+      clearFallbackTimeout();
+      return undefined;
+    }
+
+    setIsTradingViewLoaded(false);
+    setIsChartReady(false);
+    setChartStatusMessage('Loading TradingView chart…');
+    setChartFootnote('Live BTC/USDT market data provided by TradingView.');
+
+    fallbackTimeoutRef.current = setTimeout(() => {
+      setChartStatusMessage('TradingView is taking too long. Loading fallback preview…');
+      setChartFootnote('Data shown is simulated for demonstration purposes.');
+      setChartMode('lightweight');
+    }, 12000);
+
+    return () => {
+      clearFallbackTimeout();
+    };
+  }, [chartMode, clearFallbackTimeout, isInsightsOpen]);
+
+  React.useEffect(() => {
+    if (!isInsightsOpen || chartMode !== 'lightweight') {
+      return undefined;
+    }
+
     let cancelled = false;
     const abortControllers = [];
 
@@ -185,15 +298,126 @@ export default function TimelineBar({
       };
     };
 
-    const initializeChart = async () => {
-      if (!isInsightsOpen) {
-        return;
-      }
+    const ensureSurface = (createChart, CrosshairMode) =>
+      new Promise((resolve) => {
+        const attemptInitialization = () => {
+          const target = chartContainerRef.current;
+          if (!target || cancelled) {
+            resolve(false);
+            return;
+          }
 
-      const container = chartContainerRef.current;
-      if (!container) {
-        return;
-      }
+          const { width, height } = target.getBoundingClientRect();
+          if (!width || !height) {
+            animationFrameRef.current = requestAnimationFrame(attemptInitialization);
+            return;
+          }
+
+          let { chart, candleSeries, volumeSeries, resizeObserver } =
+            chartResourcesRef.current;
+
+          if (!chart) {
+            chart = createChart(target, {
+              width,
+              height,
+              layout: {
+                background: { color: 'transparent' },
+                textColor: '#11141c',
+              },
+              grid: {
+                vertLines: { color: 'rgba(17, 20, 28, 0.08)' },
+                horzLines: { color: 'rgba(17, 20, 28, 0.08)' },
+              },
+              crosshair: {
+                mode: CrosshairMode.Normal,
+                vertLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
+                horzLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
+              },
+              rightPriceScale: {
+                borderColor: 'rgba(17, 20, 28, 0.12)',
+              },
+              timeScale: {
+                borderColor: 'rgba(17, 20, 28, 0.12)',
+                rightOffset: 8,
+                barSpacing: 9,
+              },
+              localization: {
+                dateFormat: 'MMM dd',
+              },
+            });
+
+            candleSeries = chart.addCandlestickSeries({
+              upColor: '#16a085',
+              borderUpColor: '#16a085',
+              wickUpColor: '#16a085',
+              downColor: '#e74c3c',
+              borderDownColor: '#e74c3c',
+              wickDownColor: '#e74c3c',
+              priceScaleId: 'right',
+            });
+
+            volumeSeries = chart.addHistogramSeries({
+              priceFormat: { type: 'volume' },
+              priceScaleId: '',
+              scaleMargins: { top: 0.8, bottom: 0 },
+            });
+
+            chart.priceScale('right').applyOptions({
+              borderColor: 'rgba(17, 20, 28, 0.12)',
+              scaleMargins: { top: 0.08, bottom: 0.28 },
+            });
+            chart.priceScale('').applyOptions({
+              scaleMargins: { top: 0.75, bottom: 0 },
+            });
+
+            if (typeof ResizeObserver !== 'undefined') {
+              resizeObserver = new ResizeObserver((entries) => {
+                const entry = entries[0];
+                if (!entry) return;
+                const { width: nextWidth, height: nextHeight } = entry.contentRect;
+                chart.resize(nextWidth, nextHeight);
+              });
+            }
+
+            if (resizeObserver) {
+              resizeObserver.observe(target);
+            }
+
+            chartResourcesRef.current = {
+              chart,
+              candleSeries,
+              volumeSeries,
+              resizeObserver: resizeObserver ?? null,
+            };
+          } else {
+            chart.resize(width, height);
+            if (resizeObserver) {
+              resizeObserver.disconnect();
+              resizeObserver.observe(target);
+            }
+
+            chartResourcesRef.current = {
+              chart,
+              candleSeries,
+              volumeSeries,
+              resizeObserver,
+            };
+          }
+
+          animationFrameRef.current = null;
+          resolve(true);
+        };
+
+        attemptInitialization();
+      });
+
+    const initializeChart = async () => {
+      clearFallbackTimeout();
+      setIsTradingViewLoaded(false);
+      setIsChartReady(false);
+      setChartData(null);
+      setChartStatusMessage('Loading lightweight chart…');
+      setChartFootnote('Data shown is simulated for demonstration purposes.');
 
       let chartsModule;
       try {
@@ -203,120 +427,41 @@ export default function TimelineBar({
           console.error('Failed to load lightweight-charts module', error);
           setIsChartReady(false);
           setChartStatusMessage('Unable to load chart preview.');
-          setChartFootnote(
-            'Install lightweight-charts to enable the BTC market preview.'
-          );
+          setChartFootnote('Install lightweight-charts to enable the BTC market preview.');
         }
         return;
       }
 
-      const { createChart, CrosshairMode } = chartsModule;
       if (cancelled) {
         return;
       }
 
-      const ensureDimensionsAndCreate = () => {
-        const target = chartContainerRef.current;
-        if (!target || cancelled) {
-          return;
-        }
-
-        const { width, height } = target.getBoundingClientRect();
-        if (!width || !height) {
-          animationFrameRef.current = requestAnimationFrame(ensureDimensionsAndCreate);
-          return;
-        }
-
-        if (!chartResourcesRef.current.chart) {
-          const chart = createChart(target, {
-            width,
-            height,
-            layout: {
-              background: { color: 'transparent' },
-              textColor: '#11141c',
-            },
-            grid: {
-              vertLines: { color: 'rgba(17, 20, 28, 0.08)' },
-              horzLines: { color: 'rgba(17, 20, 28, 0.08)' },
-            },
-            crosshair: {
-              mode: CrosshairMode.Normal,
-              vertLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
-              horzLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
-            },
-            rightPriceScale: {
-              borderColor: 'rgba(17, 20, 28, 0.12)',
-            },
-            timeScale: {
-              borderColor: 'rgba(17, 20, 28, 0.12)',
-              rightOffset: 8,
-              barSpacing: 9,
-            },
-            localization: {
-              dateFormat: 'MMM dd',
-            },
-          });
-
-          const candleSeries = chart.addCandlestickSeries({
-            upColor: '#16a085',
-            borderUpColor: '#16a085',
-            wickUpColor: '#16a085',
-            downColor: '#e74c3c',
-            borderDownColor: '#e74c3c',
-            wickDownColor: '#e74c3c',
-            priceScaleId: 'right',
-          });
-
-          const volumeSeries = chart.addHistogramSeries({
-            priceFormat: { type: 'volume' },
-            priceScaleId: '',
-            scaleMargins: { top: 0.8, bottom: 0 },
-          });
-
-          chart.priceScale('right').applyOptions({
-            borderColor: 'rgba(17, 20, 28, 0.12)',
-            scaleMargins: { top: 0.08, bottom: 0.28 },
-          });
-          chart.priceScale('').applyOptions({
-            scaleMargins: { top: 0.75, bottom: 0 },
-          });
-
-          const resizeObserver =
-            typeof ResizeObserver !== 'undefined'
-              ? new ResizeObserver((entries) => {
-                  const entry = entries[0];
-                  if (!entry) return;
-                  const { width: nextWidth, height: nextHeight } = entry.contentRect;
-                  chart.resize(nextWidth, nextHeight);
-                })
-              : null;
-
-          if (resizeObserver) {
-            resizeObserver.observe(target);
-          }
-
-          chartResourcesRef.current = {
-            chart,
-            candleSeries,
-            volumeSeries,
-            resizeObserver,
-          };
-        }
-
-        chartResourcesRef.current = {
-          chart,
-          candleSeries,
-          volumeSeries,
-          resizeObserver,
-        };
-
-        if (!cancelled) {
-          setIsChartReady(true);
-        }
-      };
-
+      const { createChart, CrosshairMode } = chartsModule;
       setChartStatusMessage('Preparing chart surface…');
-      ensureDimensionsAndCreate();
+      const surfaceReady = await ensureSurface(createChart, CrosshairMode);
+      if (!surfaceReady || cancelled) {
+        return;
+      }
+
+      setChartStatusMessage('Loading BTC market data…');
+      const result = await fetchCandleData();
+      if (!result || cancelled) {
+        return;
+      }
+
+      setChartData(result.dataset);
+      applyDatasetToSeries(result.dataset, theme === 'dark');
+      setChartFootnote(
+        result.isFallback
+          ? 'Using fallback BTC dataset (offline mode).'
+          : `Data sourced from ${result.label}.`
+      );
+      setChartStatusMessage('');
+      setIsChartReady(true);
+
+      if (chartResourcesRef.current.chart) {
+        chartResourcesRef.current.chart.timeScale().fitContent();
+      }
     };
 
     initializeChart();
@@ -331,7 +476,7 @@ export default function TimelineBar({
         controller.abort();
       });
     };
-  }, [applyDatasetToSeries, chartData, isInsightsOpen, theme]);
+  }, [applyDatasetToSeries, chartMode, clearFallbackTimeout, isInsightsOpen, theme]);
 
   React.useEffect(() => {
     return () => {
@@ -353,8 +498,10 @@ export default function TimelineBar({
         volumeSeries: null,
         resizeObserver: null,
       };
+
+      clearFallbackTimeout();
     };
-  }, []);
+  }, [clearFallbackTimeout]);
 
   React.useEffect(() => {
     if (!chartResourcesRef.current.chart) {
@@ -418,9 +565,7 @@ export default function TimelineBar({
         <div className="timeline-bar__section timeline-bar__section--panel-toggle">
           <button
             type="button"
-            className={`timeline-bar__panel-toggle${
-              isInsightsOpen ? ' is-open' : ''
-            }`}
+            className={`timeline-bar__panel-toggle${isInsightsOpen ? ' is-open' : ''}`}
             onClick={toggleInsightsPanel}
             aria-controls={insightsPanelId}
             aria-expanded={isInsightsOpen}
@@ -527,20 +672,43 @@ export default function TimelineBar({
           <div className="timeline-insights__body">
             <div className="timeline-insights__chart" role="img" aria-label="Candle and volume chart preview">
               <div
+                className={`timeline-insights__chart-surface${
+                  chartMode === 'tradingview' ? '' : ' is-hidden'
+                }`}
+                aria-hidden={
+                  chartMode === 'tradingview' && isTradingViewLoaded && isChartReady
+                    ? 'false'
+                    : 'true'
+                }
+              >
+                <iframe
+                  key={tradingViewEmbedUrl}
+                  title="TradingView BTC/USDT chart"
+                  src={tradingViewEmbedUrl}
+                  allowFullScreen
+                  loading="lazy"
+                  onLoad={handleTradingViewLoad}
+                  onError={handleTradingViewError}
+                  sandbox="allow-scripts allow-same-origin allow-popups"
+                />
+              </div>
+              <div
                 ref={chartContainerRef}
-                className="timeline-insights__chart-surface"
-                aria-hidden={isChartReady ? 'false' : 'true'}
+                className={`timeline-insights__chart-surface${
+                  chartMode === 'lightweight' ? '' : ' is-hidden'
+                }`}
+                aria-hidden={
+                  chartMode === 'lightweight' && isChartReady ? 'false' : 'true'
+                }
               />
-              {!isChartReady && (
+              {(!isChartReady || chartStatusMessage) && (
                 <div className="timeline-insights__chart-status" role="status">
-                  Loading lightweight chart…
+                  {chartStatusMessage || 'Preparing chart…'}
                 </div>
               )}
             </div>
           </div>
-          <p className="timeline-insights__footnote">
-            Data shown is simulated for demonstration purposes.
-          </p>
+          <p className="timeline-insights__footnote">{chartFootnote}</p>
         </div>
       </aside>
     </>
