@@ -67,6 +67,14 @@ export default function TimelineBar({
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
   const [isChartReady, setIsChartReady] = React.useState(false);
+  const animationFrameRef = React.useRef(null);
+  const [chartData, setChartData] = React.useState(null);
+  const [chartStatusMessage, setChartStatusMessage] = React.useState(
+    'Loading lightweight chart…'
+  );
+  const [chartFootnote, setChartFootnote] = React.useState(
+    'Data shown is simulated for demonstration purposes.'
+  );
   const chartResourcesRef = React.useRef({
     chart: null,
     candleSeries: null,
@@ -111,6 +119,15 @@ export default function TimelineBar({
   };
 
   const insightsPanelId = 'timeline-insights-panel';
+
+  React.useEffect(() => {
+    if (!isInsightsOpen) {
+      setIsChartReady(false);
+      setChartStatusMessage('Loading lightweight chart…');
+      setChartFootnote('Data shown is simulated for demonstration purposes.');
+      setChartData(null);
+    }
+  }, [isInsightsOpen]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -190,6 +207,10 @@ export default function TimelineBar({
         return;
       }
 
+      setIsChartReady(false);
+      setChartStatusMessage('Loading lightweight chart…');
+      setChartFootnote('Data shown is simulated for demonstration purposes.');
+
       const container = chartContainerRef.current;
       if (!container) {
         return;
@@ -215,108 +236,141 @@ export default function TimelineBar({
         return;
       }
 
-      const ensureDimensionsAndCreate = () => {
-        const target = chartContainerRef.current;
-        if (!target || cancelled) {
-          return;
-        }
+      const ensureDimensionsAndCreate = () =>
+        new Promise((resolve) => {
+          const attemptInitialization = () => {
+            const target = chartContainerRef.current;
+            if (!target || cancelled) {
+              if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+              }
+              resolve(false);
+              return;
+            }
 
-        const { width, height } = target.getBoundingClientRect();
-        if (!width || !height) {
-          animationFrameRef.current = requestAnimationFrame(ensureDimensionsAndCreate);
-          return;
-        }
+            const { width, height } = target.getBoundingClientRect();
+            if (!width || !height) {
+              animationFrameRef.current = requestAnimationFrame(attemptInitialization);
+              return;
+            }
 
-        if (!chartResourcesRef.current.chart) {
-          const chart = createChart(target, {
-            width,
-            height,
-            layout: {
-              background: { color: 'transparent' },
-              textColor: '#11141c',
-            },
-            grid: {
-              vertLines: { color: 'rgba(17, 20, 28, 0.08)' },
-              horzLines: { color: 'rgba(17, 20, 28, 0.08)' },
-            },
-            crosshair: {
-              mode: CrosshairMode.Normal,
-              vertLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
-              horzLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
-            },
-            rightPriceScale: {
+            const chart = chartResourcesRef.current.chart ??
+              createChart(target, {
+                width,
+                height,
+                layout: {
+                  background: { color: 'transparent' },
+                  textColor: '#11141c',
+                },
+                grid: {
+                  vertLines: { color: 'rgba(17, 20, 28, 0.08)' },
+                  horzLines: { color: 'rgba(17, 20, 28, 0.08)' },
+                },
+                crosshair: {
+                  mode: CrosshairMode.Normal,
+                  vertLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
+                  horzLine: { color: 'rgba(17, 102, 229, 0.35)', width: 1, style: 0 },
+                },
+                rightPriceScale: {
+                  borderColor: 'rgba(17, 20, 28, 0.12)',
+                },
+                timeScale: {
+                  borderColor: 'rgba(17, 20, 28, 0.12)',
+                  rightOffset: 8,
+                  barSpacing: 9,
+                },
+                localization: {
+                  dateFormat: 'MMM dd',
+                },
+              });
+
+            chart.resize(width, height);
+
+            const candleSeries =
+              chartResourcesRef.current.candleSeries ??
+              chart.addCandlestickSeries({
+                upColor: '#16a085',
+                borderUpColor: '#16a085',
+                wickUpColor: '#16a085',
+                downColor: '#e74c3c',
+                borderDownColor: '#e74c3c',
+                wickDownColor: '#e74c3c',
+                priceScaleId: 'right',
+              });
+
+            const volumeSeries =
+              chartResourcesRef.current.volumeSeries ??
+              chart.addHistogramSeries({
+                priceFormat: { type: 'volume' },
+                priceScaleId: '',
+                scaleMargins: { top: 0.8, bottom: 0 },
+              });
+
+            chart.priceScale('right').applyOptions({
               borderColor: 'rgba(17, 20, 28, 0.12)',
-            },
-            timeScale: {
-              borderColor: 'rgba(17, 20, 28, 0.12)',
-              rightOffset: 8,
-              barSpacing: 9,
-            },
-            localization: {
-              dateFormat: 'MMM dd',
-            },
-          });
+              scaleMargins: { top: 0.08, bottom: 0.28 },
+            });
+            chart.priceScale('').applyOptions({
+              scaleMargins: { top: 0.75, bottom: 0 },
+            });
 
-          const candleSeries = chart.addCandlestickSeries({
-            upColor: '#16a085',
-            borderUpColor: '#16a085',
-            wickUpColor: '#16a085',
-            downColor: '#e74c3c',
-            borderDownColor: '#e74c3c',
-            wickDownColor: '#e74c3c',
-            priceScaleId: 'right',
-          });
+            let { resizeObserver } = chartResourcesRef.current;
+            if (!resizeObserver && typeof ResizeObserver !== 'undefined') {
+              resizeObserver = new ResizeObserver((entries) => {
+                const entry = entries[0];
+                if (!entry) return;
+                const { width: nextWidth, height: nextHeight } = entry.contentRect;
+                chart.resize(nextWidth, nextHeight);
+              });
+            }
 
-          const volumeSeries = chart.addHistogramSeries({
-            priceFormat: { type: 'volume' },
-            priceScaleId: '',
-            scaleMargins: { top: 0.8, bottom: 0 },
-          });
+            if (resizeObserver) {
+              resizeObserver.disconnect();
+              resizeObserver.observe(target);
+            }
 
-          chart.priceScale('right').applyOptions({
-            borderColor: 'rgba(17, 20, 28, 0.12)',
-            scaleMargins: { top: 0.08, bottom: 0.28 },
-          });
-          chart.priceScale('').applyOptions({
-            scaleMargins: { top: 0.75, bottom: 0 },
-          });
+            chartResourcesRef.current = {
+              chart,
+              candleSeries,
+              volumeSeries,
+              resizeObserver: resizeObserver ?? null,
+            };
 
-          const resizeObserver =
-            typeof ResizeObserver !== 'undefined'
-              ? new ResizeObserver((entries) => {
-                  const entry = entries[0];
-                  if (!entry) return;
-                  const { width: nextWidth, height: nextHeight } = entry.contentRect;
-                  chart.resize(nextWidth, nextHeight);
-                })
-              : null;
-
-          if (resizeObserver) {
-            resizeObserver.observe(target);
-          }
-
-          chartResourcesRef.current = {
-            chart,
-            candleSeries,
-            volumeSeries,
-            resizeObserver,
+            animationFrameRef.current = null;
+            resolve(true);
           };
-        }
 
-        chartResourcesRef.current = {
-          chart,
-          candleSeries,
-          volumeSeries,
-          resizeObserver,
-        };
-
-        if (!cancelled) {
-          setIsChartReady(true);
-        }
-      };
+          attemptInitialization();
+        });
 
       setChartStatusMessage('Preparing chart surface…');
-      ensureDimensionsAndCreate();
+      const chartReady = await ensureDimensionsAndCreate();
+      if (!chartReady || cancelled) {
+        return;
+      }
+
+      setChartStatusMessage('Loading BTC market data…');
+      const result = await fetchCandleData();
+      if (!result || cancelled) {
+        return;
+      }
+
+      if (!cancelled) {
+        setChartData(result.dataset);
+        applyDatasetToSeries(result.dataset, theme === 'dark');
+        setChartFootnote(
+          result.isFallback
+            ? 'Using fallback BTC dataset (offline mode).'
+            : `Data sourced from ${result.label}.`
+        );
+        setChartStatusMessage('');
+        setIsChartReady(true);
+
+        if (chartResourcesRef.current.chart) {
+          chartResourcesRef.current.chart.timeScale().fitContent();
+        }
+      }
     };
 
     initializeChart();
@@ -331,7 +385,7 @@ export default function TimelineBar({
         controller.abort();
       });
     };
-  }, [applyDatasetToSeries, chartData, isInsightsOpen, theme]);
+  }, [applyDatasetToSeries, isInsightsOpen]);
 
   React.useEffect(() => {
     return () => {
@@ -531,15 +585,15 @@ export default function TimelineBar({
                 className="timeline-insights__chart-surface"
                 aria-hidden={isChartReady ? 'false' : 'true'}
               />
-              {!isChartReady && (
+              {(!isChartReady || chartStatusMessage) && (
                 <div className="timeline-insights__chart-status" role="status">
-                  Loading lightweight chart…
+                  {chartStatusMessage || 'Preparing chart…'}
                 </div>
               )}
             </div>
           </div>
           <p className="timeline-insights__footnote">
-            Data shown is simulated for demonstration purposes.
+            {chartFootnote}
           </p>
         </div>
       </aside>
