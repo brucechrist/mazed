@@ -117,6 +117,17 @@ export default function TimelineBar({
     resizeObserver: null,
   });
 
+  const [isChartReady, setIsChartReady] = React.useState(false);
+  const [chartData, setChartData] = React.useState(null);
+  const [chartStatusMessage, setChartStatusMessage] = React.useState(
+    'Loading TradingView chart…'
+  );
+  const [chartFootnote, setChartFootnote] = React.useState(
+    'Live BTC/USDT market data provided by TradingView.'
+  );
+  const [chartMode, setChartMode] = React.useState('tradingview');
+  const [isTradingViewLoaded, setIsTradingViewLoaded] = React.useState(false);
+
   const applyDatasetToSeries = React.useCallback(
     (dataset, isDarkMode) => {
       if (!chartResourcesRef.current.candleSeries || !chartResourcesRef.current.volumeSeries) {
@@ -154,6 +165,81 @@ export default function TimelineBar({
   };
 
   const insightsPanelId = 'timeline-insights-panel';
+
+  const tradingViewFrameId = React.useMemo(
+    () => `tradingview-frame-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+
+  const tradingViewEmbedUrl = React.useMemo(() => {
+    const params = new URLSearchParams({
+      frameElementId: tradingViewFrameId,
+      symbol: 'BINANCE:BTCUSDT',
+      interval: '60',
+      hidetoptoolbar: '0',
+      hidesidetoolbar: '0',
+      symboledit: '0',
+      saveimage: '0',
+      toolbarbg: theme === 'dark' ? '#131722' : '#f1f3f6',
+      studies: '[]',
+      hideideas: '1',
+      theme: theme === 'dark' ? 'dark' : 'light',
+      style: '1',
+      timezone: 'Etc/UTC',
+      enable_publishing: '0',
+      allow_symbol_change: '0',
+      details: '0',
+      calendar: '0',
+      hotlist: '0',
+      hidevolume: '0',
+      withdateranges: '1',
+      show_popup_button: '0',
+    });
+
+    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+  }, [theme, tradingViewFrameId]);
+
+  const clearFallbackTimeout = React.useCallback(() => {
+    if (fallbackTimeoutRef.current) {
+      clearTimeout(fallbackTimeoutRef.current);
+      fallbackTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleTradingViewLoad = React.useCallback(() => {
+    if (!isInsightsOpen || chartMode !== 'tradingview') {
+      return;
+    }
+
+    setIsTradingViewLoaded(true);
+    setIsChartReady(true);
+    setChartStatusMessage('');
+    clearFallbackTimeout();
+  }, [chartMode, clearFallbackTimeout, isInsightsOpen]);
+
+  const handleTradingViewError = React.useCallback(() => {
+    if (!isInsightsOpen || chartMode !== 'tradingview') {
+      return;
+    }
+
+    clearFallbackTimeout();
+    setIsTradingViewLoaded(false);
+    setChartStatusMessage('TradingView unavailable. Loading fallback preview…');
+    setChartFootnote('Data shown is simulated for demonstration purposes.');
+    setChartMode('lightweight');
+  }, [chartMode, clearFallbackTimeout, isInsightsOpen]);
+
+  React.useEffect(() => {
+    if (!isInsightsOpen) {
+      clearFallbackTimeout();
+      setIsChartReady(false);
+      setChartData(null);
+      setChartMode('tradingview');
+      setIsTradingViewLoaded(false);
+      setChartStatusMessage('Loading TradingView chart…');
+      setChartFootnote('Live BTC/USDT market data provided by TradingView.');
+    }
+  }, [clearFallbackTimeout, isInsightsOpen]);
 
   React.useEffect(() => {
     if (!isInsightsOpen) {
@@ -237,10 +323,14 @@ export default function TimelineBar({
       };
     };
 
-    const initializeChart = async () => {
-      if (!isInsightsOpen) {
-        return;
-      }
+    const ensureSurface = (createChart, CrosshairMode) =>
+      new Promise((resolve) => {
+        const attemptInitialization = () => {
+          const target = chartContainerRef.current;
+          if (!target || cancelled) {
+            resolve(false);
+            return;
+          }
 
       setIsChartReady(false);
       setChartStatusMessage('Loading lightweight chart…');
@@ -259,14 +349,11 @@ export default function TimelineBar({
           console.error('Failed to load lightweight-charts module', error);
           setIsChartReady(false);
           setChartStatusMessage('Unable to load chart preview.');
-          setChartFootnote(
-            'Install lightweight-charts to enable the BTC market preview.'
-          );
+          setChartFootnote('Install lightweight-charts to enable the BTC market preview.');
         }
         return;
       }
 
-      const { createChart, CrosshairMode } = chartsModule;
       if (cancelled) {
         return;
       }
@@ -442,8 +529,10 @@ export default function TimelineBar({
         volumeSeries: null,
         resizeObserver: null,
       };
+
+      clearFallbackTimeout();
     };
-  }, []);
+  }, [clearFallbackTimeout]);
 
   React.useEffect(() => {
     if (chartMode !== 'lightweight' || !chartResourcesRef.current.chart) {
@@ -515,9 +604,7 @@ export default function TimelineBar({
         <div className="timeline-bar__section timeline-bar__section--panel-toggle">
           <button
             type="button"
-            className={`timeline-bar__panel-toggle${
-              isInsightsOpen ? ' is-open' : ''
-            }`}
+            className={`timeline-bar__panel-toggle${isInsightsOpen ? ' is-open' : ''}`}
             onClick={toggleInsightsPanel}
             aria-controls={insightsPanelId}
             aria-expanded={isInsightsOpen}
