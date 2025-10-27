@@ -8,11 +8,18 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
     const stored = localStorage.getItem('characterStats');
     return stored ? JSON.parse(stored) : initialStats;
   });
+  const [bonus, setBonus] = useState(() => {
+    const stored = localStorage.getItem('characterBonus');
+    if (!stored) return 0;
+    const parsed = Number(JSON.parse(stored));
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
   const [userId, setUserId] = useState(null);
   const [profile, setProfile] = useState({});
   const [editing, setEditing] = useState(null);
 
-  const total = stats.reduce((sum, val) => sum + Number(val), 0);
+  const total =
+    stats.reduce((sum, val) => sum + Number(val), 0) + Number(bonus || 0);
   const starsUnlocked = Math.min(5, Math.floor(total / 100));
 
   useEffect(() => {
@@ -21,6 +28,10 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
       supabaseClient.from('profiles').update({ stats }).eq('id', userId);
     }
   }, [stats, userId]);
+
+  useEffect(() => {
+    localStorage.setItem('characterBonus', JSON.stringify(bonus));
+  }, [bonus]);
 
   useEffect(() => {
     document.body.classList.add('character-page');
@@ -55,32 +66,67 @@ export default function StatsQuadrant({ initialStats = [5, 5, 5, 5] }) {
     setStats(updated);
   };
 
+  const handleBonusChange = (value) => {
+    if (Number.isNaN(value)) {
+      setBonus(0);
+      return;
+    }
+    setBonus(value);
+  };
+
   return (
     <div className="character-scroll">
       <section className="header-section">
         <h2 className="character-title">Character</h2>
       </section>
       <section className="stats-section">
-        <div className="stats-quadrant">
-        {stats.map((stat, i) => (
+        <div className="stats-quadrant-wrapper">
           <div
-            key={i}
-            className={`quadrant ${['top-left', 'top-right', 'bottom-left', 'bottom-right'][i]}`}
-            onClick={() => setEditing(i)}
+            className="side-value"
+            onClick={() => setEditing('bonus')}
           >
-            {editing === i ? (
+            {editing === 'bonus' ? (
               <input
                 type="number"
                 autoFocus
-                value={stat}
-                onChange={(e) => handleChange(i, parseInt(e.target.value, 10))}
+                value={bonus}
+                onChange={(e) =>
+                  handleBonusChange(parseInt(e.target.value, 10))
+                }
                 onBlur={() => setEditing(null)}
               />
             ) : (
-              <span>{stat}</span>
+              <span>{bonus}</span>
             )}
           </div>
-        ))}
+          <div className="stats-quadrant">
+            {stats.map((stat, i) => (
+              <div
+                key={i}
+                className={`quadrant ${[
+                  'top-left',
+                  'top-right',
+                  'bottom-left',
+                  'bottom-right',
+                ][i]}`}
+                onClick={() => setEditing(i)}
+              >
+                {editing === i ? (
+                  <input
+                    type="number"
+                    autoFocus
+                    value={stat}
+                    onChange={(e) =>
+                      handleChange(i, parseInt(e.target.value, 10))
+                    }
+                    onBlur={() => setEditing(null)}
+                  />
+                ) : (
+                  <span>{stat}</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
         <div className="total-display">
         <div className="power-label">POWER LEVEL</div>
