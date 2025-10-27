@@ -110,12 +110,6 @@ export default function TimelineBar({
   const [chartFootnote, setChartFootnote] = React.useState(
     'Data shown is simulated for demonstration purposes.'
   );
-  const tradingViewWidgetRef = React.useRef(null);
-  const [chartMode, setChartMode] = React.useState('tradingview');
-  const tradingViewContainerId = React.useMemo(
-    () => `tradingview-container-${Math.random().toString(36).slice(2, 10)}`,
-    []
-  );
   const chartResourcesRef = React.useRef({
     chart: null,
     candleSeries: null,
@@ -167,90 +161,10 @@ export default function TimelineBar({
       setChartStatusMessage('Loading lightweight chart…');
       setChartFootnote('Data shown is simulated for demonstration purposes.');
       setChartData(null);
-      setChartMode('tradingview');
-      return;
     }
-
-    if (chartMode === 'tradingview') {
-      setChartStatusMessage('Loading TradingView widget…');
-      setChartFootnote('Live BTC/USDT market data provided by TradingView.');
-    }
-  }, [chartMode, isInsightsOpen]);
+  }, [isInsightsOpen]);
 
   React.useEffect(() => {
-    if (!isInsightsOpen || chartMode !== 'tradingview') {
-      return undefined;
-    }
-
-    let cancelled = false;
-    const container = tradingViewContainerRef.current;
-
-    if (!container) {
-      return undefined;
-    }
-
-    setIsChartReady(false);
-    setChartStatusMessage('Loading TradingView widget…');
-    setChartFootnote('Live BTC/USDT market data provided by TradingView.');
-
-    const initializeTradingView = async () => {
-      try {
-        const TradingView = await loadTradingViewScript();
-        if (cancelled || !container) {
-          return;
-        }
-
-        container.innerHTML = '';
-        const widget = new TradingView.widget({
-          autosize: true,
-          symbol: 'BINANCE:BTCUSDT',
-          interval: '60',
-          timezone: 'Etc/UTC',
-          theme: theme === 'dark' ? 'dark' : 'light',
-          style: '1',
-          locale: 'en',
-          backgroundColor: 'rgba(0, 0, 0, 0)',
-          hide_top_toolbar: false,
-          hide_side_toolbar: false,
-          allow_symbol_change: false,
-          container_id: tradingViewContainerId,
-        });
-
-        tradingViewWidgetRef.current = widget;
-        widget.onChartReady(() => {
-          if (!cancelled) {
-            setChartStatusMessage('');
-            setIsChartReady(true);
-          }
-        });
-      } catch (error) {
-        if (!cancelled) {
-          console.error('Failed to load TradingView widget', error);
-          setChartStatusMessage(
-            'TradingView widget unavailable. Loading fallback preview…'
-          );
-          setChartFootnote('Data shown is simulated for demonstration purposes.');
-          setChartMode('lightweight');
-        }
-      }
-    };
-
-    initializeTradingView();
-
-    return () => {
-      cancelled = true;
-      if (tradingViewWidgetRef.current && tradingViewWidgetRef.current.remove) {
-        tradingViewWidgetRef.current.remove();
-      }
-      tradingViewWidgetRef.current = null;
-    };
-  }, [chartMode, isInsightsOpen, theme, tradingViewContainerId]);
-
-  React.useEffect(() => {
-    if (!isInsightsOpen || chartMode === 'tradingview') {
-      return undefined;
-    }
-
     let cancelled = false;
     const abortControllers = [];
 
@@ -506,7 +420,7 @@ export default function TimelineBar({
         controller.abort();
       });
     };
-  }, [applyDatasetToSeries, chartMode, isInsightsOpen]);
+  }, [applyDatasetToSeries, isInsightsOpen]);
 
   React.useEffect(() => {
     return () => {
