@@ -675,7 +675,7 @@ export default function TimelineBar({
                   chartMode === 'lightweight' && isChartReady ? 'false' : 'true'
                 }
               />
-              {(!isChartReady || chartStatusMessage) && (
+              {!isChartReady && (
                 <div className="timeline-insights__chart-status" role="status">
                   {chartStatusMessage || 'Preparing chart…'}
                 </div>
