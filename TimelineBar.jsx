@@ -51,6 +51,40 @@ const getLightweightChartsModule = async () => {
   return lightweightChartsPromise;
 };
 
+let tradingViewScriptPromise;
+const loadTradingViewScript = async () => {
+  if (typeof window === 'undefined') {
+    throw new Error('TradingView widget requires a browser environment.');
+  }
+
+  if (window.TradingView && typeof window.TradingView.widget === 'function') {
+    return window.TradingView;
+  }
+
+  if (!tradingViewScriptPromise) {
+    tradingViewScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.async = true;
+      script.onload = () => {
+        if (window.TradingView && typeof window.TradingView.widget === 'function') {
+          resolve(window.TradingView);
+        } else {
+          tradingViewScriptPromise = null;
+          reject(new Error('TradingView widget unavailable after script load.'));
+        }
+      };
+      script.onerror = () => {
+        tradingViewScriptPromise = null;
+        reject(new Error('Failed to load TradingView widget script.'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  return tradingViewScriptPromise;
+};
+
 export default function TimelineBar({
   focusLabel = 'Tools',
   quickActions = [],
@@ -66,6 +100,7 @@ export default function TimelineBar({
   const actions = quickActions.filter(Boolean);
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
+  const tradingViewContainerRef = React.useRef(null);
   const [isChartReady, setIsChartReady] = React.useState(false);
   const animationFrameRef = React.useRef(null);
   const [chartData, setChartData] = React.useState(null);
@@ -411,7 +446,7 @@ export default function TimelineBar({
   }, []);
 
   React.useEffect(() => {
-    if (!chartResourcesRef.current.chart) {
+    if (chartMode !== 'lightweight' || !chartResourcesRef.current.chart) {
       return;
     }
 
@@ -450,21 +485,29 @@ export default function TimelineBar({
       borderDownColor: '#e74c3c',
       wickDownColor: '#e74c3c',
     });
-  }, [theme]);
+  }, [chartMode, theme]);
 
   React.useEffect(() => {
-    if (!chartResourcesRef.current.chart || !chartData) {
+    if (
+      chartMode !== 'lightweight' ||
+      !chartResourcesRef.current.chart ||
+      !chartData
+    ) {
       return;
     }
 
     applyDatasetToSeries(chartData, theme === 'dark');
-  }, [applyDatasetToSeries, chartData, theme]);
+  }, [applyDatasetToSeries, chartData, chartMode, theme]);
 
   React.useEffect(() => {
-    if (isInsightsOpen && chartResourcesRef.current.chart) {
+    if (
+      chartMode === 'lightweight' &&
+      isInsightsOpen &&
+      chartResourcesRef.current.chart
+    ) {
       chartResourcesRef.current.chart.timeScale().fitContent();
     }
-  }, [isInsightsOpen]);
+  }, [chartMode, isInsightsOpen]);
 
   return (
     <>
@@ -581,9 +624,23 @@ export default function TimelineBar({
           <div className="timeline-insights__body">
             <div className="timeline-insights__chart" role="img" aria-label="Candle and volume chart preview">
               <div
+                ref={tradingViewContainerRef}
+                id={tradingViewContainerId}
+                className={`timeline-insights__chart-surface${
+                  chartMode === 'tradingview' ? '' : ' is-hidden'
+                }`}
+                aria-hidden={
+                  chartMode === 'tradingview' && isChartReady ? 'false' : 'true'
+                }
+              />
+              <div
                 ref={chartContainerRef}
-                className="timeline-insights__chart-surface"
-                aria-hidden={isChartReady ? 'false' : 'true'}
+                className={`timeline-insights__chart-surface${
+                  chartMode === 'lightweight' ? '' : ' is-hidden'
+                }`}
+                aria-hidden={
+                  chartMode === 'lightweight' && isChartReady ? 'false' : 'true'
+                }
               />
               {(!isChartReady || chartStatusMessage) && (
                 <div className="timeline-insights__chart-status" role="status">
