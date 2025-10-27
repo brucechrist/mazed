@@ -40,74 +40,14 @@ const NORMALIZED_SAMPLE_CANDLE_DATA = SAMPLE_CANDLE_DATA.map((point) => ({
   time: Math.floor(new Date(`${point.time}T00:00:00Z`).getTime() / 1000),
 }));
 
-const normalizeChartsModule = (module) => {
-  if (!module) {
-    return null;
-  }
-
-  if (typeof module.createChart === 'function') {
-    return module;
-  }
-
-  if (module.default && typeof module.default.createChart === 'function') {
-    return module.default;
-  }
-
-  return module;
-};
-
 let lightweightChartsPromise;
 const getLightweightChartsModule = async () => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
   if (!lightweightChartsPromise) {
-    const attemptResolve = async () => {
-      try {
-        const dynamicImport =
-          typeof Function === 'function'
-            ? new Function('specifier', 'return import(specifier);')
-            : null;
-
-        if (!dynamicImport) {
-          throw new Error('Dynamic import is not supported in this environment.');
-        }
-
-        const module = await dynamicImport('lightweight-charts');
-        return normalizeChartsModule(module);
-      } catch (importError) {
-        if (window.LightweightCharts) {
-          return normalizeChartsModule(window.LightweightCharts);
-        }
-
-        const fallbackRequire =
-          typeof window !== 'undefined' && typeof window.require === 'function'
-            ? window.require
-            : typeof require === 'function'
-            ? require
-            : null;
-
-        if (fallbackRequire) {
-          try {
-            return normalizeChartsModule(
-              fallbackRequire('lightweight-charts')
-            );
-          } catch (requireError) {
-            throw importError ?? requireError;
-          }
-        }
-
-        throw importError;
-      }
-    };
-
-    lightweightChartsPromise = attemptResolve().catch((error) => {
+    lightweightChartsPromise = import('lightweight-charts').catch((error) => {
       lightweightChartsPromise = null;
       throw error;
     });
   }
-
   return lightweightChartsPromise;
 };
 
@@ -127,14 +67,6 @@ export default function TimelineBar({
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
   const [isChartReady, setIsChartReady] = React.useState(false);
-  const [chartData, setChartData] = React.useState(null);
-  const [chartStatusMessage, setChartStatusMessage] = React.useState(
-    'Loading BTC/USDT market data…'
-  );
-  const [chartFootnote, setChartFootnote] = React.useState(
-    'Awaiting BTC market data snapshot…'
-  );
-  const animationFrameRef = React.useRef(null);
   const chartResourcesRef = React.useRef({
     chart: null,
     candleSeries: null,
@@ -184,8 +116,6 @@ export default function TimelineBar({
     let cancelled = false;
     const abortControllers = [];
 
-    const supportsAbortController = typeof AbortController !== 'undefined';
-
     const fetchCandleData = async () => {
       const sources = [
         {
@@ -205,14 +135,9 @@ export default function TimelineBar({
           }
 
           setChartStatusMessage(`Fetching ${source.label}…`);
-          const controller = supportsAbortController ? new AbortController() : null;
-          if (controller) {
-            abortControllers.push(controller);
-          }
-          const response = await fetch(
-            source.url,
-            controller ? { signal: controller.signal } : undefined
-          );
+          const controller = new AbortController();
+          abortControllers.push(controller);
+          const response = await fetch(source.url, { signal: controller.signal });
           if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
           }
@@ -280,17 +205,6 @@ export default function TimelineBar({
           setChartStatusMessage('Unable to load chart preview.');
           setChartFootnote(
             'Install lightweight-charts to enable the BTC market preview.'
-          );
-        }
-        return;
-      }
-
-      if (!chartsModule) {
-        if (!cancelled) {
-          setIsChartReady(false);
-          setChartStatusMessage('Timeline insights unavailable in this view.');
-          setChartFootnote(
-            'Charts are disabled in this environment. Open the insights panel from a supported view to try again.'
           );
         }
         return;
@@ -389,53 +303,15 @@ export default function TimelineBar({
           };
         }
 
-        if (chartResourcesRef.current.chart) {
-          const isDarkMode = theme === 'dark';
-          const existingDataset = chartData;
+        chartResourcesRef.current = {
+          chart,
+          candleSeries,
+          volumeSeries,
+          resizeObserver,
+        };
 
-          const handleData = async () => {
-            try {
-              if (!existingDataset) {
-                setChartStatusMessage('Loading BTC/USDT market data…');
-                const result = await fetchCandleData();
-                if (!result || cancelled) {
-                  return;
-                }
-
-                applyDatasetToSeries(result.dataset, isDarkMode);
-                setChartData(result.dataset);
-                setChartFootnote(
-                  result.isFallback
-                    ? 'Live market data unavailable. Displaying sample BTC candles.'
-                    : `Live data · ${result.label}`
-                );
-                setIsChartReady(true);
-                setChartStatusMessage('BTC market snapshot ready.');
-                chartResourcesRef.current.chart.timeScale().fitContent();
-                return;
-              }
-
-              applyDatasetToSeries(existingDataset, isDarkMode);
-              setChartFootnote((previous) => previous || 'BTC market snapshot.');
-              setIsChartReady(true);
-              setChartStatusMessage('BTC market snapshot ready.');
-              chartResourcesRef.current.chart.timeScale().fitContent();
-            } catch (error) {
-              if (cancelled) {
-                return;
-              }
-
-              console.error('Failed to prepare timeline insights chart', error);
-              setIsChartReady(false);
-              setChartStatusMessage('Unable to render BTC preview.');
-              setChartFootnote(
-                'An unexpected error prevented the BTC market snapshot from loading.'
-              );
-            }
-          };
-
-          setChartStatusMessage('Preparing chart surface…');
-          handleData();
+        if (!cancelled) {
+          setIsChartReady(true);
         }
       };
 
@@ -657,13 +533,13 @@ export default function TimelineBar({
               />
               {!isChartReady && (
                 <div className="timeline-insights__chart-status" role="status">
-                  {chartStatusMessage}
+                  Loading lightweight chart…
                 </div>
               )}
             </div>
           </div>
           <p className="timeline-insights__footnote">
-            {chartFootnote}
+            Data shown is simulated for demonstration purposes.
           </p>
         </div>
       </aside>
