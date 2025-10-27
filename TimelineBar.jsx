@@ -58,14 +58,6 @@ export default function TimelineBar({
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
   const [isChartReady, setIsChartReady] = React.useState(false);
-  const [chartData, setChartData] = React.useState(null);
-  const [chartStatusMessage, setChartStatusMessage] = React.useState(
-    'Loading BTC/USDT market data…'
-  );
-  const [chartFootnote, setChartFootnote] = React.useState(
-    'Awaiting BTC market data snapshot…'
-  );
-  const animationFrameRef = React.useRef(null);
   const chartResourcesRef = React.useRef({
     chart: null,
     candleSeries: null,
@@ -291,38 +283,15 @@ export default function TimelineBar({
           };
         }
 
-        if (chartResourcesRef.current.chart) {
-          const isDarkMode = theme === 'dark';
-          const existingDataset = chartData;
+        chartResourcesRef.current = {
+          chart,
+          candleSeries,
+          volumeSeries,
+          resizeObserver,
+        };
 
-          const handleData = async () => {
-            if (!existingDataset) {
-              setChartStatusMessage('Loading BTC/USDT market data…');
-              const result = await fetchCandleData();
-              if (!result || cancelled) {
-                return;
-              }
-
-              applyDatasetToSeries(result.dataset, isDarkMode);
-              setChartData(result.dataset);
-              setChartFootnote(
-                result.isFallback
-                  ? 'Live market data unavailable. Displaying sample BTC candles.'
-                  : `Live data · ${result.label}`
-              );
-              setIsChartReady(true);
-              chartResourcesRef.current.chart.timeScale().fitContent();
-              return;
-            }
-
-            applyDatasetToSeries(existingDataset, isDarkMode);
-            setChartFootnote((previous) => previous || 'BTC market snapshot.');
-            setIsChartReady(true);
-            chartResourcesRef.current.chart.timeScale().fitContent();
-          };
-
-          setChartStatusMessage('Preparing chart surface…');
-          handleData();
+        if (!cancelled) {
+          setIsChartReady(true);
         }
       };
 
@@ -544,13 +513,13 @@ export default function TimelineBar({
               />
               {!isChartReady && (
                 <div className="timeline-insights__chart-status" role="status">
-                  {chartStatusMessage}
+                  Loading lightweight chart…
                 </div>
               )}
             </div>
           </div>
           <p className="timeline-insights__footnote">
-            {chartFootnote}
+            Data shown is simulated for demonstration purposes.
           </p>
         </div>
       </aside>
