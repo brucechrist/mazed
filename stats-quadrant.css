@@ -11,11 +11,16 @@ body.character-page {
   background-position: center;
 }
 
+.stats-quadrant-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
 .stats-quadrant {
   position: relative;
   width: 300px;
   height: 300px;
-  margin-left: 60px;
 }
 
 .stats-quadrant::before,
@@ -67,6 +72,33 @@ body.character-page {
 }
 
 .quadrant input:focus {
+  outline: 1px solid #fff;
+}
+
+.side-value {
+  color: #fff;
+  font-size: 3.2em;
+  font-family: 'ExodusD-Regular', sans-serif;
+  cursor: pointer;
+  text-shadow: 2px 2px 4px #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.side-value input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: center;
+  font-size: inherit;
+  font-family: inherit;
+  text-shadow: 2px 2px 4px #000;
+}
+
+.side-value input:focus {
   outline: 1px solid #fff;
 }
 
