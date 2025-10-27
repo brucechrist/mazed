@@ -52,6 +52,7 @@ export default function TimelineBar({
   const actions = quickActions.filter(Boolean);
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
+  const [isChartReady, setIsChartReady] = React.useState(false);
   const chartResourcesRef = React.useRef({
     chart: null,
     candleSeries: null,
@@ -188,6 +189,10 @@ export default function TimelineBar({
           volumeSeries,
           resizeObserver,
         };
+
+        if (!cancelled) {
+          setIsChartReady(true);
+        }
       };
 
       ensureDimensionsAndCreate();
@@ -394,10 +399,22 @@ export default function TimelineBar({
             </button>
           </div>
           <div className="timeline-insights__body">
-            <p className="timeline-insights__placeholder">
-              Lightweight charts and metrics will appear here.
-            </p>
+            <div className="timeline-insights__chart" role="img" aria-label="Candle and volume chart preview">
+              <div
+                ref={chartContainerRef}
+                className="timeline-insights__chart-surface"
+                aria-hidden={isChartReady ? 'false' : 'true'}
+              />
+              {!isChartReady && (
+                <div className="timeline-insights__chart-status" role="status">
+                  Loading lightweight chart…
+                </div>
+              )}
+            </div>
           </div>
+          <p className="timeline-insights__footnote">
+            Data shown is simulated for demonstration purposes.
+          </p>
         </div>
       </aside>
     </>
