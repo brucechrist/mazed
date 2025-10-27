@@ -41,7 +41,8 @@ const NORMALIZED_SAMPLE_CANDLE_DATA = SAMPLE_CANDLE_DATA.map((point) => ({
 }));
 
 let lightweightChartsPromise;
-const getLightweightChartsModule = async () => {
+
+const getLightweightChartsModule = () => {
   if (!lightweightChartsPromise) {
     lightweightChartsPromise = import('lightweight-charts').catch((error) => {
       lightweightChartsPromise = null;
@@ -116,6 +117,8 @@ export default function TimelineBar({
     volumeSeries: null,
     resizeObserver: null,
   });
+  const datasetRef = React.useRef(null);
+  const themeRef = React.useRef(theme);
 
   const [isChartReady, setIsChartReady] = React.useState(false);
   const [chartData, setChartData] = React.useState(null);
@@ -311,17 +314,21 @@ export default function TimelineBar({
         }
       }
 
-      if (cancelled) {
-        return null;
-      }
+    const { chart, resizeObserver } = chartResourcesRef.current;
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+    if (chart) {
+      chart.remove();
+    }
 
-      setChartStatusMessage('Loading fallback BTC dataset…');
-      return {
-        dataset: NORMALIZED_SAMPLE_CANDLE_DATA,
-        label: 'Sample BTC dataset (offline fallback)',
-        isFallback: true,
-      };
+    chartResourcesRef.current = {
+      chart: null,
+      candleSeries: null,
+      volumeSeries: null,
+      resizeObserver: null,
     };
+  }, []);
 
     const ensureSurface = (createChart, CrosshairMode) =>
       new Promise((resolve) => {
@@ -509,19 +516,13 @@ export default function TimelineBar({
     };
   }, [applyDatasetToSeries, isInsightsOpen]);
 
-  React.useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+  const toggleInsightsPanel = () => {
+    setIsInsightsOpen((prev) => !prev);
+  };
 
-      const { chart, resizeObserver } = chartResourcesRef.current;
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      if (chart) {
-        chart.remove();
-      }
+  const closeInsightsPanel = () => {
+    setIsInsightsOpen(false);
+  };
 
       chartResourcesRef.current = {
         chart: null,
@@ -541,17 +542,21 @@ export default function TimelineBar({
 
     const isDark = theme === 'dark';
 
-    chartResourcesRef.current.chart.applyOptions({
+    chart.applyOptions({
       layout: {
         background: { color: 'transparent' },
         textColor: isDark ? '#f1f3fb' : '#11141c',
       },
       grid: {
         vertLines: {
-          color: isDark ? 'rgba(241, 243, 251, 0.08)' : 'rgba(17, 20, 28, 0.08)',
+          color: isDark
+            ? 'rgba(241, 243, 251, 0.08)'
+            : 'rgba(17, 20, 28, 0.08)',
         },
         horzLines: {
-          color: isDark ? 'rgba(241, 243, 251, 0.08)' : 'rgba(17, 20, 28, 0.08)',
+          color: isDark
+            ? 'rgba(241, 243, 251, 0.08)'
+            : 'rgba(17, 20, 28, 0.08)',
         },
       },
       rightPriceScale: {
@@ -566,7 +571,7 @@ export default function TimelineBar({
       },
     });
 
-    chartResourcesRef.current.candleSeries.applyOptions({
+    candleSeries.applyOptions({
       upColor: isDark ? '#2ecc71' : '#16a085',
       borderUpColor: isDark ? '#2ecc71' : '#16a085',
       wickUpColor: isDark ? '#2ecc71' : '#16a085',
@@ -631,9 +636,7 @@ export default function TimelineBar({
             <button
               key={action.label}
               type="button"
-              className={`timeline-bar__action${
-                action.active ? ' is-active' : ''
-              }`}
+              className={`timeline-bar__action${action.active ? ' is-active' : ''}`}
               onClick={() => action.onClick && action.onClick()}
               disabled={!action.onClick}
               aria-pressed={action.active}
@@ -709,7 +712,11 @@ export default function TimelineBar({
             </button>
           </div>
           <div className="timeline-insights__body">
-            <div className="timeline-insights__chart" role="img" aria-label="Candle and volume chart preview">
+            <div
+              className="timeline-insights__chart"
+              role="img"
+              aria-label="Candle and volume chart preview"
+            >
               <div
                 ref={tradingViewContainerRef}
                 id={tradingViewContainerId}
