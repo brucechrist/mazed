@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import nlp from 'compromise';
@@ -35,6 +36,13 @@ const annotationToneOptions = [
   },
 ];
 
+const DEFAULT_SIDEBAR_WIDTH = 240;
+const DEFAULT_ANALYSIS_WIDTH = 360;
+const MIN_SIDEBAR_WIDTH = 180;
+const MIN_ANALYSIS_WIDTH = 260;
+const MIN_MAIN_WIDTH = 420;
+const HANDLE_WIDTH = 12;
+
 export default function Typomancy({ onBack }) {
   const [text, setText] = useState('');
   const [results, setResults] = useState(null);
@@ -52,6 +60,111 @@ export default function Typomancy({ onBack }) {
     }
   });
   const [annotationDraft, setAnnotationDraft] = useState(null);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [analysisWidth, setAnalysisWidth] = useState(DEFAULT_ANALYSIS_WIDTH);
+  const [activeResize, setActiveResize] = useState(null);
+
+  const shellRef = useRef(null);
+  const sidebarWidthRef = useRef(DEFAULT_SIDEBAR_WIDTH);
+  const analysisWidthRef = useRef(DEFAULT_ANALYSIS_WIDTH);
+
+  useEffect(() => {
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    analysisWidthRef.current = analysisWidth;
+  }, [analysisWidth]);
+
+  useEffect(() => {
+    if (!activeResize) {
+      return;
+    }
+
+    const handlePointerMove = (event) => {
+      const point = 'touches' in event ? event.touches[0] : event;
+      if (!point) {
+        return;
+      }
+
+      if ('touches' in event && event.cancelable) {
+        event.preventDefault();
+      }
+
+      const shell = shellRef.current;
+      if (!shell) {
+        return;
+      }
+
+      const rect = shell.getBoundingClientRect();
+      const availableWidth = rect.width - HANDLE_WIDTH * 2;
+
+      if (activeResize === 'sidebar') {
+        const analysis = analysisWidthRef.current;
+        const rawWidth = point.clientX - rect.left - HANDLE_WIDTH / 2;
+        const maxSidebar = Math.max(
+          MIN_SIDEBAR_WIDTH,
+          availableWidth - MIN_MAIN_WIDTH - analysis
+        );
+        const nextWidth = Math.min(
+          Math.max(rawWidth, MIN_SIDEBAR_WIDTH),
+          maxSidebar
+        );
+        sidebarWidthRef.current = nextWidth;
+        setSidebarWidth(nextWidth);
+      } else if (activeResize === 'analysis') {
+        const sidebar = sidebarWidthRef.current;
+        const rawWidth = rect.right - point.clientX - HANDLE_WIDTH / 2;
+        const maxAnalysis = Math.max(
+          MIN_ANALYSIS_WIDTH,
+          availableWidth - MIN_MAIN_WIDTH - sidebar
+        );
+        const nextWidth = Math.min(
+          Math.max(rawWidth, MIN_ANALYSIS_WIDTH),
+          maxAnalysis
+        );
+        analysisWidthRef.current = nextWidth;
+        setAnalysisWidth(nextWidth);
+      }
+    };
+
+    const stopResizing = () => {
+      setActiveResize(null);
+    };
+
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('touchmove', handlePointerMove);
+    window.addEventListener('mouseup', stopResizing);
+    window.addEventListener('touchend', stopResizing);
+    window.addEventListener('touchcancel', stopResizing);
+    window.addEventListener('blur', stopResizing);
+
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('mouseup', stopResizing);
+      window.removeEventListener('touchend', stopResizing);
+      window.removeEventListener('touchcancel', stopResizing);
+      window.removeEventListener('blur', stopResizing);
+    };
+  }, [activeResize]);
+
+  useEffect(() => {
+    if (!activeResize || typeof document === 'undefined') {
+      return;
+    }
+
+    const { body } = document;
+    const previousUserSelect = body.style.userSelect;
+    const previousCursor = body.style.cursor;
+    body.style.userSelect = 'none';
+    body.style.cursor = 'col-resize';
+
+    return () => {
+      body.style.userSelect = previousUserSelect;
+      body.style.cursor = previousCursor;
+    };
+  }, [activeResize]);
 
   const applyTextUpdate = useCallback(
     (valueOrUpdater) => {
@@ -207,6 +320,27 @@ export default function Typomancy({ onBack }) {
     if (!minutes) return 'Less than a minute';
     if (minutes < 1) return `${Math.max(1, Math.round(minutes * 60))} sec`;
     return minutes < 10 ? `${minutes.toFixed(1)} min` : `${Math.round(minutes)} min`;
+  }, []);
+
+  const startResize = useCallback(
+    (panel) => (event) => {
+      event.preventDefault();
+      if (event.type === 'touchstart') {
+        event.stopPropagation();
+      }
+      setActiveResize(panel);
+    },
+    []
+  );
+
+  const resetSidebarWidth = useCallback(() => {
+    sidebarWidthRef.current = DEFAULT_SIDEBAR_WIDTH;
+    setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+  }, []);
+
+  const resetAnalysisWidth = useCallback(() => {
+    analysisWidthRef.current = DEFAULT_ANALYSIS_WIDTH;
+    setAnalysisWidth(DEFAULT_ANALYSIS_WIDTH);
   }, []);
 
   const computeAnnotationIndices = useCallback((sentenceText, annotation) => {
@@ -791,7 +925,13 @@ export default function Typomancy({ onBack }) {
 
   return (
     <div className="typomancy">
-      <div className="typomancy-shell">
+      <div
+        className="typomancy-shell"
+        ref={shellRef}
+        style={{
+          gridTemplateColumns: `${sidebarWidth}px ${HANDLE_WIDTH}px 1fr ${HANDLE_WIDTH}px ${analysisWidth}px`,
+        }}
+      >
         <aside className="tool-sidebar">
           <button className="back-button" onClick={onBack}>
             ← Back
@@ -838,6 +978,15 @@ export default function Typomancy({ onBack }) {
             </p>
           )}
         </aside>
+        <div
+          className={`resize-handle sidebar ${activeResize === 'sidebar' ? 'active' : ''}`}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize tool sidebar"
+          onMouseDown={startResize('sidebar')}
+          onTouchStart={startResize('sidebar')}
+          onDoubleClick={resetSidebarWidth}
+        />
         <main className="writing-panel">
           <header>
             <h1>Spellbinding Draft</h1>
@@ -869,6 +1018,15 @@ export default function Typomancy({ onBack }) {
             </div>
           )}
         </main>
+        <div
+          className={`resize-handle analysis ${activeResize === 'analysis' ? 'active' : ''}`}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize analysis panel"
+          onMouseDown={startResize('analysis')}
+          onTouchStart={startResize('analysis')}
+          onDoubleClick={resetAnalysisWidth}
+        />
         <section className="analysis-panel">{renderAnalysis()}</section>
       </div>
     </div>
