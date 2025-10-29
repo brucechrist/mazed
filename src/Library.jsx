@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -1232,6 +1233,16 @@ export default function Library({ onBack }) {
     setWords(w);
     localStorage.setItem('mazedWords', JSON.stringify(w));
   };
+
+  const handleWordDragStart = useCallback((event, wordText) => {
+    if (!event?.dataTransfer) {
+      return;
+    }
+
+    const textPayload = typeof wordText === 'string' ? wordText : '';
+    event.dataTransfer.setData('text/plain', textPayload);
+    event.dataTransfer.effectAllowed = 'copy';
+  }, []);
 
   const saveSounds = async (list) => {
     const metadataOnly = list.map(getSoundMetadata);
@@ -3466,6 +3477,8 @@ export default function Library({ onBack }) {
                       className="word-card"
                       data-item-type="word"
                       data-pretty-symbol={typeInfo.symbol}
+                      draggable
+                      onDragStart={(event) => handleWordDragStart(event, w.text)}
                       onClick={() => openWordInspector(w)}
                     >
                       <span className="word-card-text">{w.text || 'Untitled'}</span>
