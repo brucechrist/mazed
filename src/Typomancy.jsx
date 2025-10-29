@@ -67,6 +67,7 @@ export default function Typomancy({ onBack }) {
   const shellRef = useRef(null);
   const sidebarWidthRef = useRef(DEFAULT_SIDEBAR_WIDTH);
   const analysisWidthRef = useRef(DEFAULT_ANALYSIS_WIDTH);
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     sidebarWidthRef.current = sidebarWidth;
@@ -179,6 +180,64 @@ export default function Typomancy({ onBack }) {
       }
     },
     [autoAnalyze]
+  );
+
+  const handleTextDragOver = useCallback((event) => {
+    if (!event?.dataTransfer) {
+      return;
+    }
+
+    const types = event.dataTransfer.types;
+    const hasPlainText =
+      !!types &&
+      ((typeof types.includes === 'function' && types.includes('text/plain')) ||
+        (typeof types.contains === 'function' && types.contains('text/plain')) ||
+        Array.from(types).includes('text/plain'));
+
+    if (hasPlainText) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  const handleTextDrop = useCallback(
+    (event) => {
+      const target = textareaRef.current;
+      if (!target || !event?.dataTransfer) {
+        return;
+      }
+
+      const droppedText = event.dataTransfer.getData('text/plain');
+      if (typeof droppedText !== 'string' || droppedText.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const selectionStart = target.selectionStart ?? target.value.length;
+      const selectionEnd = target.selectionEnd ?? selectionStart;
+      const currentValue = target.value;
+
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        droppedText +
+        currentValue.slice(selectionEnd);
+
+      applyTextUpdate(nextValue);
+
+      const nextCursor = selectionStart + droppedText.length;
+      requestAnimationFrame(() => {
+        if (!textareaRef.current) {
+          return;
+        }
+
+        textareaRef.current.focus();
+        textareaRef.current.selectionStart = nextCursor;
+        textareaRef.current.selectionEnd = nextCursor;
+      });
+    },
+    [applyTextUpdate]
   );
 
   useEffect(() => {
@@ -994,8 +1053,11 @@ export default function Typomancy({ onBack }) {
           </header>
           <textarea
             className="text-input"
+            ref={textareaRef}
             value={text}
             onChange={(event) => applyTextUpdate(event.target.value)}
+            onDragOver={handleTextDragOver}
+            onDrop={handleTextDrop}
             placeholder="Summon your prose here..."
           />
           <div className="quick-actions">
