@@ -40,6 +40,43 @@ const NORMALIZED_SAMPLE_CANDLE_DATA = SAMPLE_CANDLE_DATA.map((point) => ({
   time: Math.floor(new Date(`${point.time}T00:00:00Z`).getTime() / 1000),
 }));
 
+const MOOD_LEVELS = {
+  vibrant: { label: 'Vibrant', color: '#2ecc71' },
+  balanced: { label: 'Balanced', color: '#1abc9c' },
+  reflective: { label: 'Reflective', color: '#f1c40f' },
+  depleted: { label: 'Depleted', color: '#e67e22' },
+  overwhelmed: { label: 'Overwhelmed', color: '#e74c3c' },
+  serene: { label: 'Serene', color: '#8e44ad' },
+  reset: { label: 'Reset', color: '#95a5a6' },
+};
+
+const SAMPLE_MOOD_TIMELINE = [
+  { id: 'segment-01', spanLabel: '05:00', level: 'serene', note: 'Deep sleep' },
+  { id: 'segment-02', spanLabel: '06:00', level: 'serene', note: 'Morning routine' },
+  { id: 'segment-03', spanLabel: '07:00', level: 'balanced', note: 'Breakfast & planning' },
+  { id: 'segment-04', spanLabel: '08:00', level: 'vibrant', note: 'Creative focus' },
+  { id: 'segment-05', spanLabel: '09:00', level: 'vibrant', note: 'Deep work' },
+  { id: 'segment-06', spanLabel: '10:00', level: 'balanced', note: 'Team sync' },
+  { id: 'segment-07', spanLabel: '11:00', level: 'balanced', note: 'Flow continues' },
+  { id: 'segment-08', spanLabel: '12:00', level: 'reflective', note: 'Midday review' },
+  { id: 'segment-09', spanLabel: '13:00', level: 'reset', note: 'Break & reset' },
+  { id: 'segment-10', spanLabel: '14:00', level: 'vibrant', note: 'Strategy session' },
+  { id: 'segment-11', spanLabel: '15:00', level: 'balanced', note: 'Build momentum' },
+  { id: 'segment-12', spanLabel: '16:00', level: 'depleted', note: 'Energy dip' },
+  { id: 'segment-13', spanLabel: '17:00', level: 'overwhelmed', note: 'Unexpected fire drill' },
+  { id: 'segment-14', spanLabel: '18:00', level: 'reflective', note: 'Debrief' },
+  { id: 'segment-15', spanLabel: '19:00', level: 'balanced', note: 'Workout' },
+  { id: 'segment-16', spanLabel: '20:00', level: 'vibrant', note: 'Dinner with friends' },
+  { id: 'segment-17', spanLabel: '21:00', level: 'reflective', note: 'Journaling' },
+  { id: 'segment-18', spanLabel: '22:00', level: 'serene', note: 'Wind-down' },
+  { id: 'segment-19', spanLabel: '23:00', level: 'serene', note: 'Resting' },
+  { id: 'segment-20', spanLabel: '00:00', level: 'serene', note: 'Sleep' },
+  { id: 'segment-21', spanLabel: '01:00', level: 'serene', note: 'Sleep' },
+  { id: 'segment-22', spanLabel: '02:00', level: 'serene', note: 'Sleep' },
+  { id: 'segment-23', spanLabel: '03:00', level: 'serene', note: 'Sleep' },
+  { id: 'segment-24', spanLabel: '04:00', level: 'serene', note: 'Sleep' },
+];
+
 let lightweightChartsPromise;
 
 const getLightweightChartsModule = () => {
@@ -150,6 +187,22 @@ export default function TimelineBar({
     volumeSeries: null,
     resizeObserver: null,
   });
+
+  const moodSegments = React.useMemo(
+    () =>
+      SAMPLE_MOOD_TIMELINE.map((segment) => {
+        const levelMeta = MOOD_LEVELS[segment.level] ?? {
+          label: segment.level,
+          color: '#7f8c8d',
+        };
+
+        return {
+          ...segment,
+          levelMeta,
+        };
+      }),
+    []
+  );
 
   const insightsPanelId = 'timeline-insights-panel';
   const tradingViewFrameId = React.useMemo(
@@ -580,6 +633,29 @@ export default function TimelineBar({
               <span>{action.label}</span>
             </button>
           ))}
+        </div>
+        <div
+          className="timeline-bar__section timeline-bar__section--mood"
+          role="group"
+          aria-label="Mood timeline prototype"
+        >
+          <div className="timeline-bar__label">Mood & Moments</div>
+          <div className="timeline-bar__mood-track" role="list" aria-label="Mood timeline segments">
+            {moodSegments.map((segment) => (
+              <span
+                key={segment.id}
+                className="timeline-bar__mood-segment"
+                role="listitem"
+                aria-label={`${segment.spanLabel}: ${segment.levelMeta.label}${
+                  segment.note ? ` – ${segment.note}` : ''
+                }`}
+                title={`${segment.spanLabel} • ${segment.levelMeta.label}${
+                  segment.note ? ` – ${segment.note}` : ''
+                }`}
+                style={{ '--mood-color': segment.levelMeta.color }}
+              />
+            ))}
+          </div>
         </div>
         <div className="timeline-bar__section timeline-bar__section--toggles">
           <button
