@@ -639,12 +639,15 @@ export default function TimelineBar({
           role="group"
           aria-label="Mood timeline prototype"
         >
-          <div className="timeline-bar__label">Mood & Moments</div>
-          <div className="timeline-bar__mood-track" role="list" aria-label="Mood timeline segments">
+          <div className="timeline-bar__mood-header">
+            <div className="timeline-bar__label">Mood & Moments</div>
+            <span className="timeline-bar__mood-caption">Snapshot</span>
+          </div>
+          <div className="timeline-bar__mood-grid" role="list" aria-label="Mood timeline segments">
             {moodSegments.map((segment) => (
               <span
                 key={segment.id}
-                className="timeline-bar__mood-segment"
+                className="timeline-bar__mood-cell"
                 role="listitem"
                 aria-label={`${segment.spanLabel}: ${segment.levelMeta.label}${
                   segment.note ? ` – ${segment.note}` : ''
