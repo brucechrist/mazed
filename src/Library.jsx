@@ -1239,6 +1239,7 @@ export default function Library({ onBack }) {
 
       const loaded = [];
       let metadataNeedsUpdate = false;
+      const thumbnailPromises = [];
 
       for (const entry of parsed) {
         if (!entry || typeof entry.id === 'undefined') continue;
@@ -1273,9 +1274,10 @@ export default function Library({ onBack }) {
 
       if (cancelled) return;
 
-      setSounds(loaded.map(({ base, dataUrl }) => ({ ...base, dataUrl })));
+      const toSoundList = () =>
+        loaded.map(({ base, dataUrl }) => ({ ...base, dataUrl }));
 
-      if (metadataNeedsUpdate) {
+      const persistMetadata = () => {
         const metadata = loaded.map(({ base, stored, dataUrl }) =>
           stored ? base : { ...base, dataUrl }
         );
@@ -1284,6 +1286,24 @@ export default function Library({ onBack }) {
         } catch (err) {
           console.error('Failed to update sound metadata', err);
         }
+      };
+
+      setSounds(toSoundList());
+
+      if (metadataNeedsUpdate) {
+        persistMetadata();
+      }
+
+      if (thumbnailPromises.length) {
+        Promise.all(thumbnailPromises).then((results) => {
+          if (cancelled) return;
+          const generatedAny = results.some(Boolean);
+          if (!generatedAny) {
+            return;
+          }
+          setSounds(toSoundList());
+          persistMetadata();
+        });
       }
     };
 
