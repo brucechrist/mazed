@@ -1268,28 +1268,8 @@ export default function Library({ onBack }) {
           metadataNeedsUpdate = true;
         }
         const enrichedBase = { ...base, mimeType: resolvedMime };
-        const record = { base: enrichedBase, dataUrl, stored };
 
-        loaded.push(record);
-
-        const needsThumbnail =
-          !enrichedBase.thumbnail &&
-          resolvedMime.startsWith('video/') &&
-          !!dataUrl;
-
-        if (needsThumbnail) {
-          const promise = generateVideoThumbnail(dataUrl)
-            .then((thumb) => {
-              if (!thumb) return false;
-              record.base = { ...record.base, thumbnail: thumb };
-              return true;
-            })
-            .catch((err) => {
-              console.error('Failed to create saved video thumbnail', err);
-              return false;
-            });
-          thumbnailPromises.push(promise);
-        }
+        loaded.push({ base: enrichedBase, dataUrl, stored });
       }
 
       if (cancelled) return;
