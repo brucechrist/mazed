@@ -666,6 +666,14 @@ function VideoPreview({ src, poster, title }) {
   useEffect(() => () => pause(), [pause]);
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      try {
+        video.load();
+      } catch {
+        // Ignore load errors so we can still show the poster once available
+      }
+    }
     pause(true);
   }, [src, poster, pause]);
 
