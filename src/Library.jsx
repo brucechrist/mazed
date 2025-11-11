@@ -1268,6 +1268,16 @@ export default function Library({ onBack }) {
           metadataNeedsUpdate = true;
         }
         const enrichedBase = { ...base, mimeType: resolvedMime };
+        if (resolvedMime.startsWith('video/') && !enrichedBase.thumbnail) {
+          const promise = generateVideoThumbnail(dataUrl).then((thumb) => {
+            if (!thumb) {
+              return false;
+            }
+            enrichedBase.thumbnail = thumb;
+            return true;
+          });
+          thumbnailPromises.push(promise);
+        }
 
         loaded.push({ base: enrichedBase, dataUrl, stored });
       }
