@@ -665,6 +665,10 @@ function VideoPreview({ src, poster, title }) {
 
   useEffect(() => () => pause(), [pause]);
 
+  useEffect(() => {
+    pause(true);
+  }, [src, poster, pause]);
+
   const ensurePlaying = useCallback(
     (event) => {
       event.stopPropagation();
@@ -724,6 +728,7 @@ function VideoPreview({ src, poster, title }) {
       aria-label={label}
     >
       <video
+        key={poster || src}
         ref={videoRef}
         src={src}
         poster={poster || undefined}
