@@ -2420,7 +2420,9 @@ export default function Library({ onBack }) {
           }
         }}
       >
-        {snd.thumbnail ? (
+        {isVideo ? (
+          <VideoPreview src={snd.dataUrl} poster={snd.thumbnail} title={snd.title} />
+        ) : snd.thumbnail ? (
           <img src={snd.thumbnail} alt={snd.title} draggable={false} />
         ) : (
           <div className="sound-placeholder">{placeholderIcon}</div>
@@ -2435,13 +2437,7 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          {isVideo ? (
-            <VideoPreview
-              src={snd.dataUrl}
-              poster={snd.thumbnail}
-              title={snd.title}
-            />
-          ) : (
+          {isVideo ? null : (
             <audio
               controls
               src={snd.dataUrl}
