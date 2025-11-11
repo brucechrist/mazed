@@ -40,29 +40,23 @@ const generateVideoThumbnail = (dataUrl) =>
     }
 
     const video = document.createElement('video');
-    let resolved = false;
-
     const cleanup = () => {
       video.pause();
-      video.removeEventListener('loadeddata', handleLoaded);
-      video.removeEventListener('error', handleError);
       video.removeAttribute('src');
       video.load();
       video.remove();
     };
 
-    const finalize = (thumb) => {
-      if (resolved) return;
-      resolved = true;
-      cleanup();
-      resolve(thumb || null);
-    };
-
     const handleError = () => {
-      finalize(null);
+      cleanup();
+      resolve(null);
     };
 
-    const captureFrame = (fallbackTime) => {
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+
+    const handleLoaded = () => {
       try {
         const width = video.videoWidth || 320;
         const height = video.videoHeight || Math.round((width * 9) / 16);
@@ -71,72 +65,22 @@ const generateVideoThumbnail = (dataUrl) =>
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          finalize(null);
+          cleanup();
+          resolve(null);
           return;
         }
         ctx.drawImage(video, 0, 0, width, height);
-        const imageData = ctx.getImageData(0, 0, width, height).data;
-        let hasVisiblePixel = false;
-        for (let i = 0; i < imageData.length; i += 4) {
-          const alpha = imageData[i + 3];
-          if (alpha < 16) {
-            continue;
-          }
-          if (imageData[i] > 16 || imageData[i + 1] > 16 || imageData[i + 2] > 16) {
-            hasVisiblePixel = true;
-            break;
-          }
-        }
-        if (!hasVisiblePixel && typeof fallbackTime === 'number') {
-          attemptCapture(fallbackTime, null);
-          return;
-        }
         const thumb = canvas.toDataURL('image/png');
-        finalize(thumb);
+        cleanup();
+        resolve(thumb);
       } catch (err) {
         console.error('Failed to capture video thumbnail', err);
-        finalize(null);
+        handleError();
       }
     };
 
-    const attemptCapture = (time, fallbackTime) => {
-      const executeCapture = () => captureFrame(fallbackTime);
-      if (typeof time === 'number' && Number.isFinite(time) && time >= 0) {
-        const handleSeeked = () => {
-          video.removeEventListener('seeked', handleSeeked);
-          executeCapture();
-        };
-        video.addEventListener('seeked', handleSeeked, { once: true });
-        try {
-          video.currentTime = time;
-        } catch (err) {
-          console.warn('Seeking video thumbnail failed, using first frame', err);
-          video.removeEventListener('seeked', handleSeeked);
-          executeCapture();
-        }
-      } else {
-        executeCapture();
-      }
-    };
-
-    const handleLoaded = () => {
-      video.removeEventListener('loadeddata', handleLoaded);
-      const duration = Number.isFinite(video.duration) ? video.duration : 0;
-      const offsetTime = Math.min(
-        Math.max(duration * 0.05, 0.15),
-        duration > 0 ? Math.max(duration - 0.1, 0.15) : 0.15
-      );
-      const hasOffset = Number.isFinite(offsetTime) && offsetTime > 0.05;
-      attemptCapture(hasOffset ? offsetTime : 0, hasOffset ? 0 : null);
-    };
-
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'auto';
-    video.crossOrigin = 'anonymous';
-
-    video.addEventListener('loadeddata', handleLoaded);
-    video.addEventListener('error', handleError);
+    video.addEventListener('loadeddata', handleLoaded, { once: true });
+    video.addEventListener('error', handleError, { once: true });
     video.src = dataUrl;
     try {
       video.load();
@@ -1324,28 +1268,8 @@ export default function Library({ onBack }) {
           metadataNeedsUpdate = true;
         }
         const enrichedBase = { ...base, mimeType: resolvedMime };
-        const record = { base: enrichedBase, dataUrl, stored };
 
-        loaded.push(record);
-
-        const needsThumbnail =
-          !enrichedBase.thumbnail &&
-          resolvedMime.startsWith('video/') &&
-          !!dataUrl;
-
-        if (needsThumbnail) {
-          const promise = generateVideoThumbnail(dataUrl)
-            .then((thumb) => {
-              if (!thumb) return false;
-              record.base = { ...record.base, thumbnail: thumb };
-              return true;
-            })
-            .catch((err) => {
-              console.error('Failed to create saved video thumbnail', err);
-              return false;
-            });
-          thumbnailPromises.push(promise);
-        }
+        loaded.push({ base: enrichedBase, dataUrl, stored });
       }
 
       if (cancelled) return;
