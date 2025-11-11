@@ -32,6 +32,63 @@ const readFileAsDataURL = (file) =>
     reader.readAsDataURL(file);
   });
 
+const generateVideoThumbnail = (dataUrl) =>
+  new Promise((resolve) => {
+    if (typeof document === 'undefined') {
+      resolve(null);
+      return;
+    }
+
+    const video = document.createElement('video');
+    const cleanup = () => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      video.remove();
+    };
+
+    const handleError = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+
+    const handleLoaded = () => {
+      try {
+        const width = video.videoWidth || 320;
+        const height = video.videoHeight || Math.round((width * 9) / 16);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          cleanup();
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(video, 0, 0, width, height);
+        const thumb = canvas.toDataURL('image/png');
+        cleanup();
+        resolve(thumb);
+      } catch (err) {
+        console.error('Failed to capture video thumbnail', err);
+        handleError();
+      }
+    };
+
+    video.addEventListener('loadeddata', handleLoaded, { once: true });
+    video.addEventListener('error', handleError, { once: true });
+    video.src = dataUrl;
+    try {
+      video.load();
+    } catch {
+      // Some browsers do not require explicit load for data URLs
+    }
+  });
+
 const CATEGORY_TAGS = ['P', 'M', 'F', 'X'];
 const CATEGORY_LABEL = CATEGORY_TAGS.join(' / ');
 const GENDER_TAGS = ['♀', '♂'];
@@ -307,6 +364,7 @@ const getSoundMetadata = (sound) => {
     title: sound.title || 'Untitled',
     thumbnail: sound.thumbnail || null,
     color: sound.color || '',
+    mimeType: sound.mimeType || '',
     tags,
     tag: tagString,
   };
@@ -570,6 +628,119 @@ function QuadrantPicker({ value = [], onChange }) {
   );
 }
 
+function VideoPreview({ src, poster, title }) {
+  const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const play = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const playPromise = video.play();
+    if (playPromise?.then) {
+      playPromise
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          setIsPlaying(false);
+        });
+    } else {
+      setIsPlaying(true);
+    }
+  }, []);
+
+  const pause = useCallback((reset = false) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    if (reset) {
+      try {
+        video.currentTime = 0;
+      } catch {
+        // ignore errors when resetting time
+      }
+    }
+    setIsPlaying(false);
+  }, []);
+
+  useEffect(() => () => pause(), [pause]);
+
+  const ensurePlaying = useCallback(
+    (event) => {
+      event.stopPropagation();
+      if (!isPlaying) {
+        play();
+      }
+    },
+    [isPlaying, play]
+  );
+
+  const handleMouseEnter = useCallback(
+    (event) => {
+      ensurePlaying(event);
+    },
+    [ensurePlaying]
+  );
+
+  const handleMouseLeave = useCallback(
+    (event) => {
+      event.stopPropagation();
+      pause(true);
+    },
+    [pause]
+  );
+
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        if (isPlaying) {
+          pause(true);
+        } else {
+          play();
+        }
+      }
+    },
+    [isPlaying, pause, play]
+  );
+
+  const handleBlur = useCallback(() => {
+    pause(true);
+  }, [pause]);
+
+  const label = title ? `Preview video ${title}` : 'Preview video';
+
+  return (
+    <div
+      className={`video-preview${isPlaying ? ' playing' : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={ensurePlaying}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster || undefined}
+        preload="metadata"
+        playsInline
+        muted
+        loop
+      />
+      {!poster && (
+        <div className="video-fallback" aria-hidden="true">
+          🎬
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Library({ onBack }) {
   const [images, setImages] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -646,6 +817,7 @@ export default function Library({ onBack }) {
   const [soundMenuPosition, setSoundMenuPosition] = useState({ x: 0, y: 0 });
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
+  const [soundMimeType, setSoundMimeType] = useState('');
   const [hideQualityImages, setHideQualityImages] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('hideQualityImages');
@@ -694,6 +866,10 @@ export default function Library({ onBack }) {
         : sounds,
     [sortMode, sounds]
   );
+
+  const soundModalMime =
+    soundMimeType || (soundModal ? extractMimeType(soundModal) : '') || '';
+  const soundModalIsVideo = soundModalMime.startsWith('video/');
 
   const imageCount = filteredImages.length;
   const wordCount = displayedWords.length;
@@ -1085,7 +1261,14 @@ export default function Library({ onBack }) {
 
         if (!dataUrl) continue;
 
-        loaded.push({ base, dataUrl, stored });
+        const resolvedMime =
+          base.mimeType || extractMimeType(dataUrl) || entry.mimeType || '';
+        if (resolvedMime && resolvedMime !== base.mimeType) {
+          metadataNeedsUpdate = true;
+        }
+        const enrichedBase = { ...base, mimeType: resolvedMime };
+
+        loaded.push({ base: enrichedBase, dataUrl, stored });
       }
 
       if (cancelled) return;
@@ -1913,7 +2096,8 @@ export default function Library({ onBack }) {
       uploadToServer(droppedFile);
       const reader = new FileReader();
       reader.onload = () => {
-        setSoundModal(reader.result);
+        const result = reader.result;
+        setSoundModal(result);
         setSoundTitle(droppedFile.name.replace(/\.[^/.]+$/, ''));
         setSoundThumb(null);
         setSoundThumbPreview(null);
@@ -1924,6 +2108,9 @@ export default function Library({ onBack }) {
         setSoundPosition('');
         setSoundCustomTags('');
         setEditingSoundId(null);
+        const detectedMime =
+          droppedFile.type || extractMimeType(result) || '';
+        setSoundMimeType(detectedMime);
       };
       reader.readAsDataURL(droppedFile);
     }
@@ -1959,13 +2146,21 @@ export default function Library({ onBack }) {
         customInput: soundCustomTags,
       });
       const tagString = tags.join(', ');
+      const mimeType = soundMimeType || extractMimeType(soundModal) || '';
+      const isVideo = mimeType.startsWith('video/');
+
+      let finalThumb = thumbData || null;
+      if (!finalThumb && isVideo) {
+        finalThumb = await generateVideoThumbnail(soundModal);
+      }
 
       const newSound = {
         id: editingSoundId || Date.now(),
         title: soundTitle || 'Untitled',
         dataUrl: soundModal,
-        thumbnail: thumbData || null,
+        thumbnail: finalThumb,
         color: soundColor,
+        mimeType,
         tags,
         tag: tagString,
       };
@@ -1995,6 +2190,7 @@ export default function Library({ onBack }) {
     setSoundPosition(findPresetTag(tags, POSITION_TAGS));
     setSoundCustomTags(extractCustomSoundTags(tags).join(', '));
     setEditingSoundId(snd.id);
+    setSoundMimeType(snd.mimeType || extractMimeType(snd.dataUrl) || '');
   };
 
   const resetSoundModalState = () => {
@@ -2009,6 +2205,7 @@ export default function Library({ onBack }) {
     setSoundPosition('');
     setSoundCustomTags('');
     setEditingSoundId(null);
+    setSoundMimeType('');
   };
 
   const getMasonrySpan = (targetHeight) => {
@@ -2171,6 +2368,9 @@ export default function Library({ onBack }) {
   const renderSoundCard = (snd, width = colWidth) => {
     const span = getMasonrySpan(width);
     const typeInfo = ITEM_TYPE_INFO.sound;
+    const mimeType = snd.mimeType || extractMimeType(snd.dataUrl) || '';
+    const isVideo = mimeType.startsWith('video/');
+    const placeholderIcon = isVideo ? '🎬' : '♪';
     return (
       <div
         key={snd.id}
@@ -2193,7 +2393,7 @@ export default function Library({ onBack }) {
         {snd.thumbnail ? (
           <img src={snd.thumbnail} alt={snd.title} draggable={false} />
         ) : (
-          <div className="sound-placeholder">♪</div>
+          <div className="sound-placeholder">{placeholderIcon}</div>
         )}
         <div className="image-overlay">
           <h3>
@@ -2205,13 +2405,21 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          <audio
-            controls
-            src={snd.dataUrl}
-            className="sound-player"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          ></audio>
+          {isVideo ? (
+            <VideoPreview
+              src={snd.dataUrl}
+              poster={snd.thumbnail}
+              title={snd.title}
+            />
+          ) : (
+            <audio
+              controls
+              src={snd.dataUrl}
+              className="sound-player"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            ></audio>
+          )}
         </div>
       </div>
     );
@@ -3527,7 +3735,20 @@ export default function Library({ onBack }) {
               className="sound-modal-content"
               onClick={(e) => e.stopPropagation()}
             >
-              <audio controls src={soundModal}></audio>
+              {soundModalIsVideo ? (
+                <video
+                  controls
+                  src={soundModal}
+                  className="sound-modal-preview"
+                  playsInline
+                ></video>
+              ) : (
+                <audio
+                  controls
+                  src={soundModal}
+                  className="sound-modal-preview"
+                ></audio>
+              )}
               <input
                 type="text"
                 value={soundTitle}
