@@ -883,6 +883,15 @@
   width: 100%;
 }
 
+.sound-card .video-preview {
+  height: 100%;
+}
+
+.sound-card .video-preview video {
+  height: 100%;
+  object-fit: cover;
+}
+
 .video-preview {
   position: relative;
   width: 100%;

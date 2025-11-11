@@ -1268,6 +1268,16 @@ export default function Library({ onBack }) {
           metadataNeedsUpdate = true;
         }
         const enrichedBase = { ...base, mimeType: resolvedMime };
+        if (resolvedMime.startsWith('video/') && !enrichedBase.thumbnail) {
+          const promise = generateVideoThumbnail(dataUrl).then((thumb) => {
+            if (!thumb) {
+              return false;
+            }
+            enrichedBase.thumbnail = thumb;
+            return true;
+          });
+          thumbnailPromises.push(promise);
+        }
 
         loaded.push({ base: enrichedBase, dataUrl, stored });
       }
@@ -2410,7 +2420,9 @@ export default function Library({ onBack }) {
           }
         }}
       >
-        {snd.thumbnail ? (
+        {isVideo ? (
+          <VideoPreview src={snd.dataUrl} poster={snd.thumbnail} title={snd.title} />
+        ) : snd.thumbnail ? (
           <img src={snd.thumbnail} alt={snd.title} draggable={false} />
         ) : (
           <div className="sound-placeholder">{placeholderIcon}</div>
@@ -2425,13 +2437,7 @@ export default function Library({ onBack }) {
             )}
             {snd.title}
           </h3>
-          {isVideo ? (
-            <VideoPreview
-              src={snd.dataUrl}
-              poster={snd.thumbnail}
-              title={snd.title}
-            />
-          ) : (
+          {isVideo ? null : (
             <audio
               controls
               src={snd.dataUrl}
