@@ -630,6 +630,7 @@ function QuadrantPicker({ value = [], onChange }) {
 
 function VideoPreview({ src, poster, title }) {
   const videoRef = useRef(null);
+  const hasPlayedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const play = useCallback(() => {
@@ -639,12 +640,14 @@ function VideoPreview({ src, poster, title }) {
     if (playPromise?.then) {
       playPromise
         .then(() => {
+          hasPlayedRef.current = true;
           setIsPlaying(true);
         })
         .catch(() => {
           setIsPlaying(false);
         });
     } else {
+      hasPlayedRef.current = true;
       setIsPlaying(true);
     }
   }, []);
@@ -653,12 +656,13 @@ function VideoPreview({ src, poster, title }) {
     const video = videoRef.current;
     if (!video) return;
     video.pause();
-    if (reset) {
+    if (reset && hasPlayedRef.current) {
       try {
         video.currentTime = 0;
       } catch {
         // ignore errors when resetting time
       }
+      hasPlayedRef.current = false;
     }
     setIsPlaying(false);
   }, []);
@@ -674,7 +678,8 @@ function VideoPreview({ src, poster, title }) {
         // Ignore load errors so we can still show the poster once available
       }
     }
-    pause(true);
+    hasPlayedRef.current = false;
+    pause(false);
   }, [src, poster, pause]);
 
   const ensurePlaying = useCallback(
