@@ -740,6 +740,14 @@ function VideoPreview({ src, poster, title }) {
       tabIndex={0}
       aria-label={label}
     >
+      {poster && (
+        <img
+          className={`video-poster${isPlaying ? ' hidden' : ''}`}
+          src={poster}
+          alt={title ? `Poster for ${title}` : 'Video preview poster'}
+          draggable={false}
+        />
+      )}
       <video
         key={poster || src}
         ref={videoRef}
