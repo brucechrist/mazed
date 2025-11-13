@@ -5,10 +5,10 @@ export default function Timeline({ onBack }) {
   const stages = ['S1', 'S2', 'S3', 'S4'];
   const tracks = ['D', 'B', 'A', 'C', 'E'];
   const xSpacing = 120;
-  const ySpacing = 80;
+  const ySpacing = 65;
   const startX = 160; // position of S1
   const startY = 60;  // position of row D
-  const radius = 20;
+  const radius = 18;
 
   const nodeA = { x: startX - xSpacing, y: startY + ySpacing * 2 };
   const nodeB = { x: startX + stages.length * xSpacing, y: nodeA.y };
