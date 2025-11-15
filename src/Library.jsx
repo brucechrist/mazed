@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import './library.css';
 import { DEFAULT_COLORS, loadPalette } from './colorConfig.js';
 import { extractDominantColor } from './dominantColor.js';
@@ -774,6 +775,8 @@ export default function Library({ onBack }) {
   const [menu, setMenu] = useState(null);
   const menuRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const portalTarget =
+    typeof document !== 'undefined' ? document.body : null;
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -3951,36 +3954,39 @@ export default function Library({ onBack }) {
             </div>
           </div>
         )}
-        {soundMenu && (
-          <div
-            ref={soundMenuRef}
-            className="context-menu"
-            style={{ left: soundMenuPosition.x, top: soundMenuPosition.y }}
-          >
-            <button
-              onClick={() => {
-                const snd = sounds.find((s) => s.id === soundMenu.id);
-                if (snd) {
-                  openSoundModalForEdit(snd);
-                }
-                setSoundMenu(null);
-              }}
-            >
-              Edit
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  await deleteSound(soundMenu.id);
-                } finally {
-                  setSoundMenu(null);
-                }
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        )}
+        {soundMenu && portalTarget
+          ? createPortal(
+              <div
+                ref={soundMenuRef}
+                className="context-menu"
+                style={{ left: soundMenuPosition.x, top: soundMenuPosition.y }}
+              >
+                <button
+                  onClick={() => {
+                    const snd = sounds.find((s) => s.id === soundMenu.id);
+                    if (snd) {
+                      openSoundModalForEdit(snd);
+                    }
+                    setSoundMenu(null);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteSound(soundMenu.id);
+                    } finally {
+                      setSoundMenu(null);
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+              </div>,
+              portalTarget
+            )
+          : null}
         {wordInspector && (
           <div
             className="word-inspector-backdrop"
@@ -4219,22 +4225,25 @@ export default function Library({ onBack }) {
             </div>
           </div>
         )}
-        {menu && (
-          <div
-            ref={menuRef}
-            className="context-menu"
-            style={{ left: menuPosition.x, top: menuPosition.y }}
-          >
-            <button
-              onClick={() => {
-                deleteImage(menu.id);
-                setMenu(null);
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        )}
+        {menu && portalTarget
+          ? createPortal(
+              <div
+                ref={menuRef}
+                className="context-menu"
+                style={{ left: menuPosition.x, top: menuPosition.y }}
+              >
+                <button
+                  onClick={() => {
+                    deleteImage(menu.id);
+                    setMenu(null);
+                  }}
+                >
+                  Delete
+                </button>
+              </div>,
+              portalTarget
+            )
+          : null}
         {lightbox && (
           <div className="lightbox" onClick={() => setLightbox(null)}>
             <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
