@@ -161,6 +161,111 @@ const resolveTriPresetTag = (value) => {
   );
 };
 
+function ContextMenu({ anchor, onRequestClose, children }) {
+  const menuRef = useRef(null);
+  const [position, setPosition] = useState(() => ({
+    x: anchor.x,
+    y: anchor.y,
+  }));
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') {
+      setPosition((prev) =>
+        prev.x === anchor.x && prev.y === anchor.y
+          ? prev
+          : { x: anchor.x, y: anchor.y }
+      );
+      return;
+    }
+    if (!menuRef.current) return;
+
+    setPosition((prev) =>
+      prev.x === anchor.x && prev.y === anchor.y
+        ? prev
+        : { x: anchor.x, y: anchor.y }
+    );
+
+    const rect = menuRef.current.getBoundingClientRect();
+    const padding = 8;
+    let nextX = anchor.x;
+    let nextY = anchor.y;
+    if (nextX + rect.width + padding > window.innerWidth) {
+      nextX = Math.max(padding, window.innerWidth - rect.width - padding);
+    }
+    if (nextY + rect.height + padding > window.innerHeight) {
+      nextY = Math.max(padding, window.innerHeight - rect.height - padding);
+    }
+    if (nextX < padding) nextX = padding;
+    if (nextY < padding) nextY = padding;
+    setPosition((prev) =>
+      prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY }
+    );
+  }, [anchor.x, anchor.y]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target)) {
+        onRequestClose();
+      }
+    };
+
+    const handleContextMenu = (event) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target)) {
+        onRequestClose();
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onRequestClose();
+      }
+    };
+
+    window.addEventListener('mousedown', handlePointerDown, true);
+    window.addEventListener('touchstart', handlePointerDown, true);
+    window.addEventListener('contextmenu', handleContextMenu, true);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown, true);
+      window.removeEventListener('touchstart', handlePointerDown, true);
+      window.removeEventListener('contextmenu', handleContextMenu, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onRequestClose]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleViewportChange = () => {
+      onRequestClose();
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [onRequestClose]);
+
+  return (
+    <div
+      ref={menuRef}
+      className="context-menu"
+      style={{ left: position.x, top: position.y }}
+      role="menu"
+    >
+      {children}
+    </div>
+  );
+}
+
 const DUAL_ROWS = ['Good', 'Neutral', 'Bad'];
 const DUAL_COLUMNS = ['♀', '♂'];
 const DUAL_ROW_ICONS = {
@@ -772,8 +877,6 @@ export default function Library({ onBack }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
-  const menuRef = useRef(null);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [lightbox, setLightbox] = useState(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -839,8 +942,6 @@ export default function Library({ onBack }) {
   const [soundCustomTags, setSoundCustomTags] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [soundMenu, setSoundMenu] = useState(null);
-  const soundMenuRef = useRef(null);
-  const [soundMenuPosition, setSoundMenuPosition] = useState({ x: 0, y: 0 });
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
   const [soundMimeType, setSoundMimeType] = useState('');
@@ -1729,52 +1830,6 @@ export default function Library({ onBack }) {
     }
   }, [hideQualityImages, hiddenQuality, lightbox]);
 
-  useLayoutEffect(() => {
-    if (!menu || !menuRef.current || typeof window === 'undefined') {
-      return;
-    }
-    const rect = menuRef.current.getBoundingClientRect();
-    const { innerWidth, innerHeight } = window;
-    const padding = 8;
-    let nextX = menu.x;
-    let nextY = menu.y;
-    if (nextX + rect.width + padding > innerWidth) {
-      nextX = Math.max(padding, innerWidth - rect.width - padding);
-    }
-    if (nextY + rect.height + padding > innerHeight) {
-      nextY = Math.max(padding, innerHeight - rect.height - padding);
-    }
-    if (nextX < padding) nextX = padding;
-    if (nextY < padding) nextY = padding;
-    setMenuPosition((prev) =>
-      prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY }
-    );
-  }, [menu]);
-
-  useLayoutEffect(() => {
-    if (!soundMenu || !soundMenuRef.current || typeof window === 'undefined') {
-      return;
-    }
-    const rect = soundMenuRef.current.getBoundingClientRect();
-    const { innerWidth, innerHeight } = window;
-    const padding = 8;
-    let nextX = soundMenu.x;
-    let nextY = soundMenu.y;
-    if (nextX + rect.width + padding > innerWidth) {
-      nextX = Math.max(padding, innerWidth - rect.width - padding);
-    }
-    if (nextY + rect.height + padding > innerHeight) {
-      nextY = Math.max(padding, innerHeight - rect.height - padding);
-    }
-    if (nextX < padding) nextX = padding;
-    if (nextY < padding) nextY = padding;
-    setSoundMenuPosition((prev) =>
-      prev.x === nextX && prev.y === nextY
-        ? prev
-        : { x: nextX, y: nextY }
-    );
-  }, [soundMenu]);
-
   useEffect(() => {
     loadPalette().then(setPalette);
     const handler = () => {
@@ -1823,14 +1878,12 @@ export default function Library({ onBack }) {
     event.preventDefault();
     const { clientX, clientY } = event;
     setMenu({ id: imageId, x: clientX, y: clientY });
-    setMenuPosition({ x: clientX, y: clientY });
   };
 
   const openSoundContextMenu = (event, soundId) => {
     event.preventDefault();
     const { clientX, clientY } = event;
     setSoundMenu({ id: soundId, x: clientX, y: clientY });
-    setSoundMenuPosition({ x: clientX, y: clientY });
   };
 
   const moveImage = (fromId, toId) => {
@@ -3951,12 +4004,8 @@ export default function Library({ onBack }) {
             </div>
           </div>
         )}
-        {soundMenu && (
-          <div
-            ref={soundMenuRef}
-            className="context-menu"
-            style={{ left: soundMenuPosition.x, top: soundMenuPosition.y }}
-          >
+        {soundMenu ? (
+          <ContextMenu anchor={soundMenu} onRequestClose={() => setSoundMenu(null)}>
             <button
               onClick={() => {
                 const snd = sounds.find((s) => s.id === soundMenu.id);
@@ -3979,8 +4028,8 @@ export default function Library({ onBack }) {
             >
               Delete
             </button>
-          </div>
-        )}
+          </ContextMenu>
+        ) : null}
         {wordInspector && (
           <div
             className="word-inspector-backdrop"
@@ -4219,12 +4268,8 @@ export default function Library({ onBack }) {
             </div>
           </div>
         )}
-        {menu && (
-          <div
-            ref={menuRef}
-            className="context-menu"
-            style={{ left: menuPosition.x, top: menuPosition.y }}
-          >
+        {menu ? (
+          <ContextMenu anchor={menu} onRequestClose={() => setMenu(null)}>
             <button
               onClick={() => {
                 deleteImage(menu.id);
@@ -4233,8 +4278,8 @@ export default function Library({ onBack }) {
             >
               Delete
             </button>
-          </div>
-        )}
+          </ContextMenu>
+        ) : null}
         {lightbox && (
           <div className="lightbox" onClick={() => setLightbox(null)}>
             <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
