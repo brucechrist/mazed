@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './note-modal.css';
 
 const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
@@ -169,21 +169,23 @@ export default function NoteModal({ onClose }) {
         </header>
 
         <div className="note-editor__fields">
-          <label className="form-field">
-            <span>Title</span>
+          <div
+            className={`note-editor__composer ${isDraggingFile ? 'is-dragging' : ''}`}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <input
-              className="note-title"
-              placeholder="Add a descriptive title"
+              className="note-title note-composer__title"
+              placeholder="Add a bold title..."
               value={title}
               onChange={(event) => setTitle(event.target.value)}
             />
-          </label>
 
-          <label className="form-field">
-            <span>Notes</span>
             <textarea
-              className="note-content"
-              placeholder="Capture the insight, context, and any next steps..."
+              className="note-content note-composer__content"
+              placeholder="Share the story, the feeling, the next mission..."
               value={content}
               onChange={(event) => setContent(event.target.value)}
             />
