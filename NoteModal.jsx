@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './note-modal.css';
 
 const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
@@ -38,6 +38,11 @@ export default function NoteModal({ onClose }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tag, setTag] = useState(TAGS[0]);
+  const [imageData, setImageData] = useState(null);
+  const [imageName, setImageName] = useState('');
+  const [imageError, setImageError] = useState(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,6 +75,7 @@ export default function NoteModal({ onClose }) {
       tag,
       createdAt: timestamp,
       updatedAt: timestamp,
+      image: imageData,
     };
 
     const updatedNotes = [...notes, newNote];
@@ -78,6 +84,9 @@ export default function NoteModal({ onClose }) {
     setTitle('');
     setContent('');
     setTag(TAGS[0]);
+    setImageData(null);
+    setImageName('');
+    setImageError(null);
     onClose();
   };
 
@@ -95,6 +104,108 @@ export default function NoteModal({ onClose }) {
     if (event.target === event.currentTarget) {
       onClose();
     }
+  };
+
+  const processImageFile = (file, input) => {
+    if (!file) {
+      setImageError(null);
+      return;
+    }
+
+    if (file.type && !file.type.startsWith('image/')) {
+      setImageError('Please choose an image file (JPG, PNG, GIF, or WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : null;
+      setImageData(result);
+      setImageName(file.name);
+      setImageError(null);
+      if (input) {
+        input.value = '';
+      }
+    };
+    reader.onerror = () => {
+      setImageError('Failed to read the selected image. Please try again.');
+      if (input) {
+        input.value = '';
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (event) => {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    processImageFile(file, input);
+  };
+
+  const isFileDragEvent = (event) => {
+    const types = event?.dataTransfer?.types;
+    if (!types) {
+      return false;
+    }
+
+    return Array.from(types).some((type) => type === 'Files');
+  };
+
+  const handleDragEnter = (event) => {
+    if (!isFileDragEvent(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    setIsDraggingFile(true);
+  };
+
+  const handleDragOver = (event) => {
+    if (!isFileDragEvent(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    if (!isDraggingFile) {
+      setIsDraggingFile(true);
+    }
+  };
+
+  const handleDragLeave = (event) => {
+    if (!isFileDragEvent(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (event) => {
+    if (!isFileDragEvent(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    setIsDraggingFile(false);
+    const file = event.dataTransfer?.files?.[0];
+    processImageFile(file);
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveImage = () => {
+    setImageData(null);
+    setImageName('');
+    setImageError(null);
   };
 
   return (
@@ -123,25 +234,76 @@ export default function NoteModal({ onClose }) {
         </header>
 
         <div className="note-editor__fields">
-          <label className="form-field">
-            <span>Title</span>
-            <input
-              className="note-title"
-              placeholder="Add a descriptive title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </label>
+          <div
+            className={`note-editor__composer ${isDraggingFile ? 'is-dragging' : ''}`}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <label className="note-composer__field">
+              <span className="note-composer__field-label">Note title</span>
+              <input
+                className="note-title note-composer__title"
+                placeholder="Add a bold title..."
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
 
-          <label className="form-field">
-            <span>Notes</span>
-            <textarea
-              className="note-content"
-              placeholder="Capture the insight, context, and any next steps..."
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-            />
-          </label>
+            <label className="note-composer__field">
+              <span className="note-composer__field-label">Note body</span>
+              <textarea
+                className="note-content note-composer__content"
+                placeholder="Share the story, the feeling, the next mission..."
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+              />
+            </label>
+
+            <div
+              className={`note-attachment ${imageData ? 'has-image' : ''} ${
+                isDraggingFile ? 'is-active' : ''
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="note-attachment__input"
+              />
+              {imageData ? (
+                <div className="note-attachment__preview">
+                  <img src={imageData} alt="Selected attachment" loading="lazy" />
+                  <div className="note-attachment__meta">
+                    <div>
+                      <p className="note-attachment__filename">{imageName || 'Attached image'}</p>
+                      <p className="note-attachment__subtext">Tap replace to swap the vibe.</p>
+                    </div>
+                    <div className="note-attachment__buttons">
+                      <button type="button" className="ghost-button" onClick={openFilePicker}>
+                        Replace
+                      </button>
+                      <button type="button" className="ghost-button" onClick={handleRemoveImage}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="note-attachment__placeholder"
+                  onClick={openFilePicker}
+                >
+                  <span className="note-attachment__label">Drop an image or click to upload</span>
+                  <span className="note-attachment__subtext">JPG, PNG, GIF, or WEBP</span>
+                </button>
+              )}
+              {imageError ? <p className="note-attachment__error">{imageError}</p> : null}
+            </div>
+          </div>
         </div>
 
         <div className="note-editor__footer">

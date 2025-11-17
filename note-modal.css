@@ -119,6 +119,75 @@
   margin: 0;
 }
 
+.note-image-field {
+  gap: 8px;
+}
+
+.note-image-input {
+  color: #e2e8f0;
+}
+
+.note-image-hint {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.9);
+  margin: 4px 0 0;
+}
+
+.note-image-error {
+  color: #f87171;
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+.note-image-preview {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-image-preview img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  max-height: 260px;
+}
+
+.note-image-preview__meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-image-preview__meta span {
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.9rem;
+}
+
+.note-image-preview--detail img {
+  max-height: 360px;
+}
+
+.note-image-preview--detail {
+  margin-top: 16px;
+}
+
+.notes-card__header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.notes-card__attachment {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .akashic-button {
   background: none;
   border: none;
@@ -218,6 +287,177 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.note-editor__composer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: linear-gradient(165deg, rgba(15, 23, 42, 0.72) 0%, rgba(2, 6, 23, 0.9) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 35px 65px -45px rgba(15, 23, 42, 0.9);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note-editor__composer.is-dragging {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow:
+    inset 0 0 0 1px rgba(56, 189, 248, 0.4),
+    0 45px 80px -45px rgba(56, 189, 248, 0.4);
+}
+
+.note-editor__composer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.08), transparent 60%);
+  pointer-events: none;
+}
+
+.note-composer__field {
+  display: block;
+}
+
+.note-composer__field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
+}
+
+.note-editor__composer input,
+.note-editor__composer textarea {
+  border: none;
+  background: transparent;
+  color: #f8fafc;
+  padding: 0;
+}
+
+.note-editor__composer input:focus,
+.note-editor__composer textarea:focus {
+  outline: none;
+}
+
+.note-composer__title {
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.note-composer__content {
+  min-height: 240px;
+  font-size: 1.05rem;
+  line-height: 1.75;
+  resize: vertical;
+  color: rgba(248, 250, 252, 0.9);
+}
+
+.note-attachment {
+  border-radius: 24px;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  background: rgba(2, 6, 23, 0.65);
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.note-attachment.has-image {
+  border-style: solid;
+  background: rgba(2, 6, 23, 0.35);
+  padding: 20px;
+}
+
+.note-attachment.is-active {
+  border-color: rgba(56, 189, 248, 0.8);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.note-attachment__input {
+  display: none;
+}
+
+.note-attachment__placeholder {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: center;
+  color: #cbd5f5;
+}
+
+.note-attachment__label {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.note-attachment__subtext {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.note-attachment__preview {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.note-attachment__preview img {
+  width: 100%;
+  border-radius: 20px;
+  max-height: 460px;
+  object-fit: cover;
+  box-shadow: 0 25px 45px -35px rgba(15, 23, 42, 0.85);
+}
+
+.note-attachment__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.note-attachment__filename {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.note-attachment__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.note-attachment__error {
+  margin: 12px 0 0;
+  color: #f87171;
+  font-weight: 600;
 }
 
 .notes-modal .form-field {
