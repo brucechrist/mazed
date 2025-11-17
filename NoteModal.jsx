@@ -41,6 +41,8 @@ export default function NoteModal({ onClose }) {
   const [imageData, setImageData] = useState(null);
   const [imageName, setImageName] = useState('');
   const [imageError, setImageError] = useState(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const dragCounterRef = useRef(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -104,9 +106,9 @@ export default function NoteModal({ onClose }) {
     }
   };
 
-  const handleImageChange = (event) => {
-    const input = event.target;
-    const file = input.files && input.files[0];
+  const handleImageChange = (event, droppedFile = null) => {
+    const input = event?.target || null;
+    const file = droppedFile || (input?.files && input.files[0]);
     if (!file) {
       setImageError(null);
       return;
@@ -141,6 +143,40 @@ export default function NoteModal({ onClose }) {
     setImageData(null);
     setImageName('');
     setImageError(null);
+  };
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current += 1;
+    setIsDraggingFile(true);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'copy';
+    setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setIsDraggingFile(false);
+    }
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDraggingFile(false);
+    const file = event.dataTransfer?.files && event.dataTransfer.files[0];
+    if (file) {
+      handleImageChange(null, file);
+    }
   };
 
   return (
@@ -189,7 +225,7 @@ export default function NoteModal({ onClose }) {
               value={content}
               onChange={(event) => setContent(event.target.value)}
             />
-          </label>
+          </div>
 
           <label className="form-field note-image-field">
             <span>Image (optional)</span>
