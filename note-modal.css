@@ -178,7 +178,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -239,28 +239,38 @@
   gap: 18px;
 }
 
-.note-editor__header {
-  position: relative;
-}
-
-.note-editor__header-actions {
-  position: absolute;
-  top: -32px;
-  right: -32px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 28px;
-}
-
+.note-editor__header-actions,
 .notes-header__actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding-right: 30px;
+  overflow: visible;
+}
+
+.note-editor__header-actions {
+  padding-right: 30px;
+  overflow: visible;
+}
+
+.note-editor__header-actions {
+  padding-right: 150px;
+  overflow: visible;
 }
 
 .notes-header__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+  margin-right: -30px;
+}
+
+.note-editor__add-button {
+  box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+  margin-right: -30px;
+}
+
+.note-editor__add-button {
+  box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+  margin-right: -150px;
 }
 
 .note-editor__add-button {
