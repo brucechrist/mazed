@@ -3278,7 +3278,8 @@ export default function Library({ onBack }) {
       {isDragging && <div className="drop-overlay">Upload Media</div>}
       {uploading && <div className="upload-status">Uploading…</div>}
       <div className="library-manager">
-        <div className="library-header">
+        <div className="library-top-controls">
+          <div className="library-header">
           <button onClick={onBack} className="back-button" type="button">
             Back
           </button>
@@ -3575,7 +3576,7 @@ export default function Library({ onBack }) {
             </div>
           </div>
         </div>
-        <div className="library-tabs">
+          <div className="library-tabs">
           <button
             className={activeTab === 'all' ? 'active' : ''}
             onClick={() => setActiveTab('all')}
@@ -3600,6 +3601,7 @@ export default function Library({ onBack }) {
           >
             Sounds ({soundCount})
           </button>
+        </div>
         </div>
         {(activeTab === 'all' || activeTab === 'images') &&
           (libraryView === 'tri'
