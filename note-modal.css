@@ -185,6 +185,7 @@
 .note-editor-modal {
   width: min(720px, calc(100vw - 48px));
   gap: 24px;
+  overflow: visible;
 }
 
 .notes-list-modal {
@@ -238,14 +239,25 @@
   gap: 18px;
 }
 
+.note-editor__header-actions,
 .notes-header__actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+.note-editor__header-actions {
+  padding-right: 30px;
+  overflow: visible;
+}
+
 .notes-header__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+}
+
+.note-editor__add-button {
+  box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+  margin-right: -30px;
 }
 
 .note-editor__subtitle,
