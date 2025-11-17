@@ -185,6 +185,7 @@
 .note-editor-modal {
   width: min(720px, calc(100vw - 48px));
   gap: 24px;
+  overflow: visible;
 }
 
 .notes-list-modal {
@@ -230,12 +231,27 @@
   color: #f8fafc;
 }
 
+
 .note-editor__header,
 .notes-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 18px;
+}
+
+.note-editor__header {
+  position: relative;
+}
+
+.note-editor__header-actions {
+  position: absolute;
+  top: -32px;
+  right: -32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
 }
 
 .notes-header__actions {
@@ -258,6 +274,45 @@
 .notes-header__add-button:hover {
   border-color: rgba(148, 163, 184, 0.55);
   background: rgba(15, 23, 42, 0.92);
+}
+
+.note-editor__add-button {
+  box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+  transform: translateX(150px);
+}
+
+.note-editor__close-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.2));
+  color: #f8fafc;
+  font-size: 1.8rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 35px 60px -30px rgba(59, 130, 246, 0.8);
+}
+
+@media (max-width: 1024px) {
+  .note-editor__header-actions {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+
+  .note-editor__add-button {
+    transform: none;
+  }
+
+  .note-editor__close-button {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 .note-editor__subtitle,
