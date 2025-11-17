@@ -3283,7 +3283,35 @@ export default function Library({ onBack }) {
             Back
           </button>
           <h2>Library</h2>
-          <div className="library-actions">
+        </div>
+        <div className="library-toolbar">
+            <div className="library-tabs">
+              <button
+                className={activeTab === 'all' ? 'active' : ''}
+                onClick={() => setActiveTab('all')}
+              >
+                All ({totalCount})
+              </button>
+              <button
+                className={activeTab === 'images' ? 'active' : ''}
+                onClick={() => setActiveTab('images')}
+              >
+                Images ({imageCount})
+              </button>
+              <button
+                className={activeTab === 'words' ? 'active' : ''}
+                onClick={() => setActiveTab('words')}
+              >
+                Words ({wordCount})
+              </button>
+              <button
+                className={activeTab === 'sounds' ? 'active' : ''}
+                onClick={() => setActiveTab('sounds')}
+              >
+                Sounds ({soundCount})
+              </button>
+            </div>
+            <div className="library-actions">
             <div className="library-view-selector">
               <button
                 type="button"
@@ -3575,31 +3603,6 @@ export default function Library({ onBack }) {
             </div>
           </div>
         </div>
-        <div className="library-tabs">
-          <button
-            className={activeTab === 'all' ? 'active' : ''}
-            onClick={() => setActiveTab('all')}
-          >
-            All ({totalCount})
-          </button>
-          <button
-            className={activeTab === 'images' ? 'active' : ''}
-            onClick={() => setActiveTab('images')}
-          >
-            Images ({imageCount})
-          </button>
-          <button
-            className={activeTab === 'words' ? 'active' : ''}
-            onClick={() => setActiveTab('words')}
-          >
-            Words ({wordCount})
-          </button>
-          <button
-            className={activeTab === 'sounds' ? 'active' : ''}
-            onClick={() => setActiveTab('sounds')}
-          >
-            Sounds ({soundCount})
-          </button>
         </div>
         {(activeTab === 'all' || activeTab === 'images') &&
           (libraryView === 'tri'
