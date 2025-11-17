@@ -114,11 +114,34 @@
   box-sizing: border-box;
 }
 
+.library-top-controls {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: -20px -20px 12px;
+  padding: 12px 20px 14px;
+  background: var(--library-bg);
+  background: color-mix(in srgb, var(--library-bg) 92%, transparent);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--library-surface-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.library-container.light-mode .library-top-controls {
+  box-shadow: 0 12px 28px rgba(90, 96, 255, 0.12);
+  background: var(--library-bg);
+  background: color-mix(
+    in srgb,
+    var(--library-bg) 85%,
+    rgba(255, 255, 255, 0.85)
+  );
+}
+
 .library-header {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 6px;
 }
 
 .library-header h2 {
@@ -128,6 +151,7 @@
   font-size: 1.5rem;
   letter-spacing: 1px;
   color: var(--library-text);
+  line-height: 1.2;
 }
 
 .back-button {
@@ -620,17 +644,29 @@
   opacity: 0.75;
 }
 
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 16px;
+  row-gap: 8px;
+}
+
 .library-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 0;
+  flex: 1 1 260px;
+  align-items: center;
+  align-self: flex-start;
 }
 
 .library-tabs button {
   background: var(--library-button-bg);
   border: 1px solid var(--library-button-border);
   color: var(--library-button-text);
-  padding: 6px 12px;
+  padding: 4px 14px 6px;
   cursor: pointer;
   transition: background 0.3s ease, color 0.3s ease,
     border-color 0.3s ease, box-shadow 0.3s ease;
