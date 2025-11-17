@@ -3522,8 +3522,17 @@ export default function Library({ onBack }) {
                         </span>
                       )}
                     </button>
-                  </div>
-                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="library-manager">
+        <div className="library-header">
+          <button onClick={onBack} className="back-button" type="button">
+            Back
+          </button>
+          <h2>Library</h2>
+        </div>
               )}
             </div>
             <div className="sort-dropdown">
