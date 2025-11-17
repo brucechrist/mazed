@@ -253,6 +253,11 @@
   overflow: visible;
 }
 
+.note-editor__header-actions {
+  padding-right: 150px;
+  overflow: visible;
+}
+
 .notes-header__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
   margin-right: -30px;
@@ -261,6 +266,11 @@
 .note-editor__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
   margin-right: -30px;
+}
+
+.note-editor__add-button {
+  box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+  margin-right: -150px;
 }
 
 .note-editor__subtitle,
