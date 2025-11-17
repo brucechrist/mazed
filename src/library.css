@@ -119,7 +119,7 @@
   top: 0;
   z-index: 30;
   margin: -20px -20px 20px;
-  padding: 16px 20px;
+  padding: 16px 20px 12px;
   background: var(--library-bg);
   background: color-mix(in srgb, var(--library-bg) 92%, transparent);
   backdrop-filter: blur(16px);
