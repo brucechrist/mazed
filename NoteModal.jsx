@@ -41,8 +41,6 @@ export default function NoteModal({ onClose }) {
   const [imageData, setImageData] = useState(null);
   const [imageName, setImageName] = useState('');
   const [imageError, setImageError] = useState(null);
-  const [isDraggingFile, setIsDraggingFile] = useState(false);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -106,7 +104,9 @@ export default function NoteModal({ onClose }) {
     }
   };
 
-  const processImageFile = (file, input) => {
+  const handleImageChange = (event) => {
+    const input = event.target;
+    const file = input.files && input.files[0];
     if (!file) {
       setImageError(null);
       return;
@@ -135,71 +135,6 @@ export default function NoteModal({ onClose }) {
     };
 
     reader.readAsDataURL(file);
-  };
-
-  const handleImageChange = (event) => {
-    const input = event.target;
-    const file = input.files && input.files[0];
-    processImageFile(file, input);
-  };
-
-  const isFileDragEvent = (event) => {
-    const types = event?.dataTransfer?.types;
-    if (!types) {
-      return false;
-    }
-
-    return Array.from(types).some((type) => type === 'Files');
-  };
-
-  const handleDragEnter = (event) => {
-    if (!isFileDragEvent(event)) {
-      return;
-    }
-
-    event.preventDefault();
-    setIsDraggingFile(true);
-  };
-
-  const handleDragOver = (event) => {
-    if (!isFileDragEvent(event)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    if (!isDraggingFile) {
-      setIsDraggingFile(true);
-    }
-  };
-
-  const handleDragLeave = (event) => {
-    if (!isFileDragEvent(event)) {
-      return;
-    }
-
-    event.preventDefault();
-    const nextTarget = event.relatedTarget;
-    if (nextTarget && event.currentTarget.contains(nextTarget)) {
-      return;
-    }
-
-    setIsDraggingFile(false);
-  };
-
-  const handleDrop = (event) => {
-    if (!isFileDragEvent(event)) {
-      return;
-    }
-
-    event.preventDefault();
-    setIsDraggingFile(false);
-    const file = event.dataTransfer?.files?.[0];
-    processImageFile(file);
-  };
-
-  const openFilePicker = () => {
-    fileInputRef.current?.click();
   };
 
   const handleRemoveImage = () => {
@@ -241,69 +176,46 @@ export default function NoteModal({ onClose }) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <label className="note-composer__field">
-              <span className="note-composer__field-label">Note title</span>
-              <input
-                className="note-title note-composer__title"
-                placeholder="Add a bold title..."
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
+            <input
+              className="note-title note-composer__title"
+              placeholder="Add a bold title..."
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
 
-            <label className="note-composer__field">
-              <span className="note-composer__field-label">Note body</span>
-              <textarea
-                className="note-content note-composer__content"
-                placeholder="Share the story, the feeling, the next mission..."
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-              />
-            </label>
+            <textarea
+              className="note-content note-composer__content"
+              placeholder="Share the story, the feeling, the next mission..."
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+            />
+          </label>
 
-            <div
-              className={`note-attachment ${imageData ? 'has-image' : ''} ${
-                isDraggingFile ? 'is-active' : ''
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="note-attachment__input"
-              />
-              {imageData ? (
-                <div className="note-attachment__preview">
-                  <img src={imageData} alt="Selected attachment" loading="lazy" />
-                  <div className="note-attachment__meta">
-                    <div>
-                      <p className="note-attachment__filename">{imageName || 'Attached image'}</p>
-                      <p className="note-attachment__subtext">Tap replace to swap the vibe.</p>
-                    </div>
-                    <div className="note-attachment__buttons">
-                      <button type="button" className="ghost-button" onClick={openFilePicker}>
-                        Replace
-                      </button>
-                      <button type="button" className="ghost-button" onClick={handleRemoveImage}>
-                        Remove
-                      </button>
-                    </div>
-                  </div>
+          <label className="form-field note-image-field">
+            <span>Image (optional)</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="note-image-input"
+            />
+            {imageError ? <p className="note-image-error">{imageError}</p> : null}
+            {imageData ? (
+              <div className="note-image-preview">
+                <img src={imageData} alt="Selected attachment" loading="lazy" />
+                <div className="note-image-preview__meta">
+                  <span>{imageName || 'Attached image'}</span>
+                  <button type="button" className="ghost-button" onClick={handleRemoveImage}>
+                    Remove image
+                  </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className="note-attachment__placeholder"
-                  onClick={openFilePicker}
-                >
-                  <span className="note-attachment__label">Drop an image or click to upload</span>
-                  <span className="note-attachment__subtext">JPG, PNG, GIF, or WEBP</span>
-                </button>
-              )}
-              {imageError ? <p className="note-attachment__error">{imageError}</p> : null}
-            </div>
-          </div>
+              </div>
+            ) : (
+              <p className="note-image-hint">
+                Add a reference photo or sketch to bring the note to life.
+              </p>
+            )}
+          </label>
         </div>
 
         <div className="note-editor__footer">

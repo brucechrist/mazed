@@ -320,22 +320,6 @@
   pointer-events: none;
 }
 
-.note-composer__field {
-  display: block;
-}
-
-.note-composer__field-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-  white-space: nowrap;
-}
-
 .note-editor__composer input,
 .note-editor__composer textarea {
   border: none;
