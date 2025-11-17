@@ -38,6 +38,9 @@ export default function NoteModal({ onClose }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tag, setTag] = useState(TAGS[0]);
+  const [imageData, setImageData] = useState(null);
+  const [imageName, setImageName] = useState('');
+  const [imageError, setImageError] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,6 +73,7 @@ export default function NoteModal({ onClose }) {
       tag,
       createdAt: timestamp,
       updatedAt: timestamp,
+      image: imageData,
     };
 
     const updatedNotes = [...notes, newNote];
@@ -78,6 +82,9 @@ export default function NoteModal({ onClose }) {
     setTitle('');
     setContent('');
     setTag(TAGS[0]);
+    setImageData(null);
+    setImageName('');
+    setImageError(null);
     onClose();
   };
 
@@ -95,6 +102,45 @@ export default function NoteModal({ onClose }) {
     if (event.target === event.currentTarget) {
       onClose();
     }
+  };
+
+  const handleImageChange = (event) => {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) {
+      setImageError(null);
+      return;
+    }
+
+    if (file.type && !file.type.startsWith('image/')) {
+      setImageError('Please choose an image file (JPG, PNG, GIF, or WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : null;
+      setImageData(result);
+      setImageName(file.name);
+      setImageError(null);
+      if (input) {
+        input.value = '';
+      }
+    };
+    reader.onerror = () => {
+      setImageError('Failed to read the selected image. Please try again.');
+      if (input) {
+        input.value = '';
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageData(null);
+    setImageName('');
+    setImageError(null);
   };
 
   return (
@@ -141,6 +187,32 @@ export default function NoteModal({ onClose }) {
               value={content}
               onChange={(event) => setContent(event.target.value)}
             />
+          </label>
+
+          <label className="form-field note-image-field">
+            <span>Image (optional)</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="note-image-input"
+            />
+            {imageError ? <p className="note-image-error">{imageError}</p> : null}
+            {imageData ? (
+              <div className="note-image-preview">
+                <img src={imageData} alt="Selected attachment" loading="lazy" />
+                <div className="note-image-preview__meta">
+                  <span>{imageName || 'Attached image'}</span>
+                  <button type="button" className="ghost-button" onClick={handleRemoveImage}>
+                    Remove image
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="note-image-hint">
+                Add a reference photo or sketch to bring the note to life.
+              </p>
+            )}
           </label>
         </div>
 
