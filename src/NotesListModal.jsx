@@ -96,6 +96,7 @@ const NOTE_TITLE_KEYS = ['title', 'name', 'heading'];
 const NOTE_CONTENT_KEYS = ['content', 'body', 'note', 'text'];
 const NOTE_TAG_KEYS = ['tag', 'quadrant', 'category'];
 const NOTE_UPDATED_AT_KEYS = ['updatedAt', 'updated_at', 'modifiedAt', 'editedAt', 'lastUpdated'];
+const NOTE_IMAGE_KEYS = ['image', 'imageUrl', 'imageURL', 'image_url', 'photo', 'attachment'];
 
 const getLocalStorage = () => {
   if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
@@ -292,6 +293,7 @@ const normaliseNote = (entry, index) => {
       characterCount: text.length,
       storageIndex: index,
       fieldMapping: null,
+      image: null,
       sourceType: 'primitive',
     };
   }
@@ -317,6 +319,7 @@ const normaliseNote = (entry, index) => {
   const contentField = pickFirstAvailableField(entry, NOTE_CONTENT_KEYS, 'content');
   const tagField = pickFirstAvailableField(entry, NOTE_TAG_KEYS, 'tag');
   const updatedField = pickFirstAvailableField(entry, NOTE_UPDATED_AT_KEYS, 'updatedAt');
+  const imageField = pickFirstAvailableField(entry, NOTE_IMAGE_KEYS, 'image');
 
   const rawTitle = toText(titleField.value ?? '');
   const rawContent = toText(contentField.value ?? '');
@@ -343,6 +346,8 @@ const normaliseNote = (entry, index) => {
   const updatedAt = parseDate(updatedField.value);
 
   const preview = createPreview(content);
+  const rawImage = imageField.value;
+  const image = typeof rawImage === 'string' && rawImage.trim() ? rawImage.trim() : null;
   const searchable = `${title} ${content} ${tag}`.toLowerCase();
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
 
@@ -356,6 +361,7 @@ const normaliseNote = (entry, index) => {
     createdAtLabel: formatDateTime(createdAt),
     updatedAtLabel: updatedAt ? formatDateTime(updatedAt) : null,
     preview,
+    image,
     searchable,
     sortKey,
     wordCount,
@@ -366,6 +372,7 @@ const normaliseNote = (entry, index) => {
       content: contentField.key,
       tag: tagField.key,
       updatedAt: updatedField.key,
+      image: imageField.key,
     },
     sourceType: 'object',
   };
@@ -420,11 +427,12 @@ const loadStoredNotes = () => {
   }
 };
 
-const buildUpdatedEntry = (originalEntry, note, { title, content, tag }) => {
+const buildUpdatedEntry = (originalEntry, note, { title, content, tag, image }) => {
   const timestamp = new Date().toISOString();
   const safeTitle = title && title.trim() ? title.trim() : 'Untitled note';
   const safeContent = typeof content === 'string' ? content : '';
   const normalisedTag = QUADRANT_TAGS.includes(tag) ? tag : 'II';
+  const safeImage = typeof image === 'string' && image.trim() ? image.trim() : null;
 
   if (!isPlainObject(originalEntry)) {
     const createdAt =
@@ -440,6 +448,10 @@ const buildUpdatedEntry = (originalEntry, note, { title, content, tag }) => {
       createdAt,
       updatedAt: timestamp,
     };
+
+    if (safeImage !== null) {
+      payload.image = safeImage;
+    }
 
     if (note?.referenceId) {
       payload.id = note.referenceId;
@@ -459,6 +471,13 @@ const buildUpdatedEntry = (originalEntry, note, { title, content, tag }) => {
 
   const tagKey = mapping.tag ?? 'tag';
   updatedEntry[tagKey] = normalisedTag;
+
+  const imageKey = mapping.image ?? 'image';
+  if (safeImage) {
+    updatedEntry[imageKey] = safeImage;
+  } else if (Object.prototype.hasOwnProperty.call(updatedEntry, imageKey)) {
+    updatedEntry[imageKey] = null;
+  }
 
   const updatedAtKey =
     mapping.updatedAt ??
@@ -552,6 +571,8 @@ export default function NotesListModal({ onClose }) {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [editTag, setEditTag] = useState(QUADRANT_TAGS[0]);
+  const [editImage, setEditImage] = useState(null);
+  const [editImageError, setEditImageError] = useState(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState(null);
   const modalDimensions = useMemo(() => computeModalDimensions(viewportSize), [viewportSize]);
@@ -672,6 +693,8 @@ export default function NotesListModal({ onClose }) {
       setEditContent('');
       setEditTag(QUADRANT_TAGS[0]);
       setEditError(null);
+      setEditImage(null);
+      setEditImageError(null);
       return;
     }
 
@@ -680,6 +703,8 @@ export default function NotesListModal({ onClose }) {
       setEditContent(selectedNote.content);
       setEditTag(selectedNote.tag);
       setEditError(null);
+      setEditImage(selectedNote.image ?? null);
+      setEditImageError(null);
     }
   }, [selectedNote, isEditing]);
 
@@ -734,6 +759,53 @@ export default function NotesListModal({ onClose }) {
     setEditContent(selectedNote.content);
     setEditTag(selectedNote.tag);
     setEditError(null);
+    setEditImage(selectedNote.image ?? null);
+    setEditImageError(null);
+  };
+
+  const handleEditImageChange = (event) => {
+    if (isSavingEdit) {
+      return;
+    }
+
+    const input = event.target;
+    const file = input?.files?.[0];
+    if (!file) {
+      setEditImageError(null);
+      return;
+    }
+
+    if (file.type && !file.type.startsWith('image/')) {
+      setEditImageError('Please choose an image file (JPG, PNG, GIF, or WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : null;
+      setEditImage(result);
+      setEditImageError(null);
+      if (input) {
+        input.value = '';
+      }
+    };
+    reader.onerror = () => {
+      setEditImageError('Unable to load the selected image. Please try again.');
+      if (input) {
+        input.value = '';
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveEditImage = () => {
+    if (isSavingEdit) {
+      return;
+    }
+
+    setEditImage(null);
+    setEditImageError(null);
   };
 
   const handleCancelEdit = () => {
@@ -747,11 +819,14 @@ export default function NotesListModal({ onClose }) {
       setEditTitle(selectedNote.title);
       setEditContent(selectedNote.content);
       setEditTag(selectedNote.tag);
+      setEditImage(selectedNote.image ?? null);
     } else {
       setEditTitle('');
       setEditContent('');
       setEditTag(QUADRANT_TAGS[0]);
+      setEditImage(null);
     }
+    setEditImageError(null);
   };
 
   const handleSaveEdit = () => {
@@ -766,11 +841,13 @@ export default function NotesListModal({ onClose }) {
     const cleanedContent = editContent.replace(/\r\n/g, '\n');
     const safeTitle = trimmedTitle || 'Untitled note';
     const safeTag = QUADRANT_TAGS.includes(editTag) ? editTag : 'II';
+    const safeImage = editImage ?? null;
 
     const result = updateNoteInStorage(selectedNote, {
       title: safeTitle,
       content: cleanedContent,
       tag: safeTag,
+      image: safeImage,
     });
 
     if (!result.success) {
@@ -808,9 +885,13 @@ export default function NotesListModal({ onClose }) {
       setSelectedId(null);
     }
 
+    const nextSelectedImage = nextSelected ? nextSelected.image ?? null : safeImage;
+
     setEditTitle(safeTitle);
     setEditContent(cleanedContent);
     setEditTag(safeTag);
+    setEditImage(nextSelectedImage);
+    setEditImageError(null);
     setEditError(null);
     setIsEditing(false);
     setIsSavingEdit(false);
@@ -897,7 +978,14 @@ export default function NotesListModal({ onClose }) {
                     <span className="note-card__tag" data-tag={note.tag}>
                       {note.tag}
                     </span>
-                    <span className="notes-card__date">{note.createdAtLabel}</span>
+                    <div className="notes-card__header-meta">
+                      <span className="notes-card__date">{note.createdAtLabel}</span>
+                      {note.image ? (
+                        <span className="notes-card__attachment" title="Contains an image" aria-label="Contains an image">
+                          📷
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <h4 className="notes-card__title">{note.title}</h4>
                   <p className="notes-card__preview">{note.preview}</p>
@@ -983,6 +1071,40 @@ export default function NotesListModal({ onClose }) {
                       />
                     </label>
 
+                    <label className="form-field note-image-field">
+                      <span>Image (optional)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageChange}
+                        className="note-image-input"
+                        disabled={isSavingEdit}
+                      />
+                      {editImageError ? (
+                        <p className="note-image-error">{editImageError}</p>
+                      ) : null}
+                      {editImage ? (
+                        <div className="note-image-preview">
+                          <img src={editImage} alt="Attached to this note" loading="lazy" />
+                          <div className="note-image-preview__meta">
+                            <span>Image attached</span>
+                            <button
+                              type="button"
+                              className="ghost-button"
+                              onClick={handleRemoveEditImage}
+                              disabled={isSavingEdit}
+                            >
+                              Remove image
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="note-image-hint">
+                          Drop in a diagram, screenshot, or sketch to make the note memorable.
+                        </p>
+                      )}
+                    </label>
+
                     <div className="notes-edit-form__footer">
                       <div className="form-field form-field--inline">
                         <span>Quadrant</span>
@@ -1011,6 +1133,15 @@ export default function NotesListModal({ onClose }) {
                     <div className="note-view-content">
                       {selectedNote.content ? selectedNote.content : 'No additional context yet.'}
                     </div>
+                    {selectedNote.image ? (
+                      <div className="note-image-preview note-image-preview--detail">
+                        <img
+                          src={selectedNote.image}
+                          alt={`Attachment for ${selectedNote.title}`}
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null}
                   </>
                 )}
               </>

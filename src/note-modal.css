@@ -119,6 +119,75 @@
   margin: 0;
 }
 
+.note-image-field {
+  gap: 8px;
+}
+
+.note-image-input {
+  color: #e2e8f0;
+}
+
+.note-image-hint {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.9);
+  margin: 4px 0 0;
+}
+
+.note-image-error {
+  color: #f87171;
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+.note-image-preview {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-image-preview img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  max-height: 260px;
+}
+
+.note-image-preview__meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-image-preview__meta span {
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.9rem;
+}
+
+.note-image-preview--detail img {
+  max-height: 360px;
+}
+
+.note-image-preview--detail {
+  margin-top: 16px;
+}
+
+.notes-card__header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.notes-card__attachment {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .akashic-button {
   background: none;
   border: none;
@@ -588,8 +657,9 @@
 .notes-detail__header {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .notes-detail__title {
@@ -597,6 +667,49 @@
   font-size: 1.35rem;
   font-weight: 700;
   color: #f8fafc;
+}
+
+.notes-detail__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.notes-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.notes-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.notes-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.notes-edit-form__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notes-edit-form__error {
+  margin: 0;
+  color: #f87171;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .notes-modal .note-view-content {

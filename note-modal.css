@@ -119,6 +119,75 @@
   margin: 0;
 }
 
+.note-image-field {
+  gap: 8px;
+}
+
+.note-image-input {
+  color: #e2e8f0;
+}
+
+.note-image-hint {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.9);
+  margin: 4px 0 0;
+}
+
+.note-image-error {
+  color: #f87171;
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+.note-image-preview {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-image-preview img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  max-height: 260px;
+}
+
+.note-image-preview__meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-image-preview__meta span {
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.9rem;
+}
+
+.note-image-preview--detail img {
+  max-height: 360px;
+}
+
+.note-image-preview--detail {
+  margin-top: 16px;
+}
+
+.notes-card__header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.notes-card__attachment {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .akashic-button {
   background: none;
   border: none;
