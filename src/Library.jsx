@@ -3280,12 +3280,12 @@ export default function Library({ onBack }) {
       <div className="library-manager">
         <div className="library-top-controls">
           <div className="library-header">
-          <button onClick={onBack} className="back-button" type="button">
-            Back
-          </button>
-          <h2>Library</h2>
-        </div>
-        <div className="library-toolbar">
+            <button onClick={onBack} className="back-button" type="button">
+              Back
+            </button>
+            <h2>Library</h2>
+          </div>
+          <div className="library-toolbar">
             <div className="library-tabs">
               <button
                 className={activeTab === 'all' ? 'active' : ''}
@@ -3313,207 +3313,150 @@ export default function Library({ onBack }) {
               </button>
             </div>
             <div className="library-actions">
-            <div className="library-view-selector">
-              <button
-                type="button"
-                className={`library-view-button${
-                  viewMenuOpen ? ' open' : ''
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setViewMenuOpen((open) => !open);
-                  setSettingsOpen(false);
-                  setSortMenuOpen(false);
-                }}
-                aria-haspopup="true"
-                aria-expanded={viewMenuOpen}
-              >
-                View
-              </button>
-              {viewMenuOpen && (
-                <div
-                  className="library-view-menu"
-                  onClick={(e) => e.stopPropagation()}
+              <div className="library-view-selector">
+                <button
+                  type="button"
+                  className={`library-view-button${
+                    viewMenuOpen ? ' open' : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewMenuOpen((open) => !open);
+                    setSettingsOpen(false);
+                    setSortMenuOpen(false);
+                  }}
+                  aria-haspopup="true"
+                  aria-expanded={viewMenuOpen}
                 >
-                  <button
-                    type="button"
-                    className={libraryView === 'classic' ? 'active' : ''}
-                    onClick={() => {
-                      setLibraryView('classic');
-                      setViewMenuOpen(false);
-                    }}
-                  >
-                    <span>Classic</span>
-                    {libraryView === 'classic' && (
-                      <span
-                        className="library-view-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={libraryView === 'tri' ? 'active' : ''}
-                    onClick={() => {
-                      setLibraryView('tri');
-                      setViewMenuOpen(false);
-                    }}
-                  >
-                    <span>Tri</span>
-                    {libraryView === 'tri' && (
-                      <span
-                        className="library-view-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={libraryView === 'quadrants' ? 'active' : ''}
-                    onClick={() => {
-                      setLibraryView('quadrants');
-                      setViewMenuOpen(false);
-                    }}
-                  >
-                    <span>Quadrants</span>
-                    {libraryView === 'quadrants' && (
-                      <span
-                        className="library-view-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={libraryView === 'dual' ? 'active' : ''}
-                    onClick={() => {
-                      setLibraryView('dual');
-                      setViewMenuOpen(false);
-                    }}
-                  >
-                    <span>Dual</span>
-                    {libraryView === 'dual' && (
-                      <span
-                        className="library-view-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="library-settings">
-              <button
-                type="button"
-                className={`library-settings-button${
-                  settingsOpen ? ' open' : ''
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSettingsOpen((open) => !open);
-                  setSortMenuOpen(false);
-                }}
-                aria-label="Library settings"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  focusable="false"
-                  className="library-settings-icon"
-                >
-                  <path
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.532-.918 3.31.86 2.392 2.392a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.918 1.532-.86 3.31-2.392 2.392a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.532.918-3.31-.86-2.392-2.392a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.918-1.532.86-3.31 2.392-2.392a1.724 1.724 0 0 0 2.573-1.066Z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
-                </svg>
-              </button>
-              {settingsOpen && (
-                <div
-                  className="library-settings-menu"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    className={libraryTheme === 'light' ? 'active' : ''}
-                    onClick={() => handleThemeChange('light')}
-                  >
-                    <span>Light mode</span>
-                    {libraryTheme === 'light' && (
-                      <span
-                        className="library-settings-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className={libraryTheme === 'dark' ? 'active' : ''}
-                    onClick={() => handleThemeChange('dark')}
-                  >
-                    <span>Dark mode</span>
-                    {libraryTheme === 'dark' && (
-                      <span
-                        className="library-settings-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </button>
+                  View
+                </button>
+                {viewMenuOpen && (
                   <div
-                    className={`library-settings-hide-row${
-                      hideQualityImages ? ' active' : ''
-                    }`}
+                    className="library-view-menu"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       type="button"
-                      className={`library-settings-quality-toggle${
-                        hiddenQuality === 'Bad' ? '' : ' flipped'
-                      }`}
-                      onClick={() =>
-                        setHiddenQuality((prev) =>
-                          prev === 'Bad' ? 'Good' : 'Bad'
-                        )
-                      }
-                      aria-pressed={hiddenQuality === 'Good'}
-                      aria-label={`Switch to hiding ${
-                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
-                      } images`}
-                      title={`Switch to hiding ${
-                        hiddenQuality === 'Bad' ? 'Good' : 'Bad'
-                      } images`}
+                      className={libraryView === 'classic' ? 'active' : ''}
+                      onClick={() => {
+                        setLibraryView('classic');
+                        setViewMenuOpen(false);
+                      }}
                     >
-                      ⇄
+                      <span>Classic</span>
+                      {libraryView === 'classic' && (
+                        <span
+                          className="library-view-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
-                      className={`library-settings-hide-toggle${
-                        hideQualityImages ? ' active' : ''
-                      }`}
-                      onClick={() => setHideQualityImages((prev) => !prev)}
+                      className={libraryView === 'tri' ? 'active' : ''}
+                      onClick={() => {
+                        setLibraryView('tri');
+                        setViewMenuOpen(false);
+                      }}
                     >
-                      <span>{`Hide ${hiddenQuality}`}</span>
-                      {hideQualityImages && (
+                      <span>Tri</span>
+                      {libraryView === 'tri' && (
+                        <span
+                          className="library-view-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className={libraryView === 'quadrants' ? 'active' : ''}
+                      onClick={() => {
+                        setLibraryView('quadrants');
+                        setViewMenuOpen(false);
+                      }}
+                    >
+                      <span>Quadrants</span>
+                      {libraryView === 'quadrants' && (
+                        <span
+                          className="library-view-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className={libraryView === 'dual' ? 'active' : ''}
+                      onClick={() => {
+                        setLibraryView('dual');
+                        setViewMenuOpen(false);
+                      }}
+                    >
+                      <span>Dual</span>
+                      {libraryView === 'dual' && (
+                        <span
+                          className="library-view-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="library-settings">
+                <button
+                  type="button"
+                  className={`library-settings-button${
+                    settingsOpen ? ' open' : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSettingsOpen((open) => !open);
+                    setSortMenuOpen(false);
+                  }}
+                  aria-label="Library settings"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                    className="library-settings-icon"
+                  >
+                    <path
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.532-.918 3.31.86 2.392 2.392a1.724 1.724 0 0 0 1.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.918 1.532-.86 3.31-2.392 2.392a1.724 1.724 0 0 0-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.532.918-3.31-.86-2.392-2.392a1.724 1.724 0 0 0-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.918-1.532.86-3.31 2.392-2.392a1.724 1.724 0 0 0 2.573-1.066Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
+                </button>
+                {settingsOpen && (
+                  <div
+                    className="library-settings-menu"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className={libraryTheme === 'light' ? 'active' : ''}
+                      onClick={() => handleThemeChange('light')}
+                    >
+                      <span>Light mode</span>
+                      {libraryTheme === 'light' && (
                         <span
                           className="library-settings-check"
                           aria-hidden="true"
@@ -3522,123 +3465,145 @@ export default function Library({ onBack }) {
                         </span>
                       )}
                     </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="library-manager">
-        <div className="library-header">
-          <button onClick={onBack} className="back-button" type="button">
-            Back
-          </button>
-          <h2>Library</h2>
-        </div>
-              )}
-            </div>
-            <div className="sort-dropdown">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSortMenuOpen((o) => !o);
-                  setSettingsOpen(false);
-                }}
-                className="sort-button"
-                type="button"
-              >
-                Order
-              </button>
-              {sortMenuOpen && (
-                <div
-                  className="sort-menu"
-                  onClick={(e) => e.stopPropagation()}
+                    <button
+                      type="button"
+                      className={libraryTheme === 'dark' ? 'active' : ''}
+                      onClick={() => handleThemeChange('dark')}
+                    >
+                      <span>Dark mode</span>
+                      {libraryTheme === 'dark' && (
+                        <span
+                          className="library-settings-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                    <div
+                      className={`library-settings-hide-row${
+                        hideQualityImages ? ' active' : ''
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className={`library-settings-quality-toggle${
+                          hiddenQuality === 'Bad' ? '' : ' flipped'
+                        }`}
+                        onClick={() =>
+                          setHiddenQuality((prev) =>
+                            prev === 'Bad' ? 'Good' : 'Bad'
+                          )
+                        }
+                        aria-pressed={hiddenQuality === 'Good'}
+                        aria-label={`Switch to hiding ${
+                          hiddenQuality === 'Bad' ? 'Good' : 'Bad'
+                        } images`}
+                        title={`Switch to hiding ${
+                          hiddenQuality === 'Bad' ? 'Good' : 'Bad'
+                        } images`}
+                      >
+                        ⇄
+                      </button>
+                      <button
+                        type="button"
+                        className={`library-settings-hide-toggle${
+                          hideQualityImages ? ' active' : ''
+                        }`}
+                        onClick={() => setHideQualityImages((prev) => !prev)}
+                      >
+                        <span>{`Hide ${hiddenQuality}`}</span>
+                        {hideQualityImages && (
+                          <span
+                            className="library-settings-check"
+                            aria-hidden="true"
+                          >
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="sort-dropdown">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSortMenuOpen((o) => !o);
+                    setSettingsOpen(false);
+                  }}
+                  className="sort-button"
+                  type="button"
                 >
-                  <button
-                    onClick={() => {
-                      resetSort();
-                      setSortMenuOpen(false);
-                    }}
+                  Order
+                </button>
+                {sortMenuOpen && (
+                  <div
+                    className="sort-menu"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    Original
-                  </button>
-                  <button
-                    onClick={() => {
-                      sortByTitle();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Title
-                  </button>
-                  <button
-                    onClick={() => {
-                      sortByDate();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Date Added
-                  </button>
-                  <button
-                    onClick={() => {
-                      autoSortByColor();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Color
-                  </button>
-                  <button
-                    onClick={() => {
-                      sortByRating();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Elo (High → Low)
-                  </button>
-                  <button
-                    onClick={() => {
-                      sortByTmb();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    TMB (Top → Mid → Base)
-                  </button>
-                  <button
-                    onClick={() => {
-                      shuffleImages();
-                      setSortMenuOpen(false);
-                    }}
-                  >
-                    Random
-                  </button>
-                </div>
-              )}
+                    <button
+                      onClick={() => {
+                        resetSort();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      Original
+                    </button>
+                    <button
+                      onClick={() => {
+                        sortByTitle();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      Title
+                    </button>
+                    <button
+                      onClick={() => {
+                        sortByDate();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      Date Added
+                    </button>
+                    <button
+                      onClick={() => {
+                        autoSortByColor();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      Color
+                    </button>
+                    <button
+                      onClick={() => {
+                        sortByRating();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      Elo (High → Low)
+                    </button>
+                    <button
+                      onClick={() => {
+                        sortByTmb();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      TMB (Top → Mid → Base)
+                    </button>
+                    <button
+                      onClick={() => {
+                        shuffleImages();
+                        setSortMenuOpen(false);
+                      }}
+                    >
+                      Random
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-          <div className="library-tabs">
-          <button
-            className={activeTab === 'all' ? 'active' : ''}
-            onClick={() => setActiveTab('all')}
-          >
-            All ({totalCount})
-          </button>
-          <button
-            className={activeTab === 'images' ? 'active' : ''}
-            onClick={() => setActiveTab('images')}
-          >
-            Images ({imageCount})
-          </button>
-          <button
-            className={activeTab === 'words' ? 'active' : ''}
-            onClick={() => setActiveTab('words')}
-          >
-            Words ({wordCount})
-          </button>
-          <button
-            className={activeTab === 'sounds' ? 'active' : ''}
-            onClick={() => setActiveTab('sounds')}
-          >
-            Sounds ({soundCount})
-          </button>
-        </div>
         </div>
         {(activeTab === 'all' || activeTab === 'images') &&
           (libraryView === 'tri'
