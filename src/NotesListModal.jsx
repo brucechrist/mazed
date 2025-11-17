@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import FloatingActionButton from './FloatingActionButton.jsx';
 import './note-modal.css';
 
 const VIEWPORT_FALLBACK = { width: 1440, height: 900 };
@@ -561,7 +562,7 @@ const updateNoteInStorage = (note, fields) => {
 
 const pluralise = (count, singular, plural) => (count === 1 ? singular : plural);
 
-export default function NotesListModal({ onClose }) {
+export default function NotesListModal({ onClose, onCreateNote }) {
   const [viewportSize, setViewportSize] = useState(() => readViewportSize());
   const [notes, setNotes] = useState(() => loadStoredNotes());
   const [searchTerm, setSearchTerm] = useState('');
@@ -918,14 +919,24 @@ export default function NotesListModal({ onClose }) {
             <h3>Your notes library</h3>
             <p className="notes-subtitle">{subtitle}</p>
           </div>
-          <button
-            type="button"
-            className="modal-close-button"
-            onClick={onClose}
-            aria-label="Close notes list"
-          >
-            &times;
-          </button>
+          <div className="notes-header__actions">
+            {onCreateNote ? (
+              <FloatingActionButton
+                ariaLabel="Capture a new note"
+                onClick={onCreateNote}
+                title="Capture a new note"
+                className="notes-header__add-button"
+              />
+            ) : null}
+            <button
+              type="button"
+              className="modal-close-button"
+              onClick={onClose}
+              aria-label="Close notes list"
+            >
+              &times;
+            </button>
+          </div>
         </header>
 
         <div className="notes-controls">

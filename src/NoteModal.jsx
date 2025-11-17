@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import FloatingActionButton from './FloatingActionButton.jsx';
 import './note-modal.css';
 
 const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
@@ -199,14 +200,23 @@ export default function NoteModal({ onClose }) {
               find when you revisit your reflections.
             </p>
           </div>
-          <button
-            type="button"
-            className="modal-close-button"
-            onClick={onClose}
-            aria-label="Close note editor"
-          >
-            &times;
-          </button>
+          <div className="note-editor__header-actions">
+            <FloatingActionButton
+              ariaLabel="Quick save note"
+              title="Save note"
+              size="small"
+              className="note-editor__add-button"
+              onClick={handleSave}
+            />
+            <button
+              type="button"
+              className="modal-close-button"
+              onClick={onClose}
+              aria-label="Close note editor"
+            >
+              &times;
+            </button>
+          </div>
         </header>
 
         <div className="note-editor__fields">
