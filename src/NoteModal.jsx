@@ -210,7 +210,7 @@ export default function NoteModal({ onClose }) {
             />
             <button
               type="button"
-              className="modal-close-button"
+              className="modal-close-button note-editor__close-button"
               onClick={onClose}
               aria-label="Close note editor"
             >
