@@ -118,7 +118,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .library-header h2 {
@@ -128,6 +128,7 @@
   font-size: 1.5rem;
   letter-spacing: 1px;
   color: var(--library-text);
+  line-height: 1.2;
 }
 
 .back-button {
@@ -620,18 +621,50 @@
   opacity: 0.75;
 }
 
+.library-floating-controls {
+  position: sticky;
+  top: 12px;
+  z-index: 30;
+  padding: 0 20px;
+}
+
+.library-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 .library-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  flex: 1 1 auto;
+  gap: 8px;
+  margin: 0;
+  align-items: center;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.library-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .library-tabs button {
   background: var(--library-button-bg);
   border: 1px solid var(--library-button-border);
   color: var(--library-button-text);
-  padding: 6px 12px;
+  padding: 4px 14px 6px;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.3s ease, color 0.3s ease,
     border-color 0.3s ease, box-shadow 0.3s ease;
 }
