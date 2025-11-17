@@ -238,6 +238,16 @@
   gap: 18px;
 }
 
+.notes-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notes-header__add-button {
+  box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
+}
+
 .note-editor__subtitle,
 .notes-subtitle {
   margin: 6px 0 0;
