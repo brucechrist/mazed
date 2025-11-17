@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import './note-modal.css';
 
 const TAGS = ['II', 'IE', 'EI', 'EE', 'form', 'semi-formless', 'formless'];
@@ -43,6 +43,8 @@ export default function NoteModal({ onClose }) {
   const [imageError, setImageError] = useState(null);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const dragCounterRef = useRef(0);
+  const imageInputRef = useRef(null);
+  const imageInputId = useId();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -143,6 +145,9 @@ export default function NoteModal({ onClose }) {
     setImageData(null);
     setImageName('');
     setImageError(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
   };
 
   const handleDragEnter = (event) => {
@@ -225,33 +230,50 @@ export default function NoteModal({ onClose }) {
               value={content}
               onChange={(event) => setContent(event.target.value)}
             />
-          </div>
 
-          <label className="form-field note-image-field">
-            <span>Image (optional)</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="note-image-input"
-            />
-            {imageError ? <p className="note-image-error">{imageError}</p> : null}
-            {imageData ? (
-              <div className="note-image-preview">
-                <img src={imageData} alt="Selected attachment" loading="lazy" />
-                <div className="note-image-preview__meta">
-                  <span>{imageName || 'Attached image'}</span>
-                  <button type="button" className="ghost-button" onClick={handleRemoveImage}>
-                    Remove image
-                  </button>
-                </div>
+            <div className="note-composer__attachment">
+              <div className={`note-attachment ${imageData ? 'has-image' : ''}`}>
+                <input
+                  id={imageInputId}
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="note-attachment__input"
+                />
+                {imageData ? (
+                  <div className="note-attachment__preview">
+                    <img src={imageData} alt="Selected attachment" loading="lazy" />
+                    <div className="note-attachment__meta">
+                      <p className="note-attachment__filename">{imageName || 'Attached image'}</p>
+                      <div className="note-attachment__buttons">
+                        <button
+                          type="button"
+                          className="ghost-button ghost-button--compact"
+                          onClick={() => imageInputRef.current?.click()}
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-button ghost-button--compact"
+                          onClick={handleRemoveImage}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="note-attachment__placeholder" htmlFor={imageInputId}>
+                    <span className="note-attachment__label">Drop or upload an image</span>
+                    <span className="note-attachment__subtext">PNG, JPG, GIF or WEBP</span>
+                  </label>
+                )}
               </div>
-            ) : (
-              <p className="note-image-hint">
-                Add a reference photo or sketch to bring the note to life.
-              </p>
-            )}
-          </label>
+              {imageError ? <p className="note-attachment__error">{imageError}</p> : null}
+            </div>
+          </div>
         </div>
 
         <div className="note-editor__footer">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import './note-modal.css';
 
 const VIEWPORT_FALLBACK = { width: 1440, height: 900 };
@@ -575,6 +575,8 @@ export default function NotesListModal({ onClose }) {
   const [editImageError, setEditImageError] = useState(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState(null);
+  const editImageInputId = useId();
+  const editImageInputRef = useRef(null);
   const modalDimensions = useMemo(() => computeModalDimensions(viewportSize), [viewportSize]);
   const modalStyle = useMemo(() => {
     if (!modalDimensions) {
@@ -806,6 +808,9 @@ export default function NotesListModal({ onClose }) {
 
     setEditImage(null);
     setEditImageError(null);
+    if (editImageInputRef.current) {
+      editImageInputRef.current.value = '';
+    }
   };
 
   const handleCancelEdit = () => {
@@ -1060,50 +1065,65 @@ export default function NotesListModal({ onClose }) {
                       />
                     </label>
 
-                    <label className="form-field">
-                      <span>Notes</span>
-                      <textarea
-                        className="note-content"
-                        value={editContent}
-                        onChange={(event) => setEditContent(event.target.value)}
-                        placeholder="Revise the insight, context, or next steps..."
-                        disabled={isSavingEdit}
-                      />
-                    </label>
-
-                    <label className="form-field note-image-field">
-                      <span>Image (optional)</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleEditImageChange}
-                        className="note-image-input"
-                        disabled={isSavingEdit}
-                      />
-                      {editImageError ? (
-                        <p className="note-image-error">{editImageError}</p>
-                      ) : null}
-                      {editImage ? (
-                        <div className="note-image-preview">
-                          <img src={editImage} alt="Attached to this note" loading="lazy" />
-                          <div className="note-image-preview__meta">
-                            <span>Image attached</span>
-                            <button
-                              type="button"
-                              className="ghost-button"
-                              onClick={handleRemoveEditImage}
+                    <div className="form-field form-field--stacked">
+                      <span>Notes & image</span>
+                      <div className="notes-edit-form__composer">
+                        <textarea
+                          className="note-content note-composer__content"
+                          value={editContent}
+                          onChange={(event) => setEditContent(event.target.value)}
+                          placeholder="Revise the insight, context, or next steps..."
+                          disabled={isSavingEdit}
+                        />
+                        <div className="note-composer__attachment">
+                          <div className={`note-attachment ${editImage ? 'has-image' : ''}`}>
+                            <input
+                              id={editImageInputId}
+                              ref={editImageInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleEditImageChange}
+                              className="note-attachment__input"
                               disabled={isSavingEdit}
-                            >
-                              Remove image
-                            </button>
+                            />
+                            {editImage ? (
+                              <div className="note-attachment__preview">
+                                <img src={editImage} alt="Attached to this note" loading="lazy" />
+                                <div className="note-attachment__meta">
+                                  <p className="note-attachment__filename">Image attached</p>
+                                  <div className="note-attachment__buttons">
+                                    <button
+                                      type="button"
+                                      className="ghost-button ghost-button--compact"
+                                      onClick={() => editImageInputRef.current?.click()}
+                                      disabled={isSavingEdit}
+                                    >
+                                      Replace
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ghost-button ghost-button--compact"
+                                      onClick={handleRemoveEditImage}
+                                      disabled={isSavingEdit}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <label className="note-attachment__placeholder" htmlFor={editImageInputId}>
+                                <span className="note-attachment__label">Add a supporting image</span>
+                                <span className="note-attachment__subtext">
+                                  Drop a diagram, screenshot, or sketch to make the note memorable.
+                                </span>
+                              </label>
+                            )}
                           </div>
+                          {editImageError ? <p className="note-attachment__error">{editImageError}</p> : null}
                         </div>
-                      ) : (
-                        <p className="note-image-hint">
-                          Drop in a diagram, screenshot, or sketch to make the note memorable.
-                        </p>
-                      )}
-                    </label>
+                      </div>
+                    </div>
 
                     <div className="notes-edit-form__footer">
                       <div className="form-field form-field--inline">
@@ -1130,18 +1150,20 @@ export default function NotesListModal({ onClose }) {
                 ) : (
                   <>
                     <h4 className="notes-detail__title">{selectedNote.title}</h4>
-                    <div className="note-view-content">
-                      {selectedNote.content ? selectedNote.content : 'No additional context yet.'}
-                    </div>
-                    {selectedNote.image ? (
-                      <div className="note-image-preview note-image-preview--detail">
-                        <img
-                          src={selectedNote.image}
-                          alt={`Attachment for ${selectedNote.title}`}
-                          loading="lazy"
-                        />
+                    <div className={`note-view-content ${selectedNote.image ? 'has-image' : ''}`}>
+                      <div className="note-view-content__text">
+                        {selectedNote.content ? selectedNote.content : 'No additional context yet.'}
                       </div>
-                    ) : null}
+                      {selectedNote.image ? (
+                        <div className="note-view-content__media">
+                          <img
+                            src={selectedNote.image}
+                            alt={`Attachment for ${selectedNote.title}`}
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : null}
+                    </div>
                   </>
                 )}
               </>
