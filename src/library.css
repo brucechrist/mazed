@@ -141,7 +141,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .library-header h2 {
@@ -643,10 +643,19 @@
   opacity: 0.75;
 }
 
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .library-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  flex: 1 1 260px;
 }
 
 .library-tabs button {
