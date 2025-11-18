@@ -878,8 +878,6 @@ export default function Library({ onBack }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [menu, setMenu] = useState(null);
-  const menuRef = useRef(null);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const portalTarget =
     typeof document !== 'undefined' ? document.body : null;
   const [lightbox, setLightbox] = useState(null);
@@ -1882,13 +1880,19 @@ export default function Library({ onBack }) {
   const openImageContextMenu = (event, imageId) => {
     event.preventDefault();
     const { clientX, clientY } = event;
-    setMenu({ id: imageId, x: clientX, y: clientY });
+    setMenu({
+      id: imageId,
+      anchor: { x: clientX, y: clientY },
+    });
   };
 
   const openSoundContextMenu = (event, soundId) => {
     event.preventDefault();
     const { clientX, clientY } = event;
-    setSoundMenu({ id: soundId, x: clientX, y: clientY });
+    setSoundMenu({
+      id: soundId,
+      anchor: { x: clientX, y: clientY },
+    });
   };
 
   const moveImage = (fromId, toId) => {
@@ -4015,10 +4019,9 @@ export default function Library({ onBack }) {
         )}
         {soundMenu && portalTarget
           ? createPortal(
-              <div
-                ref={soundMenuRef}
-                className="context-menu"
-                style={{ left: soundMenuPosition.x, top: soundMenuPosition.y }}
+              <ContextMenu
+                anchor={soundMenu.anchor}
+                onRequestClose={() => setSoundMenu(null)}
               >
                 <button
                   onClick={() => {
@@ -4042,7 +4045,7 @@ export default function Library({ onBack }) {
                 >
                   Delete
                 </button>
-              </div>,
+              </ContextMenu>,
               portalTarget
             )
           : null}
@@ -4286,10 +4289,9 @@ export default function Library({ onBack }) {
         )}
         {menu && portalTarget
           ? createPortal(
-              <div
-                ref={menuRef}
-                className="context-menu"
-                style={{ left: menuPosition.x, top: menuPosition.y }}
+              <ContextMenu
+                anchor={menu.anchor}
+                onRequestClose={() => setMenu(null)}
               >
                 <button
                   onClick={() => {
@@ -4299,7 +4301,7 @@ export default function Library({ onBack }) {
                 >
                   Delete
                 </button>
-              </div>,
+              </ContextMenu>,
               portalTarget
             )
           : null}
