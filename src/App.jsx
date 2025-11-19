@@ -25,7 +25,7 @@ import ProfileModal from './ProfileModal.jsx';
 import TodoGoals from './TodoGoals.jsx';
 import ActivityApp from './ActivityApp.jsx';
 import ActivityLog from './ActivityLog.jsx';
-import Orb from '../Orb.jsx';
+import Orb from './Orb.jsx';
 import IdeaBoard from './IdeaBoard.jsx';
 import ImplementationIdeas from './ImplementationIdeas.jsx';
 import Tips from './Tips.jsx';
