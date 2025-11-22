@@ -71,26 +71,37 @@ export function QuestProvider({ children }) {
   };
 
   const completeQuest = (id) => {
+    const quest = quests.find((q) => q.id === id);
+    const rewardR = quest?.resource || 0;
+    const rewardX = quest?.xResource || quest?.x_resource || 0;
+    const currentR = parseInt(localStorage.getItem('resourceR') || '0', 10);
+    const currentX = parseInt(localStorage.getItem('resourceX') || '0', 10);
+    const newResource = currentR + rewardR;
+    const newXResource = currentX + rewardX;
+
+    localStorage.setItem('resourceR', newResource);
+    localStorage.setItem('resourceX', newXResource);
+    if (userId && navigator.onLine) {
+      supabaseClient
+        .from('profiles')
+        .update({ resources: newResource, x_resources: newXResource })
+        .eq('id', userId);
+    }
+    window.dispatchEvent(
+      new CustomEvent('resourceChange', {
+        detail: { resource: newResource, xResource: newXResource },
+      })
+    );
+
     setQuests((prev) =>
       prev.map((q) => {
         if (q.id === id) {
-          const newResource =
-            parseInt(localStorage.getItem('resourceR') || '0', 10) +
-            (q.resource || 0);
-          localStorage.setItem('resourceR', newResource);
-          if (userId && navigator.onLine) {
-            supabaseClient.from('profiles').update({ resources: newResource }).eq('id', userId);
-          }
-          window.dispatchEvent(
-            new CustomEvent('resourceChange', { detail: { resource: newResource } })
-          );
           return { ...q, completed: true };
         }
         return q;
       })
     );
     if (userId && navigator.onLine) {
-      const quest = quests.find((q) => q.id === id);
       if (quest && (quest.type === 'main' || quest.urgent)) {
         supabaseClient
           .from('quests')
