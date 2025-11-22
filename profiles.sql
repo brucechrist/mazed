@@ -4,6 +4,8 @@ create table if not exists profiles (
   username text unique not null,
   avatar_url text,
   resources int default 0,
+  resource_r int default 0,
+  resource_x int default 0,
   streaks int default 0,
   stats jsonb default '[5,5,5,5]'
 );
@@ -11,7 +13,9 @@ create table if not exists profiles (
 alter table profiles
   add column if not exists mbti text,
   add column if not exists enneagram text,
-  add column if not exists instinct text;
+  add column if not exists instinct text,
+  add column if not exists resource_r int default 0,
+  add column if not exists resource_x int default 0;
 
 -- Upgrade existing installations
 alter table profiles
