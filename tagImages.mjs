@@ -5,16 +5,32 @@ import { fileURLToPath } from 'url';
 import { extractDominantColor } from './src/dominantColor.js';
 import { colorDiff } from './src/colorUtils.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const palettePath = path.join(__dirname, 'palette.json');
+const paletteDefaultPath = path.join(__dirname, 'palette.default.json');
+const FALLBACK_PALETTE = [
+  '#13901b',
+  '#de9921',
+  '#992aa7',
+  '#000000',
+  '#661414',
+  '#37958f',
+  '#511f1f',
+];
+
 // Load palette from shared JSON file
 async function loadPalette() {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const palettePath = path.join(__dirname, 'palette.json');
   try {
     const text = await fs.readFile(palettePath, 'utf8');
     return JSON.parse(text);
   } catch {
-    return ['#ffffff', '#f1c40f', '#e74c3c', '#27ae60', '#2980b9', '#8e44ad', '#000000'];
+    try {
+      const fallback = await fs.readFile(paletteDefaultPath, 'utf8');
+      return JSON.parse(fallback);
+    } catch {
+      return FALLBACK_PALETTE;
+    }
   }
 }
 

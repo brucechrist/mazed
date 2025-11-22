@@ -1,4 +1,6 @@
 import React from 'react';
+import { useResource } from './ResourceContext.jsx';
+import { RIcon, XIcon } from './ResourceIcons.jsx';
 import './timeline-bar.css';
 
 const SAMPLE_CANDLE_DATA = [
@@ -155,15 +157,13 @@ const applyVolumeOptions = (series) => {
 export default function TimelineBar({
   focusLabel = 'Tools',
   quickActions = [],
-  autoLog = false,
-  onToggleAutoLog = () => {},
   theme = 'dark',
-  onToggleTheme = () => {},
   onOpenSettings = () => {},
   onOpenProfile = () => {},
   onOpenAkashicRecords = () => {},
   isAnyAppOpen = false,
 }) {
+  const { resource = 0, xResource = 0 } = useResource() || {};
   const actions = quickActions.filter(Boolean);
   const [isInsightsOpen, setIsInsightsOpen] = React.useState(false);
   const chartContainerRef = React.useRef(null);
@@ -660,25 +660,25 @@ export default function TimelineBar({
             ))}
           </div>
         </div>
-        <div className="timeline-bar__section timeline-bar__section--toggles">
-          <button
-            type="button"
-            className="timeline-bar__pill"
-            onClick={onToggleAutoLog}
-          >
-            <span className="timeline-bar__pill-label">Auto Log</span>
-            <span className="timeline-bar__pill-value">{autoLog ? 'On' : 'Off'}</span>
-          </button>
-          <button
-            type="button"
-            className="timeline-bar__pill"
-            onClick={onToggleTheme}
-          >
-            <span className="timeline-bar__pill-label">Theme</span>
-            <span className="timeline-bar__pill-value">
-              {theme === 'dark' ? 'Dark' : 'Light'}
-            </span>
-          </button>
+        <div className="timeline-bar__section timeline-bar__section--toggles" role="group" aria-label="Currencies">
+          {[
+            { label: 'R', value: resource, Icon: RIcon },
+            { label: 'X', value: xResource, Icon: XIcon },
+          ].map(({ label, value, Icon }) => (
+            <div
+              key={label}
+              className="timeline-bar__resource"
+              aria-label={`${label} balance`}
+            >
+              <span className="timeline-bar__resource-icon" aria-hidden="true">
+                <Icon />
+              </span>
+              <div className="timeline-bar__resource-meta">
+                <span className="timeline-bar__resource-label">{label}</span>
+                <span className="timeline-bar__resource-value">{value}</span>
+              </div>
+            </div>
+          ))}
         </div>
         <div className="timeline-bar__section timeline-bar__section--secondary">
           <button

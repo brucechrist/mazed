@@ -5,6 +5,11 @@
   "main": "electron-main.js",
   "type": "commonjs",
   "scripts": {
+    "predev": "node ensurePalette.cjs",
+    "prebuild": "node ensurePalette.cjs",
+    "prestart": "node ensurePalette.cjs",
+    "predist": "node ensurePalette.cjs",
+    "prepack": "node ensurePalette.cjs",
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
     "start": "electron .",

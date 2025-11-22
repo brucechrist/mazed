@@ -33,6 +33,8 @@ const readFileAsDataURL = (file) =>
     reader.readAsDataURL(file);
   });
 
+const CLIP_SCHEMA_VERSION = 1;
+
 const generateVideoThumbnail = (dataUrl) =>
   new Promise((resolve) => {
     if (typeof document === 'undefined') {
@@ -61,16 +63,20 @@ const generateVideoThumbnail = (dataUrl) =>
       try {
         const width = video.videoWidth || 320;
         const height = video.videoHeight || Math.round((width * 9) / 16);
+        const maxWidth = 480;
+        const scale = width > maxWidth ? maxWidth / width : 1;
+        const targetWidth = Math.max(160, Math.round(width * scale));
+        const targetHeight = Math.max(90, Math.round(height * scale));
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           cleanup();
           resolve(null);
           return;
         }
-        ctx.drawImage(video, 0, 0, width, height);
+        ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
         const thumb = canvas.toDataURL('image/png');
         cleanup();
         resolve(thumb);
@@ -168,6 +174,21 @@ function ContextMenu({ anchor, onRequestClose, children }) {
     x: anchor.x,
     y: anchor.y,
   }));
+  const viewportCloseArmedRef = useRef(false);
+
+  useEffect(() => {
+    viewportCloseArmedRef.current = false;
+    if (typeof window === 'undefined') {
+      viewportCloseArmedRef.current = true;
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      viewportCloseArmedRef.current = true;
+    }, 200);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [anchor.x, anchor.y]);
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') {
@@ -180,26 +201,33 @@ function ContextMenu({ anchor, onRequestClose, children }) {
     }
     if (!menuRef.current) return;
 
-    setPosition((prev) =>
-      prev.x === anchor.x && prev.y === anchor.y
-        ? prev
-        : { x: anchor.x, y: anchor.y }
-    );
-
     const rect = menuRef.current.getBoundingClientRect();
     const padding = 8;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
     let nextX = anchor.x;
     let nextY = anchor.y;
-    if (nextX + rect.width + padding > window.innerWidth) {
-      nextX = Math.max(padding, window.innerWidth - rect.width - padding);
+
+    const deltaX = anchor.x - rect.left;
+    const deltaY = anchor.y - rect.top;
+    if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+      nextX += deltaX;
+      nextY += deltaY;
     }
-    if (nextY + rect.height + padding > window.innerHeight) {
-      nextY = Math.max(padding, window.innerHeight - rect.height - padding);
+
+    if (nextX + rect.width + padding > viewportWidth) {
+      nextX = Math.max(padding, viewportWidth - rect.width - padding);
+    }
+    if (nextY + rect.height + padding > viewportHeight) {
+      nextY = Math.max(padding, viewportHeight - rect.height - padding);
     }
     if (nextX < padding) nextX = padding;
     if (nextY < padding) nextY = padding;
+
     setPosition((prev) =>
-      prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY }
+      Math.abs(prev.x - nextX) < 0.5 && Math.abs(prev.y - nextY) < 0.5
+        ? prev
+        : { x: nextX, y: nextY }
     );
   }, [anchor.x, anchor.y]);
 
@@ -243,6 +271,9 @@ function ContextMenu({ anchor, onRequestClose, children }) {
     if (typeof window === 'undefined') return undefined;
 
     const handleViewportChange = () => {
+      if (!viewportCloseArmedRef.current) {
+        return;
+      }
       onRequestClose();
     };
 
@@ -258,7 +289,7 @@ function ContextMenu({ anchor, onRequestClose, children }) {
   return (
     <div
       ref={menuRef}
-      className="context-menu"
+      className="library-context-menu"
       style={{ left: position.x, top: position.y }}
       role="menu"
     >
@@ -469,6 +500,8 @@ const getSoundMetadata = (sound) => {
     id: sound.id,
     title: sound.title || 'Untitled',
     thumbnail: sound.thumbnail || null,
+    thumbnailSource: sound.thumbnailSource || null,
+    clipVersion: sound.clipVersion || null,
     color: sound.color || '',
     mimeType: sound.mimeType || '',
     tags,
@@ -734,10 +767,108 @@ function QuadrantPicker({ value = [], onChange }) {
   );
 }
 
-function VideoPreview({ src, poster, title }) {
+function VideoPreview({
+  src,
+  poster: providedPoster,
+  title,
+  onMetadata,
+  onPosterCapture,
+  autoPlay = true,
+  preloadHint = 'auto',
+}) {
   const videoRef = useRef(null);
   const hasPlayedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [generatedPoster, setGeneratedPoster] = useState(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
+  const posterSeekRequestedRef = useRef(false);
+
+  const poster = providedPoster || generatedPoster;
+
+  useEffect(() => {
+    if (providedPoster || !src) {
+      setGeneratedPoster(null);
+      return;
+    }
+    let cancelled = false;
+    setGeneratedPoster(null);
+    generateVideoThumbnail(src).then((thumb) => {
+      if (!cancelled) {
+        setGeneratedPoster(thumb || null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [providedPoster, src]);
+
+  const captureFrameFromVideo = useCallback(() => {
+    if (providedPoster || generatedPoster) return;
+    const video = videoRef.current;
+    if (!video) return;
+    const width = video.videoWidth || 0;
+    const height = video.videoHeight || 0;
+    if (!width || !height) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, width, height);
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      if (dataUrl && dataUrl.startsWith('data:image')) {
+        setGeneratedPoster(dataUrl);
+        if (onPosterCapture) {
+          onPosterCapture(dataUrl);
+        }
+      }
+    } catch {
+      // Ignore failures; we'll stay in live video fallback.
+    }
+  }, [generatedPoster, onPosterCapture, providedPoster]);
+
+  const requestPosterSeek = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || posterSeekRequestedRef.current) return;
+    posterSeekRequestedRef.current = true;
+    try {
+      const smallOffset = 0.001;
+      const target = Number.isFinite(video.duration)
+        ? Math.min(Math.max(smallOffset, video.duration * 0.01), Math.max(video.duration - smallOffset, 0.001))
+        : smallOffset;
+      video.currentTime = target;
+    } catch {
+      posterSeekRequestedRef.current = false;
+    }
+  }, []);
+
+  const resetMute = useCallback(() => {
+    setIsMuted(true);
+    const video = videoRef.current;
+    if (video) {
+      video.muted = true;
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      const video = videoRef.current;
+      if (video) {
+        video.muted = next;
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = isMuted;
+    }
+  }, [isMuted]);
 
   const play = useCallback(() => {
     const video = videoRef.current;
@@ -784,37 +915,104 @@ function VideoPreview({ src, poster, title }) {
         // Ignore load errors so we can still show the poster once available
       }
     }
+    posterSeekRequestedRef.current = false;
     hasPlayedRef.current = false;
     pause(false);
-  }, [src, poster, pause]);
+    resetMute();
+  }, [src, poster, pause, resetMute]);
+
+
+  const handleLoadedMetadata = useCallback(() => {
+    if (!onMetadata) {
+      return;
+    }
+    const video = videoRef.current;
+    if (!video) return;
+    const width = video.videoWidth || 0;
+    const height = video.videoHeight || 0;
+    if (!width || !height) {
+      return;
+    }
+    onMetadata({
+      width,
+      height,
+      aspect: width / height,
+    });
+    requestPosterSeek();
+  }, [onMetadata, requestPosterSeek]);
+
+  const handleLoadedData = useCallback(() => {
+    captureFrameFromVideo();
+  }, [captureFrameFromVideo]);
+
+  const handleSeeked = useCallback(() => {
+    if (posterSeekRequestedRef.current) {
+      posterSeekRequestedRef.current = false;
+      captureFrameFromVideo();
+    }
+  }, [captureFrameFromVideo]);
 
   const ensurePlaying = useCallback(
     (event) => {
+      if (!autoPlay) {
+        event.stopPropagation();
+        return;
+      }
       event.stopPropagation();
       if (!isPlaying) {
-        play();
+        const video = videoRef.current;
+        if (video) {
+          video.muted = true;
+        }
+        const attempt = play();
+        if (attempt?.catch) {
+          attempt.catch((err) => {
+            console.error('Video play failed, retrying load', err);
+            const vid = videoRef.current;
+            if (!vid) return;
+            try {
+              vid.load();
+            } catch {
+              // ignore
+            }
+            play();
+          });
+        }
       }
     },
-    [isPlaying, play]
+    [isPlaying, play, autoPlay]
   );
 
   const handleMouseEnter = useCallback(
     (event) => {
-      ensurePlaying(event);
+      if (autoPlay) {
+        ensurePlaying(event);
+      }
+      setIsHovering(true);
     },
-    [ensurePlaying]
+    [ensurePlaying, autoPlay]
   );
 
   const handleMouseLeave = useCallback(
     (event) => {
       event.stopPropagation();
-      pause(true);
+      if (autoPlay) {
+        pause(true);
+      }
+      setIsHovering(false);
+      resetMute();
     },
-    [pause]
+    [pause, autoPlay, resetMute]
   );
 
   const handleKeyDown = useCallback(
     (event) => {
+      if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleMute();
+        return;
+      }
       if (event.key === ' ' || event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
@@ -825,12 +1023,31 @@ function VideoPreview({ src, poster, title }) {
         }
       }
     },
-    [isPlaying, pause, play]
+    [isPlaying, pause, play, toggleMute]
   );
 
   const handleBlur = useCallback(() => {
     pause(true);
-  }, [pause]);
+    setIsHovering(false);
+    resetMute();
+  }, [pause, resetMute]);
+
+  useEffect(() => {
+    if (!isHovering || typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleKeydown = (event) => {
+      if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleMute();
+      }
+    };
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  }, [isHovering, toggleMute]);
 
   const label = title ? `Preview video ${title}` : 'Preview video';
 
@@ -859,9 +1076,12 @@ function VideoPreview({ src, poster, title }) {
         ref={videoRef}
         src={src}
         poster={poster || undefined}
-        preload="metadata"
+        preload={preloadHint}
+        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedData={handleLoadedData}
+        onSeeked={handleSeeked}
         playsInline
-        muted
+        muted={isMuted}
         loop
       />
       {!poster && (
@@ -891,6 +1111,44 @@ export default function Library({ onBack }) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [videoAspects, setVideoAspects] = useState({});
+  const [hoverPreview, setHoverPreview] = useState(null);
+  const handleVideoMetadata = useCallback((soundId, info) => {
+    if (soundId === null || typeof soundId === 'undefined') {
+      return;
+    }
+    if (!info || !info.aspect || info.aspect <= 0) {
+      return;
+    }
+    setVideoAspects((prev) => {
+      if (prev[soundId] === info.aspect) {
+        return prev;
+      }
+      return { ...prev, [soundId]: info.aspect };
+    });
+  }, []);
+  const showHoverPreview = useCallback((preview) => {
+    if (!preview) {
+      setHoverPreview(null);
+      return;
+    }
+    setHoverPreview((current) => {
+      if (
+        current &&
+        current.type === preview.type &&
+        current.src === preview.src
+      ) {
+        return current;
+      }
+      return preview;
+    });
+  }, []);
+  const clearHoverPreview = useCallback(() => {
+    setHoverPreview(null);
+  }, []);
+  const handleContainerMouseLeave = useCallback(() => {
+    setHoverPreview(null);
+  }, []);
   const [libraryTheme, setLibraryTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const storedTheme = localStorage.getItem('libraryTheme');
@@ -947,7 +1205,10 @@ export default function Library({ onBack }) {
   const [soundMenu, setSoundMenu] = useState(null);
   const [editingSoundId, setEditingSoundId] = useState(null);
   const [soundThumbPreview, setSoundThumbPreview] = useState(null);
+  const [soundThumbSource, setSoundThumbSource] = useState('auto');
   const [soundMimeType, setSoundMimeType] = useState('');
+  const [soundDirty, setSoundDirty] = useState(false);
+  const markSoundDirty = useCallback(() => setSoundDirty(true), []);
   const [hideQualityImages, setHideQualityImages] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('hideQualityImages');
@@ -1398,15 +1659,41 @@ export default function Library({ onBack }) {
           metadataNeedsUpdate = true;
         }
         const enrichedBase = { ...base, mimeType: resolvedMime };
+        if (!enrichedBase.thumbnailSource) {
+          if (enrichedBase.thumbnail) {
+            enrichedBase.thumbnailSource = 'manual';
+            metadataNeedsUpdate = true;
+          } else if (resolvedMime.startsWith('video/')) {
+            enrichedBase.thumbnailSource = 'auto';
+            metadataNeedsUpdate = true;
+          } else {
+            enrichedBase.thumbnailSource = null;
+          }
+        }
         if (resolvedMime.startsWith('video/') && !enrichedBase.thumbnail) {
           const promise = generateVideoThumbnail(dataUrl).then((thumb) => {
             if (!thumb) {
               return false;
             }
             enrichedBase.thumbnail = thumb;
+            enrichedBase.thumbnailSource = 'auto';
             return true;
           });
           thumbnailPromises.push(promise);
+        }
+        if (resolvedMime.startsWith('video/')) {
+          if (enrichedBase.clipVersion !== CLIP_SCHEMA_VERSION) {
+            if (enrichedBase.clipVersion) {
+              metadataNeedsUpdate = true;
+            }
+            enrichedBase.clipVersion = null;
+          } else if (enrichedBase.thumbnailSource !== 'manual') {
+            enrichedBase.clipVersion = null;
+            metadataNeedsUpdate = true;
+          }
+        } else if (enrichedBase.clipVersion) {
+          enrichedBase.clipVersion = null;
+          metadataNeedsUpdate = true;
         }
 
         loaded.push({ base: enrichedBase, dataUrl, stored });
@@ -1428,22 +1715,28 @@ export default function Library({ onBack }) {
         }
       };
 
-      setSounds(toSoundList());
+      const applyMetadataUpdates = () => {
+        if (metadataNeedsUpdate) {
+          persistMetadata();
+        }
+      };
 
-      if (metadataNeedsUpdate) {
-        persistMetadata();
-      }
+      setSounds(toSoundList());
 
       if (thumbnailPromises.length) {
         Promise.all(thumbnailPromises).then((results) => {
           if (cancelled) return;
           const generatedAny = results.some(Boolean);
-          if (!generatedAny) {
-            return;
+          if (generatedAny) {
+            metadataNeedsUpdate = true;
+            setSounds(toSoundList());
+            persistMetadata();
+          } else {
+            applyMetadataUpdates();
           }
-          setSounds(toSoundList());
-          persistMetadata();
         });
+      } else {
+        applyMetadataUpdates();
       }
     };
 
@@ -1617,6 +1910,83 @@ export default function Library({ onBack }) {
     setSounds(list);
     return results;
   };
+
+  const persistSoundThumbnail = useCallback((soundId, thumbnail) => {
+    if (!soundId || !thumbnail) return;
+    setSounds((prev) => {
+      let changed = false;
+      const next = prev.map((snd) => {
+        if (snd.id !== soundId) return snd;
+        if (snd.thumbnail === thumbnail) return snd;
+        changed = true;
+        return {
+          ...snd,
+          thumbnail,
+          thumbnailSource: snd.thumbnailSource || 'auto',
+        };
+      });
+      if (!changed) return prev;
+      try {
+        const raw = localStorage.getItem('mazedSounds');
+        const existing = raw ? JSON.parse(raw) : [];
+        const byId =
+          Array.isArray(existing) && existing.length
+            ? new Map(existing.map((item) => [item?.id, item]))
+            : new Map();
+        const updatedMeta = next.map((snd) => {
+          const base = byId.get(snd.id) && typeof byId.get(snd.id) === 'object'
+            ? byId.get(snd.id)
+            : getSoundMetadata(snd);
+          if (snd.id !== soundId) {
+            return base;
+          }
+          return {
+            ...base,
+            thumbnail,
+            thumbnailSource: base.thumbnailSource || 'auto',
+          };
+        });
+        localStorage.setItem('mazedSounds', JSON.stringify(updatedMeta));
+      } catch (err) {
+        console.error('Failed to persist sound thumbnail', err);
+      }
+      return next;
+    });
+  }, []);
+
+  const posterGenerationRef = useRef(new Set());
+  useEffect(() => {
+    // Background pass to generate posters for videos missing thumbnails
+    let cancelled = false;
+    const queue = sounds.filter(
+      (snd) =>
+        snd &&
+        snd.mimeType &&
+        snd.mimeType.startsWith('video/') &&
+        !snd.thumbnail &&
+        !posterGenerationRef.current.has(snd.id)
+    );
+    if (!queue.length) return undefined;
+    queue.forEach((snd) => posterGenerationRef.current.add(snd.id));
+    const run = async () => {
+      for (const snd of queue) {
+        if (cancelled) break;
+        try {
+          const thumb = await generateVideoThumbnail(snd.dataUrl);
+          if (cancelled) break;
+          if (thumb) {
+            persistSoundThumbnail(snd.id, thumb);
+          }
+        } catch (err) {
+          console.error('Failed to auto-generate video poster', err);
+        }
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [sounds, persistSoundThumbnail]);
 
   const updateWord = (id, updates) => {
     if (!updates || typeof updates !== 'object') {
@@ -2219,6 +2589,7 @@ export default function Library({ onBack }) {
         setSoundTitle(droppedFile.name.replace(/\.[^/.]+$/, ''));
         setSoundThumb(null);
         setSoundThumbPreview(null);
+        setSoundThumbSource('auto');
         setSoundColor('');
         setSoundCategory('');
         setSoundGender('');
@@ -2229,6 +2600,7 @@ export default function Library({ onBack }) {
         const detectedMime =
           droppedFile.type || extractMimeType(result) || '';
         setSoundMimeType(detectedMime);
+        setSoundDirty(true);
       };
       reader.readAsDataURL(droppedFile);
     }
@@ -2251,10 +2623,17 @@ export default function Library({ onBack }) {
 
   const saveDroppedSound = async () => {
     if (!soundModal) return;
+    if (editingSoundId && !soundDirty) {
+      resetSoundModalState();
+      return;
+    }
     try {
-      const thumbData = soundThumb
-        ? await readFileAsDataURL(soundThumb)
-        : soundThumbPreview;
+      let manualThumbData = null;
+      if (soundThumb) {
+        manualThumbData = await readFileAsDataURL(soundThumb);
+      } else if (soundThumbSource === 'manual' && soundThumbPreview) {
+        manualThumbData = soundThumbPreview;
+      }
 
       const tags = buildSoundTagsPayload({
         category: soundCategory,
@@ -2265,18 +2644,31 @@ export default function Library({ onBack }) {
       });
       const tagString = tags.join(', ');
       const mimeType = soundMimeType || extractMimeType(soundModal) || '';
-      const isVideo = mimeType.startsWith('video/');
-
-      let finalThumb = thumbData || null;
-      if (!finalThumb && isVideo) {
-        finalThumb = await generateVideoThumbnail(soundModal);
+      let thumbnail = manualThumbData || null;
+      let thumbnailSource = thumbnail ? 'manual' : null;
+      if (!thumbnail && soundThumbPreview) {
+        thumbnail = soundThumbPreview;
+        thumbnailSource = soundThumbSource || (mimeType.startsWith('video/') ? 'auto' : null);
       }
+      if (!thumbnail && mimeType.startsWith('video/')) {
+        const autoThumb = await generateVideoThumbnail(soundModal);
+        if (autoThumb) {
+          thumbnail = autoThumb;
+          thumbnailSource = 'auto';
+        }
+      }
+      const clipVersion =
+        mimeType.startsWith('video/') && thumbnailSource === 'manual'
+          ? CLIP_SCHEMA_VERSION
+          : null;
 
       const newSound = {
         id: editingSoundId || Date.now(),
         title: soundTitle || 'Untitled',
         dataUrl: soundModal,
-        thumbnail: finalThumb,
+        thumbnail,
+        thumbnailSource,
+        clipVersion,
         color: soundColor,
         mimeType,
         tags,
@@ -2287,6 +2679,7 @@ export default function Library({ onBack }) {
         : [...sounds, newSound];
 
       await saveSounds(updated);
+      setSoundDirty(false);
 
       resetSoundModalState();
     } catch (err) {
@@ -2301,6 +2694,14 @@ export default function Library({ onBack }) {
     setSoundTitle(snd.title || '');
     setSoundThumb(null);
     setSoundThumbPreview(snd.thumbnail || null);
+    setSoundThumbSource(
+      snd.thumbnailSource ||
+        (snd.thumbnail
+          ? snd.mimeType && snd.mimeType.startsWith('video/')
+            ? 'auto'
+            : 'manual'
+          : 'auto')
+    );
     setSoundColor(snd.color || '');
     setSoundCategory(findPresetTag(tags, CATEGORY_TAGS));
     setSoundGender(findPresetTag(tags, GENDER_TAGS));
@@ -2309,6 +2710,7 @@ export default function Library({ onBack }) {
     setSoundCustomTags(extractCustomSoundTags(tags).join(', '));
     setEditingSoundId(snd.id);
     setSoundMimeType(snd.mimeType || extractMimeType(snd.dataUrl) || '');
+    setSoundDirty(false);
   };
 
   const resetSoundModalState = () => {
@@ -2316,6 +2718,7 @@ export default function Library({ onBack }) {
     setSoundTitle('');
     setSoundThumb(null);
     setSoundThumbPreview(null);
+    setSoundThumbSource('auto');
     setSoundColor('');
     setSoundCategory('');
     setSoundGender('');
@@ -2324,6 +2727,7 @@ export default function Library({ onBack }) {
     setSoundCustomTags('');
     setEditingSoundId(null);
     setSoundMimeType('');
+    setSoundDirty(false);
   };
 
   const getMasonrySpan = (targetHeight) => {
@@ -2484,16 +2888,54 @@ export default function Library({ onBack }) {
   };
 
   const renderSoundCard = (snd, width = colWidth) => {
-    const span = getMasonrySpan(width);
     const typeInfo = ITEM_TYPE_INFO.sound;
     const mimeType = snd.mimeType || extractMimeType(snd.dataUrl) || '';
     const isVideo = mimeType.startsWith('video/');
+    const isClipMode =
+      isVideo && snd.clipVersion === CLIP_SCHEMA_VERSION && snd.thumbnailSource === 'manual';
+    const isWide = isVideo && !isClipMode;
+    const aspectRatio =
+      videoAspects[snd.id] && videoAspects[snd.id] > 0 ? videoAspects[snd.id] : 16 / 9;
+    const effectiveWidth = isWide ? width * 2 + gridGap : width;
+    const targetHeight = isWide ? effectiveWidth / aspectRatio : width;
+    const span = getMasonrySpan(targetHeight);
+    const cardClasses = [
+      'image-card',
+      'sound-card',
+      isVideo ? 'sound-card--video' : '',
+      isWide ? 'sound-card--video-wide' : '',
+      isClipMode ? 'sound-card--clip' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    const cardStyle = {
+      gridRowEnd: `span ${span}`,
+      gridColumn: isWide ? 'span 2' : 'span 1',
+    };
+    const handleMetadata =
+      isVideo && snd.id ? (info) => handleVideoMetadata(snd.id, info) : undefined;
+    const previewSubtitle =
+      Array.isArray(snd.tags) && snd.tags.length ? snd.tags.join(', ') : '';
+    const previewPayload =
+      isClipMode
+        ? {
+            type: 'video',
+            src: snd.dataUrl,
+            poster: snd.thumbnail || undefined,
+            title: snd.title,
+            subtitle: previewSubtitle,
+          }
+        : null;
+    const handlePreviewEnter =
+      previewPayload && snd.dataUrl
+        ? () => showHoverPreview(previewPayload)
+        : undefined;
     const placeholderIcon = isVideo ? '🎬' : '♪';
     return (
       <div
         key={snd.id}
-        className="image-card sound-card"
-        style={{ gridRowEnd: `span ${span}` }}
+        className={cardClasses}
+        style={cardStyle}
         data-item-type="sound"
         data-pretty-symbol={typeInfo.symbol}
         onContextMenu={(e) => openSoundContextMenu(e, snd.id)}
@@ -2507,9 +2949,20 @@ export default function Library({ onBack }) {
             openSoundModalForEdit(snd);
           }
         }}
+    onMouseEnter={handlePreviewEnter}
+    onFocus={handlePreviewEnter}
+    onMouseLeave={clearHoverPreview}
+    onBlur={clearHoverPreview}
       >
         {isVideo ? (
-          <VideoPreview src={snd.dataUrl} poster={snd.thumbnail} title={snd.title} />
+          <VideoPreview
+            src={snd.dataUrl}
+            poster={snd.thumbnail}
+            title={snd.title}
+            onMetadata={handleMetadata}
+            onPosterCapture={(thumb) => persistSoundThumbnail(snd.id, thumb)}
+            autoPlay={!isClipMode}
+          />
         ) : snd.thumbnail ? (
           <img src={snd.thumbnail} alt={snd.title} draggable={false} />
         ) : (
@@ -3268,6 +3721,18 @@ export default function Library({ onBack }) {
     });
 
   const wordActiveTags = normalizeImageTags(wordInspector?.tags);
+  const previewTitle =
+    hoverPreview?.title && hoverPreview.title.trim()
+      ? hoverPreview.title
+      : hoverPreview?.type === 'video'
+      ? 'Video preview'
+      : hoverPreview?.type === 'image'
+      ? 'Image preview'
+      : '';
+  const previewSubtitle =
+    hoverPreview?.subtitle && hoverPreview.subtitle.trim()
+      ? hoverPreview.subtitle.trim()
+      : '';
 
   return (
     <div
@@ -3278,9 +3743,34 @@ export default function Library({ onBack }) {
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onMouseLeave={handleContainerMouseLeave}
     >
       {isDragging && <div className="drop-overlay">Upload Media</div>}
       {uploading && <div className="upload-status">Uploading…</div>}
+      {hoverPreview && (
+        <div className="library-hover-preview visible" aria-live="polite">
+          <div className="library-hover-preview-frame">
+            {hoverPreview.type === 'video' ? (
+              <video
+                key={hoverPreview.src}
+                src={hoverPreview.src}
+                poster={hoverPreview.poster || undefined}
+                autoPlay
+                muted
+                loop
+                playsInline
+                aria-label={previewTitle || 'Video preview'}
+              ></video>
+            ) : (
+              <img
+                src={hoverPreview.src}
+                alt={previewTitle || 'Image preview'}
+                draggable={false}
+              />
+            )}
+          </div>
+        </div>
+      )}
       <div className="library-manager">
         <div className="library-top-controls">
           <div className="library-header">
@@ -3288,6 +3778,9 @@ export default function Library({ onBack }) {
               Back
             </button>
             <h2>Library</h2>
+            <span className="library-version" aria-label="Library build version">
+              0.1.1 / 0.1.5
+            </span>
           </div>
           <div className="library-toolbar">
             <div className="library-tabs">
@@ -3848,7 +4341,16 @@ export default function Library({ onBack }) {
           </div>
         )}
         {soundModal && (
-          <div className="sound-modal" onClick={resetSoundModalState}>
+          <div
+            className="sound-modal"
+            onClick={() => {
+              if (soundDirty) {
+                saveDroppedSound();
+              } else {
+                resetSoundModalState();
+              }
+            }}
+          >
             <div
               className="sound-modal-content"
               onClick={(e) => e.stopPropagation()}
@@ -3870,7 +4372,10 @@ export default function Library({ onBack }) {
               <input
                 type="text"
                 value={soundTitle}
-                onChange={(e) => setSoundTitle(e.target.value)}
+                onChange={(e) => {
+                  setSoundTitle(e.target.value);
+                  markSoundDirty();
+                }}
                 placeholder="Title"
               />
                 {soundThumbPreview && (
@@ -3890,8 +4395,12 @@ export default function Library({ onBack }) {
                     const reader = new FileReader();
                     reader.onload = () => setSoundThumbPreview(reader.result);
                     reader.readAsDataURL(file);
+                    setSoundThumbSource('manual');
+                    markSoundDirty();
                   } else {
                     setSoundThumbPreview(null);
+                    setSoundThumbSource('auto');
+                    markSoundDirty();
                   }
                 }}
               />
@@ -3904,7 +4413,10 @@ export default function Library({ onBack }) {
                     }`}
                     style={{ background: c }}
                     onClick={() =>
-                      setSoundColor(soundColor === c ? '' : c)
+                      {
+                        setSoundColor(soundColor === c ? '' : c);
+                        markSoundDirty();
+                      }
                     }
                   />
                 ))}
@@ -3923,9 +4435,10 @@ export default function Library({ onBack }) {
                           className={`sound-tag-button${
                             selected ? ' selected' : ''
                           }`}
-                          onClick={() =>
-                            setSoundCategory(selected ? '' : tag)
-                          }
+                          onClick={() => {
+                            setSoundCategory(selected ? '' : tag);
+                            markSoundDirty();
+                          }}
                         >
                           {tag}
                         </button>
@@ -3945,9 +4458,10 @@ export default function Library({ onBack }) {
                           className={`sound-tag-button${
                             selected ? ' selected' : ''
                           }`}
-                          onClick={() =>
-                            setSoundGender(selected ? '' : tag)
-                          }
+                          onClick={() => {
+                            setSoundGender(selected ? '' : tag);
+                            markSoundDirty();
+                          }}
                         >
                           {tag}
                         </button>
@@ -3968,7 +4482,10 @@ export default function Library({ onBack }) {
                             selected ? ' selected' : ''
                           }`}
                           onClick={() =>
-                            setSoundQuality(selected ? '' : tag)
+                            {
+                              setSoundQuality(selected ? '' : tag);
+                              markSoundDirty();
+                            }
                           }
                           aria-pressed={selected}
                           title={tag}
@@ -3991,9 +4508,10 @@ export default function Library({ onBack }) {
                           className={`sound-tag-button${
                             selected ? ' selected' : ''
                           }`}
-                          onClick={() =>
-                            setSoundPosition(selected ? '' : tag)
-                          }
+                          onClick={() => {
+                            setSoundPosition(selected ? '' : tag);
+                            markSoundDirty();
+                          }}
                         >
                           {tag}
                         </button>
@@ -4004,7 +4522,10 @@ export default function Library({ onBack }) {
                 <input
                   type="text"
                   value={soundCustomTags}
-                  onChange={(e) => setSoundCustomTags(e.target.value)}
+                  onChange={(e) => {
+                    setSoundCustomTags(e.target.value);
+                    markSoundDirty();
+                  }}
                   placeholder="Additional tags (comma separated)"
                 />
               </div>

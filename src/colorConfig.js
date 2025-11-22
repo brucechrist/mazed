@@ -1,7 +1,7 @@
-import palette from '../palette.json';
+import defaultPalette from '../palette.default.json';
 
 export const COLOR_STORAGE_KEY = 'tagColors';
-export const DEFAULT_COLORS = palette;
+export const DEFAULT_COLORS = defaultPalette;
 
 export async function loadPalette() {
   if (typeof window === 'undefined') {

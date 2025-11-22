@@ -260,12 +260,31 @@
 
 .notes-header__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
-  margin-right: -30px;
+  margin-right: 32px;
+}
+
+.notes-list-modal {
+  position: relative;
+}
+
+.notes-list-modal .notes-header__add-button {
+  transform: translateX(-100px);
+}
+
+.notes-list-modal__label {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  pointer-events: none;
 }
 
 .note-editor__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
-  margin-right: -30px;
+  margin-right: 0;
 }
 
 .note-editor__add-button {

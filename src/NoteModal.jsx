@@ -192,6 +192,19 @@ export default function NoteModal({ onClose }) {
         onClick={(event) => event.stopPropagation()}
         onKeyDown={handleEditorKeyDown}
       >
+        <span
+          className="note-editor__label"
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 18,
+            fontSize: '0.75rem',
+            color: '#94a3b8',
+            pointerEvents: 'none',
+          }}
+        >
+          note-modal4
+        </span>
         <header className="note-editor__header">
           <div>
             <h3>Capture a new note</h3>
@@ -206,6 +219,7 @@ export default function NoteModal({ onClose }) {
               title="Save note"
               size="small"
               className="note-editor__add-button"
+              style={{ transform: 'translateX(175px)', transition: 'none' }}
               onClick={handleSave}
             />
             <button
@@ -213,6 +227,7 @@ export default function NoteModal({ onClose }) {
               className="modal-close-button note-editor__close-button"
               onClick={onClose}
               aria-label="Close note editor"
+              style={{ transform: 'translateX(185px)' }}
             >
               &times;
             </button>

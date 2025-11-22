@@ -914,6 +914,19 @@ export default function NotesListModal({ onClose, onCreateNote }) {
         onClick={(event) => event.stopPropagation()}
         style={modalStyle}
       >
+        <span
+          className="notes-list-modal__label"
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 18,
+            fontSize: '0.75rem',
+            color: '#94a3b8',
+            pointerEvents: 'none',
+          }}
+        >
+          notelistmodal
+        </span>
         <header className="notes-header">
           <div>
             <h3>Your notes library</h3>
@@ -926,6 +939,7 @@ export default function NotesListModal({ onClose, onCreateNote }) {
                 onClick={onCreateNote}
                 title="Capture a new note"
                 className="notes-header__add-button"
+                style={{ transform: 'translateX(-100px)' }}
               />
             ) : null}
             <button
@@ -1213,4 +1227,3 @@ export default function NotesListModal({ onClose, onCreateNote }) {
     </div>
   );
 }
-

@@ -14,6 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const fsp = fs.promises;
 const { spawn } = require('child_process');
+const defaultPalette = require('./palette.default.json');
 let mainWindow;
 let tray;
 let isQuitting = false;
@@ -33,6 +34,47 @@ const MIME_EXTENSION_MAP = {
   'image/bmp': 'bmp',
   'image/tiff': 'tiff',
 };
+
+const palettePath = path.join(__dirname, 'palette.json');
+const DEFAULT_PALETTE_TEXT = JSON.stringify(defaultPalette, null, 2) + '\n';
+const HEX_COLOR_PATTERN = /^#?[0-9a-f]{3,8}$/i;
+
+const normalizePaletteList = (colors) => {
+  if (!Array.isArray(colors)) return null;
+  const normalized = [];
+  for (const color of colors) {
+    if (typeof color !== 'string') continue;
+    const trimmed = color.trim();
+    if (!trimmed) continue;
+    const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+    if (!HEX_COLOR_PATTERN.test(withHash)) continue;
+    const lower = withHash.toLowerCase();
+    if (!normalized.includes(lower)) {
+      normalized.push(lower);
+    }
+  }
+  return normalized.length ? normalized : null;
+};
+
+const ensurePaletteFileSync = () => {
+  try {
+    const data = fs.readFileSync(palettePath, 'utf8');
+    const parsed = JSON.parse(data);
+    const normalized = normalizePaletteList(parsed);
+    if (normalized) {
+      fs.writeFileSync(
+        palettePath,
+        JSON.stringify(normalized, null, 2) + '\n',
+        'utf8'
+      );
+      return normalized;
+    }
+  } catch {}
+  fs.writeFileSync(palettePath, DEFAULT_PALETTE_TEXT, 'utf8');
+  return defaultPalette.slice();
+};
+
+let cachedPalette = ensurePaletteFileSync();
 
 const extensionForMime = (mime) => {
   if (!mime || typeof mime !== 'string') {
@@ -84,6 +126,16 @@ const getImagesDir = () =>
   path.join(getLibraryBaseDir(), LIBRARY_IMAGES_SUBDIR);
 const getImageDir = (id) => path.join(getImagesDir(), String(id));
 const getImageMetaPath = (id) => path.join(getImageDir(id), 'meta.json');
+
+const resolveDevServerURL = () => {
+  if (process.env.VITE_DEV_SERVER_URL) {
+    return process.env.VITE_DEV_SERVER_URL;
+  }
+  if (process.env.npm_lifecycle_event === 'dev') {
+    return 'http://localhost:5173';
+  }
+  return null;
+};
 
 const ensureImagesDir = async () => {
   await fsp.mkdir(getImagesDir(), { recursive: true });
@@ -246,7 +298,7 @@ const ensureActivityOverlayWindow = () => {
     }
   }
 
-  const devServerURL = process.env.VITE_DEV_SERVER_URL;
+  const devServerURL = resolveDevServerURL();
   if (devServerURL) {
     activityOverlayWindow.loadURL(`${devServerURL}?overlay=activity`);
   } else {
@@ -968,7 +1020,7 @@ function createWindow() {
     mainWindow = null;
   });
 
-  const devServerURL = process.env.VITE_DEV_SERVER_URL;
+  const devServerURL = resolveDevServerURL();
   if (devServerURL) {
     mainWindow.loadURL(devServerURL);
   } else {
@@ -1136,26 +1188,23 @@ ipcMain.handle('close-window', () => {
   }
 });
 
-const palettePath = path.join(__dirname, 'palette.json');
 ipcMain.removeHandler('read-palette');
 ipcMain.handle('read-palette', async () => {
-  try {
-    const text = await fs.promises.readFile(palettePath, 'utf8');
-    return JSON.parse(text);
-  } catch {
-    return [];
-  }
+  cachedPalette = ensurePaletteFileSync();
+  return cachedPalette.slice();
 });
 
 ipcMain.removeHandler('write-palette');
 ipcMain.handle('write-palette', async (_e, colors) => {
-  if (!Array.isArray(colors)) return false;
+  const normalized = normalizePaletteList(colors);
+  if (!normalized) return false;
   try {
     await fs.promises.writeFile(
       palettePath,
-      JSON.stringify(colors, null, 2) + '\n',
+      JSON.stringify(normalized, null, 2) + '\n',
       'utf8'
     );
+    cachedPalette = normalized;
     return true;
   } catch {
     return false;

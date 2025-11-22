@@ -263,6 +263,25 @@
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.65);
 }
 
+.notes-list-modal {
+  position: relative;
+}
+
+.notes-list-modal .notes-header__add-button {
+  transform: translateX(-100px);
+}
+
+.notes-list-modal__label {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
 .notes-header__add-button:hover {
   border-color: rgba(148, 163, 184, 0.55);
   background: rgba(15, 23, 42, 0.92);
@@ -270,7 +289,168 @@
 
 .note-editor__add-button {
   box-shadow: 0 28px 55px rgba(76, 29, 149, 0.5);
-  margin-right: -30px;
+  margin-right: 0;
+}
+
+.note-app-launcher {
+  position: relative;
+  display: inline-flex;
+}
+
+.note-app-launcher__menu {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: calc(-100% - 550px);
+  width: 260px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 30px 60px -30px rgba(15, 23, 42, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 15;
+}
+
+.note-app-launcher__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.note-app-launcher__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.note-app-launcher__item {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.65);
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.note-app-launcher__item:hover {
+  border-color: rgba(148, 163, 184, 0.5);
+  transform: translateY(-1px);
+}
+
+.note-app-launcher__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.note-app-launcher__details strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.note-app-launcher__details small {
+  display: block;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.note-attached-apps {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.note-attached-apps h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.note-attached-apps p {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.note-attached-apps__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-attached-app-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.65);
+  padding: 16px;
+}
+
+.note-attached-app-card__info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.note-attached-app-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.12);
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+}
+
+.note-attached-app-card__info strong {
+  font-size: 0.95rem;
+  display: block;
+}
+
+.note-attached-app-card__info p {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.note-attached-app-card__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.note-attached-app-card__action {
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.18);
+  color: #bfdbfe;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.note-attached-app-card__action:hover {
+  border-color: rgba(59, 130, 246, 0.8);
+  background: rgba(59, 130, 246, 0.28);
+}
+
+.note-attached-app-card__action--ghost {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: transparent;
+  color: #cbd5f5;
 }
 
 .note-editor__subtitle,

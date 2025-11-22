@@ -16,11 +16,6 @@ export default function FifthMain({ onSelectQuadrant }) {
   const [menuIndex, setMenuIndex] = useState(0);
   const [showPlanner, setShowPlanner] = useState(false);
 
-  const openNoteComposer = () => {
-    setShowList(false);
-    setShowModal(true);
-  };
-
   const startLeftDrag = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -126,7 +121,7 @@ export default function FifthMain({ onSelectQuadrant }) {
         } else if (menuIndex === 1) {
           setShowList(true);
         } else if (menuIndex === 2) {
-          openNoteComposer();
+          setShowModal(true);
         } else if (menuIndex === 3) {
           onSelectQuadrant('blog');
         } else {
@@ -202,7 +197,7 @@ export default function FifthMain({ onSelectQuadrant }) {
           <button
             type="button"
             className={`side-button ${menuIndex === 2 ? 'selected' : ''}`}
-            onClick={openNoteComposer}
+            onClick={() => setShowModal(true)}
           >
             <svg
               width="24"
@@ -271,12 +266,7 @@ export default function FifthMain({ onSelectQuadrant }) {
         </div>
       </div>
       {showModal && <NoteModal onClose={() => setShowModal(false)} />}
-      {showList && (
-        <NotesListModal
-          onClose={() => setShowList(false)}
-          onCreateNote={openNoteComposer}
-        />
-      )}
+      {showList && <NotesListModal onClose={() => setShowList(false)} />}
       {showPlanner && <DayPlanner onComplete={handlePlannerComplete} />}
     </div>
   );

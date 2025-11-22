@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ResourceProvider } from './ResourceContext.jsx';
 
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement);
@@ -16,7 +17,11 @@ const renderApp = async () => {
     window.electronAPI.setWindowSize(1600, 900);
   }
   const { default: PageRouter } = await import('./PageRouter.jsx');
-  root.render(<PageRouter />);
+  root.render(
+    <ResourceProvider>
+      <PageRouter />
+    </ResourceProvider>
+  );
 };
 
 const bootstrap = async () => {
