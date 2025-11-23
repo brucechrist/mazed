@@ -106,7 +106,7 @@ export default function World({ activeLayer = "Form" }) {
       setUserId(user.id);
       const { data: profileData } = await supabaseClient
         .from("profiles")
-        .select("resource_r, resource_x, resources, mbti, enneagram, instinct")
+        .select("resources, x_resources, mbti, enneagram, instinct")
         .eq("id", user.id)
         .single();
       if (profileData) {
@@ -115,8 +115,8 @@ export default function World({ activeLayer = "Form" }) {
         } else if (typeof profileData.resources === "number") {
           setResource(profileData.resources);
         }
-        if (typeof profileData.resource_x === "number") {
-          setXResource(profileData.resource_x);
+        if (typeof profileData.x_resources === "number") {
+          setXResource(profileData.x_resources);
         }
         setProfile(profileData);
         setNeedsMainQuest(!profileData.mbti || !profileData.enneagram);
@@ -131,8 +131,8 @@ export default function World({ activeLayer = "Form" }) {
       if (e.detail && typeof e.detail.resource === "number") {
         setResource(e.detail.resource);
       }
-      if (e.detail && typeof e.detail.resourceX === "number") {
-        setXResource(e.detail.resourceX);
+      if (e.detail && typeof e.detail.xResource === "number") {
+        setXResource(e.detail.xResource);
       }
     };
     window.addEventListener("resourceChange", handler);
@@ -141,11 +141,14 @@ export default function World({ activeLayer = "Form" }) {
 
   useEffect(() => {
     localStorage.setItem("resourceR", resource);
-  }, [resource]);
-
-  useEffect(() => {
     localStorage.setItem("resourceX", xResource);
-  }, [xResource]);
+    if (userId && navigator.onLine) {
+      supabaseClient
+        .from("profiles")
+        .update({ resources: resource, x_resources: xResource })
+        .eq("id", userId);
+    }
+  }, [resource, xResource, userId]);
 
   useEffect(() => {
     if (!userId || !navigator.onLine) return;
