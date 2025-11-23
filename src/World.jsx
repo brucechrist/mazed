@@ -106,12 +106,17 @@ export default function World({ activeLayer = "Form" }) {
       setUserId(user.id);
       const { data: profileData } = await supabaseClient
         .from("profiles")
-        .select("resources, mbti, enneagram, instinct")
+        .select("resource_r, resource_x, resources, mbti, enneagram, instinct")
         .eq("id", user.id)
         .single();
       if (profileData) {
-        if (typeof profileData.resources === "number") {
+        if (typeof profileData.resource_r === "number") {
+          setResource(profileData.resource_r);
+        } else if (typeof profileData.resources === "number") {
           setResource(profileData.resources);
+        }
+        if (typeof profileData.resource_x === "number") {
+          setXResource(profileData.resource_x);
         }
         setProfile(profileData);
         setNeedsMainQuest(!profileData.mbti || !profileData.enneagram);
@@ -126,6 +131,9 @@ export default function World({ activeLayer = "Form" }) {
       if (e.detail && typeof e.detail.resource === "number") {
         setResource(e.detail.resource);
       }
+      if (e.detail && typeof e.detail.resourceX === "number") {
+        setXResource(e.detail.resourceX);
+      }
     };
     window.addEventListener("resourceChange", handler);
     return () => window.removeEventListener("resourceChange", handler);
@@ -133,17 +141,19 @@ export default function World({ activeLayer = "Form" }) {
 
   useEffect(() => {
     localStorage.setItem("resourceR", resource);
-    if (userId && navigator.onLine) {
-      supabaseClient
-        .from("profiles")
-        .update({ resources: resource })
-        .eq("id", userId);
-    }
-  }, [resource, userId]);
+  }, [resource]);
 
   useEffect(() => {
     localStorage.setItem("resourceX", xResource);
   }, [xResource]);
+
+  useEffect(() => {
+    if (!userId || !navigator.onLine) return;
+    supabaseClient
+      .from("profiles")
+      .update({ resource_r: resource, resource_x: xResource })
+      .eq("id", userId);
+  }, [resource, userId, xResource]);
 
   useEffect(() => {
     document.body.classList.add("world-page");
@@ -253,43 +263,57 @@ export default function World({ activeLayer = "Form" }) {
         )}
         {quests
           .filter((q) => !q.accepted && !q.completed)
-          .map((q) => (
-            <div key={q.id}>
-              <div className="quest-banner">
-                <div className="quest-info">
-                  <div className="quest-name">{q.name}</div>
-                  <div className="quest-quadrant">{q.quadrant}</div>
-                  {q.resource !== 0 && (
-                    <div className="quest-resource">
-                      {q.resource > 0 ? "+" : ""}
-                      {q.resource} <RIcon />
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {q.description && (
+          .map((q) => {
+            const rewardR = q.resource_r ?? q.resource ?? 0;
+            const rewardX = q.resource_x ?? 0;
+            return (
+              <div key={q.id}>
+                <div className="quest-banner">
+                  <div className="quest-info">
+                    <div className="quest-name">{q.name}</div>
+                    <div className="quest-quadrant">{q.quadrant}</div>
+                    {(rewardR !== 0 || rewardX !== 0) && (
+                      <div className="quest-resource">
+                        {rewardR !== 0 && (
+                          <span>
+                            {rewardR > 0 ? "+" : ""}
+                            {rewardR} <RIcon />
+                          </span>
+                        )}
+                        {rewardX !== 0 && (
+                          <span>
+                            {rewardX > 0 ? "+" : ""}
+                            {rewardX} <XIcon />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {q.description && (
+                      <button
+                        className="info-button"
+                        onClick={() =>
+                          setExpanded(expanded === q.id ? null : q.id)
+                        }
+                      >
+                        i
+                      </button>
+                    )}
                     <button
-                      className="info-button"
-                      onClick={() =>
-                        setExpanded(expanded === q.id ? null : q.id)
-                      }
+                      className="accept-button"
+                      onClick={() => acceptQuest(q.id)}
                     >
-                      i
+                      ✔
                     </button>
-                  )}
-                  <button
-                    className="accept-button"
-                    onClick={() => acceptQuest(q.id)}
-                  >
-                    ✔
-                  </button>
+                  </div>
                 </div>
+                {expanded === q.id && q.description && (
+                  <div className="quest-log">{q.description}</div>
+                )}
               </div>
-              {expanded === q.id && q.description && (
-                <div className="quest-log">{q.description}</div>
-              )}
-            </div>
-          ))}
+            );
+          })}
       </div>
       {showModal && (
         <QuestModal

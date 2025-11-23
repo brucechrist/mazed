@@ -4,6 +4,8 @@ create table if not exists profiles (
   username text unique not null,
   avatar_url text,
   resources int default 0,
+  resource_r int default 0,
+  resource_x int default 0,
   streaks int default 0,
   stats jsonb default '[5,5,5,5]'
 );
@@ -12,6 +14,18 @@ alter table profiles
   add column if not exists mbti text,
   add column if not exists enneagram text,
   add column if not exists instinct text;
+
+alter table profiles
+  add column if not exists resource_r int default 0,
+  add column if not exists resource_x int default 0;
+
+update profiles
+set resource_r = coalesce(resource_r, resources, 0)
+where resource_r is null;
+
+update profiles
+set resource_x = coalesce(resource_x, 0)
+where resource_x is null;
 
 -- Upgrade existing installations
 alter table profiles

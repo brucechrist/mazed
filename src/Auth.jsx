@@ -76,6 +76,8 @@ export default function Auth() {
           username: cleanName,
           avatar_url: null,
           resources: 0,
+          resource_r: 0,
+          resource_x: 0,
           streaks: 0,
           stats: [5, 5, 5, 5],
         });
