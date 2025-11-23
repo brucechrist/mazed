@@ -6,6 +6,7 @@ export default function QuestModal({ onAdd, onClose }) {
   const [description, setDescription] = useState('');
   const [quadrant, setQuadrant] = useState('II');
   const [resource, setResource] = useState(0);
+  const [resourceX, setResourceX] = useState(0);
   const [rarity, setRarity] = useState('C');
   const [urgent, setUrgent] = useState(false);
 
@@ -16,6 +17,8 @@ export default function QuestModal({ onAdd, onClose }) {
       description,
       quadrant,
       resource: parseInt(resource, 10) || 0,
+      resource_r: parseInt(resource, 10) || 0,
+      resource_x: parseInt(resourceX, 10) || 0,
       rarity,
       urgent,
       accepted: true,
@@ -56,6 +59,13 @@ export default function QuestModal({ onAdd, onClose }) {
           placeholder="Resource (+/-)"
           value={resource}
           onChange={(e) => setResource(e.target.value)}
+        />
+        <input
+          className="note-title"
+          type="number"
+          placeholder="Resource X (+/-)"
+          value={resourceX}
+          onChange={(e) => setResourceX(e.target.value)}
         />
         <label className="note-label">
           Rarity

@@ -110,7 +110,9 @@ export default function World({ activeLayer = "Form" }) {
         .eq("id", user.id)
         .single();
       if (profileData) {
-        if (typeof profileData.resources === "number") {
+        if (typeof profileData.resource_r === "number") {
+          setResource(profileData.resource_r);
+        } else if (typeof profileData.resources === "number") {
           setResource(profileData.resources);
         }
         if (typeof profileData.x_resources === "number") {
@@ -147,6 +149,14 @@ export default function World({ activeLayer = "Form" }) {
         .eq("id", userId);
     }
   }, [resource, xResource, userId]);
+
+  useEffect(() => {
+    if (!userId || !navigator.onLine) return;
+    supabaseClient
+      .from("profiles")
+      .update({ resource_r: resource, resource_x: xResource })
+      .eq("id", userId);
+  }, [resource, userId, xResource]);
 
   useEffect(() => {
     document.body.classList.add("world-page");
@@ -256,43 +266,57 @@ export default function World({ activeLayer = "Form" }) {
         )}
         {quests
           .filter((q) => !q.accepted && !q.completed)
-          .map((q) => (
-            <div key={q.id}>
-              <div className="quest-banner">
-                <div className="quest-info">
-                  <div className="quest-name">{q.name}</div>
-                  <div className="quest-quadrant">{q.quadrant}</div>
-                  {q.resource !== 0 && (
-                    <div className="quest-resource">
-                      {q.resource > 0 ? "+" : ""}
-                      {q.resource} <RIcon />
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {q.description && (
+          .map((q) => {
+            const rewardR = q.resource_r ?? q.resource ?? 0;
+            const rewardX = q.resource_x ?? 0;
+            return (
+              <div key={q.id}>
+                <div className="quest-banner">
+                  <div className="quest-info">
+                    <div className="quest-name">{q.name}</div>
+                    <div className="quest-quadrant">{q.quadrant}</div>
+                    {(rewardR !== 0 || rewardX !== 0) && (
+                      <div className="quest-resource">
+                        {rewardR !== 0 && (
+                          <span>
+                            {rewardR > 0 ? "+" : ""}
+                            {rewardR} <RIcon />
+                          </span>
+                        )}
+                        {rewardX !== 0 && (
+                          <span>
+                            {rewardX > 0 ? "+" : ""}
+                            {rewardX} <XIcon />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {q.description && (
+                      <button
+                        className="info-button"
+                        onClick={() =>
+                          setExpanded(expanded === q.id ? null : q.id)
+                        }
+                      >
+                        i
+                      </button>
+                    )}
                     <button
-                      className="info-button"
-                      onClick={() =>
-                        setExpanded(expanded === q.id ? null : q.id)
-                      }
+                      className="accept-button"
+                      onClick={() => acceptQuest(q.id)}
                     >
-                      i
+                      ✔
                     </button>
-                  )}
-                  <button
-                    className="accept-button"
-                    onClick={() => acceptQuest(q.id)}
-                  >
-                    ✔
-                  </button>
+                  </div>
                 </div>
+                {expanded === q.id && q.description && (
+                  <div className="quest-log">{q.description}</div>
+                )}
               </div>
-              {expanded === q.id && q.description && (
-                <div className="quest-log">{q.description}</div>
-              )}
-            </div>
-          ))}
+            );
+          })}
       </div>
       {showModal && (
         <QuestModal
